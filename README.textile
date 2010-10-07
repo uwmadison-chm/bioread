@@ -1,0 +1,44 @@
+h1. Libraries for reading BIOPAC files
+
+These utilities are for reading the files produced by BIOPAC's AcqKnowledge
+software. Much of the information is based on 
+"Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf
+from BIOPAC; however, the file format for 4.0 was determined through the
+tireless efforts of John Ollinger.
+
+Note: This package does not (yet) work with compressed files. Then again,
+neither does BIOPAC's file API. So there.
+
+This library is mostly concerned with getting you the data, and less so with
+interpreting all of the UI-related header values.
+
+h2. Usage
+
+Draft. May change hugely.
+
+>>> from bioread.readers import AcqReader
+>>> bpdata = AcqReader.read("myfile.acq")
+>>> bpdata.file_version
+44
+>>> len(bdata.channels)
+2
+>>> len(bdata.channels[0].data)
+10002
+>>> len(bdata.channels[1].data) # This channel is sampled at half the rate
+5001
+>>> bdata.channels[0].name
+CO2
+>>> bdata.channels[0].data[0]
+1.23
+>>> from bioread.writers import MatlabWriter
+>>> MatlabWriter.write("myfile.mat", bpdata) # Does "something sane"
+
+h2. Notes
+
+bioread is distributed under the GNU Public License, Version 2. For more
+details, see LICENSE.
+
+BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software
+have no affiliation with BIOPAC Systems, Inc, and that company does not
+endorse this software package.
+
