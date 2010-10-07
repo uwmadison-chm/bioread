@@ -1,21 +1,14 @@
 h1. Libraries for reading BIOPAC files
 
-These utilities are for reading the files produced by BIOPAC's AcqKnowledge
-software. Much of the information is based on 
-"Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf
-from BIOPAC; however, the file format for 4.0 was determined through the
-tireless efforts of John Ollinger.
+These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  "Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf from BIOPAC; however, the file format for 4.0 was determined through the tireless efforts of John Ollinger.
 
-Note: This package does not (yet) work with compressed files. Then again,
-neither does BIOPAC's file API. So there.
+Note: This package does not (yet) work with compressed files. Then again, neither does BIOPAC's file API. So there.
 
-This library is mostly concerned with getting you the data, and less so with
-interpreting all of the UI-related header values.
+This library is mostly concerned with getting you the data, and less so with interpreting all of the UI-related header values.
 
-h2. Usage
+h2. Usage (Draft. May change hugely.)
 
-Draft. May change hugely.
-
+bc.
 >>> from bioread.readers import AcqReader
 >>> bpdata = AcqReader.read("myfile.acq")
 >>> bpdata.file_version
