@@ -15,9 +15,13 @@ h2. Usage (Draft. May change hugely.)
 44
 >>> len(bdata.channels)
 2
+>>> bdata.channels[0].samples_per_second
+1000
 >>> len(bdata.channels[0].data)
 10002
->>> len(bdata.channels[1].data) # This channel is sampled at half the rate
+>>> bdata.channels[1].samples_per_second
+500
+>>> len(bdata.channels[1].data) 
 5001
 >>> bdata.channels[0].name
 CO2
@@ -26,7 +30,6 @@ CO2
 >>> from bioread.writers import MatlabWriter
 >>> MatlabWriter.write("myfile.mat", bpdata) # Does "something sane"
 </pre>
-
 
 h2. Notes
 
