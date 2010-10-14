@@ -48,6 +48,24 @@ class StructDict(object):
             output[name] = val
         return output
     
+    def labeled_offsets_lengths(self):
+        """
+        Primarily for debugging purposes: generate a list of byte offsets
+        and struct lengths, so you can see what fields are where. With, you
+        know, your hex editor.
+        """
+        table = []
+        build_fs = self.byte_order_flag
+        for name, fs in self.struct_info:
+            f_offset = struct.calcsize(build_fs)
+            f_len = struct.calcsize(self.byte_order_flag+fs)
+            build_fs += fs
+            table.append(
+            (name, fs, f_offset, f_len)
+            )
+            
+        return table
+    
     @property
     def format_string(self):
         s = ''.join([si[1] for si in self.struct_info])
