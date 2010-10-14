@@ -25,48 +25,37 @@ class AcqReader(object):
     # field_name, field_structure, first_version_included
     @property
     def _main_header_structure(self):
+        from file_versions import V_ALL, V_20a
         return [
-        ('nItemHeaderLen'           ,'h'    ,0 ),
-        ('iVersion'                 ,'i'    ,0 ),
-        ('iExtItemHeaderLen'        ,'i'    ,30),
-        ('nChannels'                ,'h'    ,30),
-        ('nHorizAxisType'           ,'h'    ,30),
-        ('nCurChannel'              ,'h'    ,30),
-        ('dSampleTime'              ,'d'    ,30),
-        ('dTimeOffset'              ,'d'    ,30),
-        ('dTimeScale'               ,'d'    ,30),
-        ('dTimeCursor1'             ,'d'    ,30),
-        ('dTimeCursor2'             ,'d'    ,30),
-        ('rcWindow'                 ,'8b'   ,30),
-        ('nMeasurement'             ,'6h'   ,30),
-        ('fHilite'                  ,'h'    ,30),
-        ('dFirstTimeOffset'         ,'d'    ,30),
-        ('nRescale'                 ,'h'    ,30),
-        ('szHorizUnits1'            ,'40s'  ,30),
-        ('szHorizUnits2'            ,'10s'  ,30),
-        ('nInMemory'                ,'h'    ,30),
-        ('fGrid'                    ,'h'    ,30),
-        ('fMarkers'                 ,'h'    ,30),
-        ('nPlotDraft'               ,'h'    ,30),
-        ('nDispMode'                ,'h'    ,30),
-        ('rRReserved'               ,'h'    ,30),
+        ('nItemHeaderLen'           ,'h'    ,V_ALL ),
+        ('iVersion'                 ,'i'    ,V_ALL ),
+        ('iExtItemHeaderLen'        ,'i'    ,V_20a ),
+        ('nChannels'                ,'h'    ,V_20a ),
+        ('nHorizAxisType'           ,'h'    ,V_20a ),
+        ('nCurChannel'              ,'h'    ,V_20a ),
+        ('dSampleTime'              ,'d'    ,V_20a ),
+        ('dTimeOffset'              ,'d'    ,V_20a ),
+        ('dTimeScale'               ,'d'    ,V_20a ),
+        ('dTimeCursor1'             ,'d'    ,V_20a ),
+        ('dTimeCursor2'             ,'d'    ,V_20a ),
+        ('rcWindow'                 ,'8b'   ,V_20a ),
+        ('nMeasurement'             ,'6h'   ,V_20a ),
+        ('fHilite'                  ,'h'    ,V_20a ),
+        ('dFirstTimeOffset'         ,'d'    ,V_20a ),
+        ('nRescale'                 ,'h'    ,V_20a ),
+        ('szHorizUnits1'            ,'40s'  ,V_20a ),
+        ('szHorizUnits2'            ,'10s'  ,V_20a ),
+        ('nInMemory'                ,'h'    ,V_20a ),
+        ('fGrid'                    ,'h'    ,V_20a ),
+        ('fMarkers'                 ,'h'    ,V_20a ),
+        ('nPlotDraft'               ,'h'    ,V_20a ),
+        ('nDispMode'                ,'h'    ,V_20a ),
+        ('rRReserved'               ,'h'    ,V_20a ),
         ]
     
     def _headers_for(self, hstruct, ver):
         return [hs for hs in hstruct if hs[2] >= ver]
-        
-    def _header_str_for(self, hstruct, ver, include_bof=True):
-        """ Generates a format string for header data such as '>hi' """
-        fmt_str = ''
-        if include_bof:
-            fmt_str = self.byte_order_flag
-        fmt_str += ''.join([hs[1] for hs in self._headers_for(hstruct, ver)])
-        return fmt_str
-    
-    def _main_header_str_for(self, ver, include_bof=True):
-        return self._header_str_for(
-            self._main_header_structure, ver, include_bof)
-    
+            
     def _main_headers_for(self, ver):
         return self._headers_for(self._main_header_structure, ver)
     
