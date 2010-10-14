@@ -6,7 +6,6 @@
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# 
 
 import struct
 
@@ -15,13 +14,16 @@ class StructDict(object):
     """
     This class allows you to declare a header's structure with name and size
     information, and then will unpack the struct into a dict. For example:
-
-    >>> sd = StructDict('>', [('version', 'h'),('xy_dim', '2b'), ('name', '5s')])
-    >>> sd.unpack('\x00\x01\x05\x10foo\x00\x00')
+    >>> header_structure = [
+        ('version', 'h'), ('xy_dim', '2b'), ('name', '5s')
+    ]
+    >>> sd = StructDict('>', header_structure)
+    >>> header_data = '\x00\x01\x05\x10foo\x00\x00'
+    >>> sd.unpack(header_data)
     {
         'version' : 1,
         'xy_dim' : (5, 16),
-        'name' : 'foo'
+        'name' : 'foo\x00\x00'
     }
     """
     
@@ -31,6 +33,9 @@ class StructDict(object):
         self.full_struct_info = None
     
     def unpack(self, data):
+        """
+        Return a dict with the unpacked data.
+        """
         self.__setup()
         unpacked = struct.unpack(self.format_string, data)
         output = {}
