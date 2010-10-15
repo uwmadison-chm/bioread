@@ -12,6 +12,8 @@ import struct
 from struct_dict import StructDict
 from file_versions import *
 
+# TODO: Factor out a reader for Pre-Version-4 files. Or something?
+
 class AcqReader(object):
     """ 
     Main class for reading AcqKnowledge files. You'll probably call it like:
@@ -29,8 +31,8 @@ class AcqReader(object):
     def _graph_header_structure(self):
         return [
         ('nItemHeaderLen'           ,'h'    ,V_ALL ),
-        ('iVersion'                 ,'i'    ,V_ALL ),
-        ('iExtItemHeaderLen'        ,'i'    ,V_20a ),
+        ('iVersion'                 ,'l'    ,V_ALL ),
+        ('iExtItemHeaderLen'        ,'l'    ,V_20a ),
         ('nChannels'                ,'h'    ,V_20a ),
         ('nHorizAxisType'           ,'h'    ,V_20a ),
         ('nCurChannel'              ,'h'    ,V_20a ),
@@ -52,6 +54,58 @@ class AcqReader(object):
         ('nPlotDraft'               ,'h'    ,V_20a ),
         ('nDispMode'                ,'h'    ,V_20a ),
         ('rRReserved'               ,'h'    ,V_20a ),
+        ('BShowToolBar'             ,'h'    ,V_30r ),
+        ('BShowChannelButtons'      ,'h'    ,V_30r ),
+        ('BShowMeasurements'        ,'h'    ,V_30r ),
+        ('BShowMarkers'             ,'h'    ,V_30r ),
+        ('BShowJournal'             ,'h'    ,V_30r ),
+        ('CurXChannel'              ,'h'    ,V_30r ),
+        ('MmtPrecision'             ,'h'    ,V_30r ),
+        ('NMeasurementRows'         ,'h'    ,V_303 ),
+        ('mmt40'                    ,'40h'  ,V_303 ),
+        ('mmtChan40'                ,'40h'  ,V_303 ),
+        ('MmtCalcOpnd1'             ,'40h'  ,V_35x ),
+        ('MmtCalcOpnd2'             ,'40h'  ,V_35x ),
+        ('MmtCalcOp'                ,'40h'  ,V_35x ),
+        ('MmtCalcConstant'          ,'40d'  ,V_35x ),
+        ('bNewGridWithMinor'        ,'l'    ,V_370 ),
+        ('colorMajorGrid'           ,'4B'   ,V_370 ),
+        ('colorMinorGrid'           ,'4B'   ,V_370 ),
+        ('wMajorGridStyle'          ,'h'    ,V_370 ),
+        ('wMinorGridStyle'          ,'h'    ,V_370 ),
+        ('wMajorGridWidth'          ,'h'    ,V_370 ),
+        ('wMinorGridWidth'          ,'h'    ,V_370 ),
+        ('bFixedUnitsDiv'           ,'l'    ,V_370 ),
+        ('bMid_Range_Show'          ,'l'    ,V_370 ),
+        ('dStart_Middle_Point'      ,'d'    ,V_370 ),
+        ('dOffset_Point'            ,'d'    ,V_370 ),
+        ('hGrid'                    ,'d'    ,V_370 ),
+        ('vGrid'                    ,'d'    ,V_370 ),
+        ('bEnableWaveTools'         ,'l'    ,V_370 ),
+        ('Reserved'                 ,'20b'  ,V_381 ),
+        ('bOverlapMode'             ,'l'    ,V_381 ),
+        ('bShowHardware'            ,'l'    ,V_381 ),
+        ('bXAutoPlot'               ,'l'    ,V_381 ),
+        ('bXAutoScroll'             ,'l'    ,V_381 ),
+        ('bStartButtonVisible'      ,'l'    ,V_381 ),
+        ('bCompressed'              ,'l'    ,V_381 ),
+        ('bAlwaysStartButtonVisible','l'    ,V_381 ),
+        ('pathVideo'                ,'260s' ,V_382 ),
+        ('optSyncDelay'             ,'l'    ,V_382 ),
+        ('syncDelay'                ,'d'    ,V_382 ),
+        ('bHRP_PasteMeasurements'   ,'l'    ,V_382 ),
+        ('graphType'                ,'l'    ,V_390 ),
+        ('mmtCalcExpr'              ,'10240s',V_390 ),
+        ('mmtMomentOrder'           ,'40l'  ,V_390 ),
+        ('mmtTimeDelay'             ,'40l'  ,V_390 ),
+        ('mmtEmbedDim'              ,'40l'  ,V_390 ),
+        ('mmtMIDelay'               ,'40l'  ,V_390 ),
+        ]
+    
+    @property
+    def _channel_header_structure(self):
+        [
+        ('iChanHeaderLen'           ,)
         ]
     
     def _headers_for(self, hstruct, ver):
