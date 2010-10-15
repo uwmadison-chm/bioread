@@ -104,8 +104,20 @@ class AcqReader(object):
     
     @property
     def _channel_header_structure(self):
-        [
-        ('iChanHeaderLen'           ,)
+        return [
+        ('lChanHeaderLen'           ,'l'    ,V_20a ),
+        ('nNum'                     ,'h'    ,V_20a ),
+        ('szCommentText'            ,'40s'  ,V_20a ),
+        ('rgbColor'                 ,'4B'   ,V_20a ),
+        ('nDispChan'                ,'h'    ,V_20a ),
+        ('dVoltOffset'              ,'d'    ,V_20a ),
+        ('dVoltScale'               ,'d'    ,V_20a ),
+        ('szUnitsText'              ,'20s'  ,V_20a ),
+        ('lBufLength'               ,'l'    ,V_20a ),
+        ('dAmplScale'               ,'d'    ,V_20a ),
+        ('dAmplOffset'              ,'d'    ,V_20a ),
+        ('nChanOrder'               ,'d'    ,V_20a ),
+        ('nDispSize'                ,'h'    ,V_20a )
         ]
     
     def _headers_for(self, hstruct, ver):
@@ -117,7 +129,17 @@ class AcqReader(object):
     def read(self):
         self.__setup()
         self.graph_header = self.__read_header(self.graph_header_sd, 0)
-    
+        self.channel_headers = []
+        channel_head_len = 0 # This will get changed!
+        for i in range(self.graph_header['nChannels']):
+            channel_offset = (
+                self.graph_header['lExtItemHeaderLen'] + i*channel_head_len)
+            channel_header = self.__read_header(
+                self.channel_header_sd, channel_offset)
+            # This will be the same for all channels; easier to set it for all
+            channel_head_len = channel_header['lChanHeaderLen']
+            self.channel_headers.append(channel_header)
+        
     def __setup(self):
         if self.byte_order_flag is not None:
             return
@@ -129,6 +151,11 @@ class AcqReader(object):
         graph_header = self._headers_for(
             self._graph_header_structure, self.file_version)
         self.graph_header_sd = StructDict(self.byte_order_flag, graph_header)
+
+        channel_header = self._headers_for(
+            self._channel_header_structure, self.file_version)
+        self.channel_header_sd = StructDict(
+            self.byte_order_flag, channel_header)
     
     def __read_header(self, struct_dict, offset):
         self.acq_file.seek(offset)
