@@ -31,8 +31,8 @@ class AcqReader(object):
     def _graph_header_structure(self):
         return [
         ('nItemHeaderLen'           ,'h'    ,V_ALL ),
-        ('iVersion'                 ,'l'    ,V_ALL ),
-        ('iExtItemHeaderLen'        ,'l'    ,V_20a ),
+        ('lVersion'                 ,'l'    ,V_ALL ),
+        ('lExtItemHeaderLen'        ,'l'    ,V_20a ),
         ('nChannels'                ,'h'    ,V_20a ),
         ('nHorizAxisType'           ,'h'    ,V_20a ),
         ('nCurChannel'              ,'h'    ,V_20a ),
