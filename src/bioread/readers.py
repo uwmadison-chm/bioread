@@ -9,6 +9,8 @@
 
 import struct
 
+from struct_dict import StructDict
+from file_versions import *
 
 class AcqReader(object):
     """ 
@@ -24,8 +26,7 @@ class AcqReader(object):
     # A list of tuples. Each tuple has three elements:
     # field_name, field_structure, first_version_included
     @property
-    def _main_header_structure(self):
-        from file_versions import V_ALL, V_20a
+    def _graph_header_structure(self):
         return [
         ('nItemHeaderLen'           ,'h'    ,V_ALL ),
         ('iVersion'                 ,'i'    ,V_ALL ),
@@ -38,7 +39,7 @@ class AcqReader(object):
         ('dTimeScale'               ,'d'    ,V_20a ),
         ('dTimeCursor1'             ,'d'    ,V_20a ),
         ('dTimeCursor2'             ,'d'    ,V_20a ),
-        ('rcWindow'                 ,'8b'   ,V_20a ),
+        ('rcWindow'                 ,'4h'   ,V_20a ),
         ('nMeasurement'             ,'6h'   ,V_20a ),
         ('fHilite'                  ,'h'    ,V_20a ),
         ('dFirstTimeOffset'         ,'d'    ,V_20a ),
@@ -54,20 +55,39 @@ class AcqReader(object):
         ]
     
     def _headers_for(self, hstruct, ver):
-        return [hs for hs in hstruct if hs[2] >= ver]
+        return [hs for hs in hstruct if hs[2] <= ver]
             
-    def _main_headers_for(self, ver):
-        return self._headers_for(self._main_header_structure, ver)
+    def _graph_headers_for(self, ver):
+        return self._headers_for(self._graph_header_structure, ver)
     
     def read(self):
-        pass
+        self.__setup()
+        self.graph_header = self.__read_header(self.graph_header_sd, 0)
     
-    def _set_order_and_version(self):
+    def __setup(self):
+        if self.byte_order_flag is not None:
+            return
+        # TODO: Extract this into a factory class
+        self.__set_order_and_version()
+        self.__build_header_struct_dicts()
+    
+    def __build_header_struct_dicts(self):
+        graph_header = self._headers_for(
+            self._graph_header_structure, self.file_version)
+        self.graph_header_sd = StructDict(self.byte_order_flag, graph_header)
+    
+    def __read_header(self, struct_dict, offset):
+        self.acq_file.seek(offset)
+        data = self.acq_file.read(struct_dict.len_bytes)
+        return struct_dict.unpack(data)
+        
+    def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
         # fashion. Version string should be a small, positive integer.
-        ver_fmt_str = self._main_header_str_for(0, False)
-        ver_len = struct.calcsize('<'+ver_fmt_str)
         self.acq_file.seek(0)
+        mh = self._graph_headers_for(V_ALL)
+        ver_fmt_str = ''.join([s[1] for s in mh])
+        ver_len = struct.calcsize('<'+ver_fmt_str)
         ver_data = self.acq_file.read(ver_len)
         
         byte_order_flags = ['<', '>']
@@ -85,17 +105,3 @@ class AcqReader(object):
         
         self.byte_order_flag = bp[1]
         self.file_version = bp[0]
-        
-
-def header_name_offsets(header_info):
-    """ 
-    For debugging purposes -- the documenataion from Biopac reports
-    offsets. This will let us know when we're following spec.
-    """
-    tab = []
-    for i in range(len(header_info)):
-        hparts = header_info[0:i]
-        fmt_str = '<'+''.join([hp[1] for hp in hparts])
-        tab.append((header_info[i][0], struct.calcsize(fmt_str)))
-    return tab
-        
