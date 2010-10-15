@@ -116,7 +116,7 @@ class AcqReader(object):
         ('lBufLength'               ,'l'    ,V_20a ),
         ('dAmplScale'               ,'d'    ,V_20a ),
         ('dAmplOffset'              ,'d'    ,V_20a ),
-        ('nChanOrder'               ,'d'    ,V_20a ),
+        ('nChanOrder'               ,'h'    ,V_20a ),
         ('nDispSize'                ,'h'    ,V_20a )
         ]
     
