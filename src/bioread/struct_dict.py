@@ -56,7 +56,8 @@ class StructDict(object):
         """
         table = []
         build_fs = self.byte_order_flag
-        for name, fs in self.struct_info:
+        for si in self.struct_info:
+            name, fs = si[0:2]
             f_offset = struct.calcsize(build_fs)
             f_len = struct.calcsize(self.byte_order_flag+fs)
             build_fs += fs
@@ -91,7 +92,8 @@ class StructDict(object):
         full_struct_info = []
         start_index = 0
         end_index = 0
-        for name, fs in self.struct_info:
+        for si in self.struct_info:
+            name, fs = si[0:2]
             tup_len = self.__unpacked_element_count(fs)
             end_index = start_index + tup_len
             full_struct_info.append((name, fs, start_index, end_index))
