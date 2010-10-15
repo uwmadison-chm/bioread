@@ -120,6 +120,20 @@ class AcqReader(object):
         ('nDispSize'                ,'h'    ,V_20a )
         ]
     
+    @property
+    def _foreign_header_structure(self):
+        return [
+        ('nLength'                  ,'h'    ,V_20a ),
+        ('nType'                    ,'h'    ,V_20a )
+        ]
+    
+    @property
+    def _channel_dtype_structure(self):
+        return [
+        ('nSize'                    ,'h'    ,V_20a ),
+        ('nType'                    ,'h'    ,V_20a )
+        ]
+    
     def _headers_for(self, hstruct, ver):
         return [hs for hs in hstruct if hs[2] <= ver]
             
@@ -130,15 +144,37 @@ class AcqReader(object):
         self.__setup()
         self.graph_header = self.__read_header(self.graph_header_sd, 0)
         self.channel_headers = []
+        num_channels = self.graph_header['nChannels']
+        graph_header_len = self.graph_header['lExtItemHeaderLen']
         channel_head_len = 0 # This will get changed!
-        for i in range(self.graph_header['nChannels']):
-            channel_offset = (
-                self.graph_header['lExtItemHeaderLen'] + i*channel_head_len)
+        for i in range(num_channels):
+            channel_offset = graph_header_len + i*channel_head_len
             channel_header = self.__read_header(
                 self.channel_header_sd, channel_offset)
             # This will be the same for all channels; easier to set it for all
             channel_head_len = channel_header['lChanHeaderLen']
             self.channel_headers.append(channel_header)
+
+        foreign_header_offset = (
+            graph_header_len + num_channels*channel_head_len)
+        self.foreign_header = self.__read_header(
+            self.foreign_header_sd, foreign_header_offset)
+        foreign_header_len = self.foreign_header['nLength']
+        
+        channel_dtype_offset = foreign_header_offset + foreign_header_len
+        channel_dtype_len = self.channel_dtype_header_sd.len_bytes
+        for i in range(num_channels):
+            offset = channel_dtype_offset + i*channel_dtype_len
+            dt_header = self.__read_header(
+                self.channel_dtype_header_sd, offset
+            )
+            # Add these to the existing channel structure
+            for name, val in dt_header.iteritems():
+                self.channel_headers[i][name] = val
+        
+        self.data_start_offset = (
+            channel_dtype_offset + num_channels * channel_dtype_len)
+        
         
     def __setup(self):
         if self.byte_order_flag is not None:
@@ -156,6 +192,16 @@ class AcqReader(object):
             self._channel_header_structure, self.file_version)
         self.channel_header_sd = StructDict(
             self.byte_order_flag, channel_header)
+        
+        foreign_header = self._headers_for(
+            self._foreign_header_structure, self.file_version)
+        self.foreign_header_sd = StructDict(
+            self.byte_order_flag, foreign_header)
+        
+        channel_dtype_header = self._headers_for(
+            self._channel_dtype_structure, self.file_version)
+        self.channel_dtype_header_sd = StructDict(
+            self.byte_order_flag, channel_dtype_header)
     
     def __read_header(self, struct_dict, offset):
         self.acq_file.seek(offset)
