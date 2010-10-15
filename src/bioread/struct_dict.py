@@ -68,6 +68,14 @@ class StructDict(object):
         return table
     
     @property
+    def len_bytes(self):
+        return struct.calcsize(self.format_string)
+    
+    @property
+    def len_elements(self):
+        return len(self.struct_info)
+    
+    @property
     def format_string(self):
         s = ''.join([si[1] for si in self.struct_info])
         return self.__bof_fs(s)
