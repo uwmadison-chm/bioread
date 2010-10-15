@@ -21,9 +21,9 @@ class StructDict(object):
     >>> header_data = '\x00\x01\x05\x10foo\x00\x00'
     >>> sd.unpack(header_data)
     {
-        'version' : 1,
+        'version' : 1,     # Single-length elements are de-tupelized
         'xy_dim' : (5, 16),
-        'name' : 'foo\x00\x00'
+        'name' : 'foo'     # Strings get trailing nulls trimmed
     }
     """
     
@@ -45,6 +45,8 @@ class StructDict(object):
                 val = unpacked[start_index]
             else:
                 val = unpacked[start_index:end_index]
+            if type(val) == str:
+                val = val.replace('\x00', '')
             output[name] = val
         return output
     
