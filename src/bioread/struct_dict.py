@@ -61,9 +61,7 @@ class StructDict(object):
             f_offset = struct.calcsize(build_fs)
             f_len = struct.calcsize(self.byte_order_flag+fs)
             build_fs += fs
-            table.append(
-            (name, fs, f_offset, f_len)
-            )
+            table.append((name, fs, f_offset, f_len))
             
         return table
     
