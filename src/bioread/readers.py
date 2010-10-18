@@ -13,136 +13,19 @@ from struct_dict import StructDict
 from headers import Header
 from file_versions import *
 
-# TODO: Factor out a reader for Pre-Version-4 files. Or something?
 
-class AcqReader(object):
-    """ 
-    Main class for reading AcqKnowledge files. You'll probably call it like:
-    >>> data = AcqReader.read("some_file.acq")
-    """
-    
-    def __init__(self, acq_file):
+class VersionedReader(object):
+    def __init__(self, acq_file=None, byte_order_flag=None, file_version=None):
         self.acq_file = acq_file
-        # This must be set by _set_order_and_version
-        self.byte_order_flag = None
-    
-    # A list of tuples. Each tuple has three elements:
-    # field_name, field_structure, first_version_included
-    @property
-    def _graph_header_structure(self):
-        return [
-        ('nItemHeaderLen'           ,'h'    ,V_ALL ),
-        ('lVersion'                 ,'l'    ,V_ALL ),
-        ('lExtItemHeaderLen'        ,'l'    ,V_20a ),
-        ('nChannels'                ,'h'    ,V_20a ),
-        ('nHorizAxisType'           ,'h'    ,V_20a ),
-        ('nCurChannel'              ,'h'    ,V_20a ),
-        ('dSampleTime'              ,'d'    ,V_20a ),
-        ('dTimeOffset'              ,'d'    ,V_20a ),
-        ('dTimeScale'               ,'d'    ,V_20a ),
-        ('dTimeCursor1'             ,'d'    ,V_20a ),
-        ('dTimeCursor2'             ,'d'    ,V_20a ),
-        ('rcWindow'                 ,'4h'   ,V_20a ),
-        ('nMeasurement'             ,'6h'   ,V_20a ),
-        ('fHilite'                  ,'h'    ,V_20a ),
-        ('dFirstTimeOffset'         ,'d'    ,V_20a ),
-        ('nRescale'                 ,'h'    ,V_20a ),
-        ('szHorizUnits1'            ,'40s'  ,V_20a ),
-        ('szHorizUnits2'            ,'10s'  ,V_20a ),
-        ('nInMemory'                ,'h'    ,V_20a ),
-        ('fGrid'                    ,'h'    ,V_20a ),
-        ('fMarkers'                 ,'h'    ,V_20a ),
-        ('nPlotDraft'               ,'h'    ,V_20a ),
-        ('nDispMode'                ,'h'    ,V_20a ),
-        ('rRReserved'               ,'h'    ,V_20a ),
-        ('BShowToolBar'             ,'h'    ,V_30r ),
-        ('BShowChannelButtons'      ,'h'    ,V_30r ),
-        ('BShowMeasurements'        ,'h'    ,V_30r ),
-        ('BShowMarkers'             ,'h'    ,V_30r ),
-        ('BShowJournal'             ,'h'    ,V_30r ),
-        ('CurXChannel'              ,'h'    ,V_30r ),
-        ('MmtPrecision'             ,'h'    ,V_30r ),
-        ('NMeasurementRows'         ,'h'    ,V_303 ),
-        ('mmt40'                    ,'40h'  ,V_303 ),
-        ('mmtChan40'                ,'40h'  ,V_303 ),
-        ('MmtCalcOpnd1'             ,'40h'  ,V_35x ),
-        ('MmtCalcOpnd2'             ,'40h'  ,V_35x ),
-        ('MmtCalcOp'                ,'40h'  ,V_35x ),
-        ('MmtCalcConstant'          ,'40d'  ,V_35x ),
-        ('bNewGridWithMinor'        ,'l'    ,V_370 ),
-        ('colorMajorGrid'           ,'4B'   ,V_370 ),
-        ('colorMinorGrid'           ,'4B'   ,V_370 ),
-        ('wMajorGridStyle'          ,'h'    ,V_370 ),
-        ('wMinorGridStyle'          ,'h'    ,V_370 ),
-        ('wMajorGridWidth'          ,'h'    ,V_370 ),
-        ('wMinorGridWidth'          ,'h'    ,V_370 ),
-        ('bFixedUnitsDiv'           ,'l'    ,V_370 ),
-        ('bMid_Range_Show'          ,'l'    ,V_370 ),
-        ('dStart_Middle_Point'      ,'d'    ,V_370 ),
-        ('dOffset_Point'            ,'d'    ,V_370 ),
-        ('hGrid'                    ,'d'    ,V_370 ),
-        ('vGrid'                    ,'d'    ,V_370 ),
-        ('bEnableWaveTools'         ,'l'    ,V_370 ),
-        ('Reserved'                 ,'20b'  ,V_381 ),
-        ('bOverlapMode'             ,'l'    ,V_381 ),
-        ('bShowHardware'            ,'l'    ,V_381 ),
-        ('bXAutoPlot'               ,'l'    ,V_381 ),
-        ('bXAutoScroll'             ,'l'    ,V_381 ),
-        ('bStartButtonVisible'      ,'l'    ,V_381 ),
-        ('bCompressed'              ,'l'    ,V_381 ),
-        ('bAlwaysStartButtonVisible','l'    ,V_381 ),
-        ('pathVideo'                ,'260s' ,V_382 ),
-        ('optSyncDelay'             ,'l'    ,V_382 ),
-        ('syncDelay'                ,'d'    ,V_382 ),
-        ('bHRP_PasteMeasurements'   ,'l'    ,V_382 ),
-        ('graphType'                ,'l'    ,V_390 ),
-        ('mmtCalcExpr'              ,'10240s',V_390 ),
-        ('mmtMomentOrder'           ,'40l'  ,V_390 ),
-        ('mmtTimeDelay'             ,'40l'  ,V_390 ),
-        ('mmtEmbedDim'              ,'40l'  ,V_390 ),
-        ('mmtMIDelay'               ,'40l'  ,V_390 ),
-        ]
-    
-    @property
-    def _channel_header_structure(self):
-        return [
-        ('lChanHeaderLen'           ,'l'    ,V_20a ),
-        ('nNum'                     ,'h'    ,V_20a ),
-        ('szCommentText'            ,'40s'  ,V_20a ),
-        ('rgbColor'                 ,'4B'   ,V_20a ),
-        ('nDispChan'                ,'h'    ,V_20a ),
-        ('dVoltOffset'              ,'d'    ,V_20a ),
-        ('dVoltScale'               ,'d'    ,V_20a ),
-        ('szUnitsText'              ,'20s'  ,V_20a ),
-        ('lBufLength'               ,'l'    ,V_20a ),
-        ('dAmplScale'               ,'d'    ,V_20a ),
-        ('dAmplOffset'              ,'d'    ,V_20a ),
-        ('nChanOrder'               ,'h'    ,V_20a ),
-        ('nDispSize'                ,'h'    ,V_20a )
-        ]
-    
-    @property
-    def _foreign_header_structure(self):
-        return [
-        ('nLength'                  ,'h'    ,V_20a ),
-        ('nType'                    ,'h'    ,V_20a ),
-        ]
-    
-    @property
-    def _channel_dtype_structure(self):
-        return [
-        ('nSize'                    ,'h'    ,V_20a ),
-        ('nType'                    ,'h'    ,V_20a )
-        ]
-    
-    def _headers_for(self, hstruct, ver):
-        return [hs for hs in hstruct if hs[2] <= ver]
-            
-    def _graph_headers_for(self, ver):
-        return self._headers_for(self._graph_header_structure, ver)
-    
+        self.byte_order_flag = byte_order_flag
+        self.file_version = file_version
+
     def read(self):
-        self.__setup()
+        """ 
+        Right now, do the simplest thing that'll create the data structures
+        we want. Soon, create a proper biopac.Datafile structure with Channels
+        and such.
+        """
         self.graph_header = self.__read_header(self.graph_header_sd, 0)
         self.channel_headers = []
         num_channels = self.graph_header['nChannels']
@@ -161,7 +44,7 @@ class AcqReader(object):
         self.foreign_header = self.__read_header(
             self.foreign_header_sd, foreign_header_offset)
         foreign_header_len = self.foreign_header['nLength']
-        
+
         channel_dtype_offset = foreign_header_offset + foreign_header_len
         channel_dtype_len = self.channel_dtype_header_sd.len_bytes
         self.channel_dtype_headers = []
@@ -171,43 +54,33 @@ class AcqReader(object):
                 self.channel_dtype_header_sd, offset
             )
             self.channel_dtype_headers.append(dt_header)
-        
+
         self.data_start_offset = (
             channel_dtype_offset + num_channels * channel_dtype_len)
-        
-        
+
+    
+    def __read_header(self, struct_dict, offset):
+        h = Header(struct_dict)
+        h.unpack_from_file(self.acq_file, offset)
+        return h        
+
+class AcqReader(VersionedReader):
+    """ 
+    Main class for reading AcqKnowledge files. You'll probably call it like:
+    >>> data = AcqReader.read("some_file.acq")
+    """
+    
+    def __init__(self, acq_file):
+        self.acq_file = acq_file
+        # This must be set by _set_order_and_version
+        self.byte_order_flag = None
+
     def __setup(self):
         if self.byte_order_flag is not None:
             return
         # TODO: Extract this into a factory class
         self.__set_order_and_version()
-        self.__build_header_struct_dicts()
-    
-    def __build_header_struct_dicts(self):
-        graph_header = self._headers_for(
-            self._graph_header_structure, self.file_version)
-        self.graph_header_sd = StructDict(self.byte_order_flag, graph_header)
 
-        channel_header = self._headers_for(
-            self._channel_header_structure, self.file_version)
-        self.channel_header_sd = StructDict(
-            self.byte_order_flag, channel_header)
-        
-        foreign_header = self._headers_for(
-            self._foreign_header_structure, self.file_version)
-        self.foreign_header_sd = StructDict(
-            self.byte_order_flag, foreign_header)
-        
-        channel_dtype_header = self._headers_for(
-            self._channel_dtype_structure, self.file_version)
-        self.channel_dtype_header_sd = StructDict(
-            self.byte_order_flag, channel_dtype_header)
-    
-    def __read_header(self, struct_dict, offset):
-        h = Header(struct_dict)
-        h.unpack_from_file(self.acq_file, offset)
-        return h
-        
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
         # fashion. Version string should be a small, positive integer.
