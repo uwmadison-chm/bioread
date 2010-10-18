@@ -50,7 +50,7 @@ class Header(object):
         return str(self.data)
 
 
-def VersionedHeaderStructure(object):
+class VersionedHeaderStructure(object):
     def __init__(self, *structure_elements):
         self.structure_elements = structure_elements
     
@@ -58,7 +58,7 @@ def VersionedHeaderStructure(object):
         return [se for se in self.structure_elements if se[2] <= version]
         
 
-def BiopacHeader(Header):
+class BiopacHeader(Header):
     """
     A simple superclass for GraphHeader, ChannelHeader, and friends.
     """
@@ -72,7 +72,7 @@ def BiopacHeader(Header):
     def __h_elts(self):
         return VersionedHeaderStructure()
 
-def GraphHeader(BiopacHeader):
+class GraphHeader(BiopacHeader):
     """
     The main Graph Header for an AcqKnowledge file. Note that this is known
     to be wrong for more modern files -- but for the purposes of this
@@ -162,7 +162,7 @@ def GraphHeader(BiopacHeader):
         )
 
 
-def ChannelHeader(BiopacHeader):
+class ChannelHeader(BiopacHeader):
     """
     The main Channel Header for an AcqKnowledge file. Note that this is known
     to be wrong for more modern files -- but for the purposes of this
@@ -194,7 +194,7 @@ def ChannelHeader(BiopacHeader):
         ('nDispSize'                ,'h'    ,V_20a ),
         )
 
-def ForeignHeaderPre46(BiopacHeader):
+class ForeignHeaderPre46(BiopacHeader):
     """
     The "Foreign Data" header for an AcqKnowledge file. This one is valid
     for old files, before Revision 46. Newer versions have a different
@@ -214,14 +214,14 @@ def ForeignHeaderPre46(BiopacHeader):
         ('nType'                    ,'h'    ,V_20a ),
         )
 
-def ForeignHeader78to83(BiopacHeader):
+class ForeignHeader78to83(BiopacHeader):
     """
     The "Foreign Data" header for an AcqKnowledge file. This one is valid
     for files between Rev 78 and rev 83. Newer versions have a different
     effective_length.
     """
     def __init__(self, file_version, byte_order_flag):
-        super(ForeignHeaderPre46, self).__init__(file_version, byte_order_flag)
+        super(ForeignHeader78to83, self).__init__(file_version, byte_order_flag)
     
     @property
     def effective_length(self):
@@ -234,5 +234,19 @@ def ForeignHeader78to83(BiopacHeader):
         ('nType'                    ,'h'    ,V_400 ),
         ('lReserved'                ,'l'    ,V_400 ),
         ('lLengthExtended'          ,'l'    ,V_400 ),
+        )
+    
+
+class ForeignHeader84(BiopacHeader):
+    """
+    The "Foreign Data" ehader for a newish AcqKnowledge file. 
+    """
+    
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('nLength'                  ,'h'    ,V_400 ),
+        ('nType'                    ,'h'    ,V_400 ),
+        ('lReserved'                ,'l'    ,V_400 ),
         )
     
