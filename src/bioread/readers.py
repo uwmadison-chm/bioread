@@ -10,6 +10,7 @@
 import struct
 
 from struct_dict import StructDict
+from headers import Header
 from file_versions import *
 
 # TODO: Factor out a reader for Pre-Version-4 files. Or something?
@@ -124,7 +125,7 @@ class AcqReader(object):
     def _foreign_header_structure(self):
         return [
         ('nLength'                  ,'h'    ,V_20a ),
-        ('nType'                    ,'h'    ,V_20a )
+        ('nType'                    ,'h'    ,V_20a ),
         ]
     
     @property
@@ -163,14 +164,13 @@ class AcqReader(object):
         
         channel_dtype_offset = foreign_header_offset + foreign_header_len
         channel_dtype_len = self.channel_dtype_header_sd.len_bytes
+        self.channel_dtype_headers = []
         for i in range(num_channels):
             offset = channel_dtype_offset + i*channel_dtype_len
             dt_header = self.__read_header(
                 self.channel_dtype_header_sd, offset
             )
-            # Add these to the existing channel structure
-            for name, val in dt_header.iteritems():
-                self.channel_headers[i][name] = val
+            self.channel_dtype_headers.append(dt_header)
         
         self.data_start_offset = (
             channel_dtype_offset + num_channels * channel_dtype_len)
@@ -204,9 +204,9 @@ class AcqReader(object):
             self.byte_order_flag, channel_dtype_header)
     
     def __read_header(self, struct_dict, offset):
-        self.acq_file.seek(offset)
-        data = self.acq_file.read(struct_dict.len_bytes)
-        return struct_dict.unpack(data)
+        h = Header(struct_dict)
+        h.unpack_from_file(self.acq_file, offset)
+        return h
         
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
