@@ -7,10 +7,8 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-import struct
-
 from struct_dict import StructDict
-
+from file_versions import *
 
 class Header(object):
     """
@@ -24,13 +22,13 @@ class Header(object):
     
     def unpack_from_str(self, str_data):
         self.raw_data = str_data
-        return self.__unpack_data()
+        self.__unpack_data()
         
     def unpack_from_file(self, data_file, offset):
         self.offset = offset
         data_file.seek(offset)
         self.raw_data = data_file.read(self.struct_dict.len_bytes)
-        return self.__unpack_data()
+        self.__unpack_data()
     
     @property
     def effective_len_bytes(self):
@@ -38,10 +36,13 @@ class Header(object):
         This will be overridden frequently -- it's used in navigating files.
         """
         return self.struct_dict.len_bytes
+
+    @property
+    def format_string(self):
+        return self.struct_dict.format_string
     
     def __unpack_data(self):
         self.data = self.struct_dict.unpack(self.raw_data)
-        return self.data
     
     def __getitem__(self, key):
         return self.data[key]
@@ -54,23 +55,22 @@ class VersionedHeaderStructure(object):
     def __init__(self, *structure_elements):
         self.structure_elements = structure_elements
     
-    def elements_for(version):
+    def elements_for(self, version):
         return [se for se in self.structure_elements if se[2] <= version]
-        
+    
 
 class BiopacHeader(Header):
     """
     A simple superclass for GraphHeader, ChannelHeader, and friends.
     """
-    def __init__(self, file_version, byte_order_flag):
+    def __init__(self, header_structure, file_version, byte_order_flag):
         self.file_version = file_version
         self.byte_order_flag = byte_order_flag
-        sd = StructDict(self.__h_elts.elements_for(file_version))
+        self.header_structure = header_structure
+        sd = StructDict(
+            byte_order_flag, header_structure.elements_for(file_version))
         super(BiopacHeader, self).__init__(sd)
-    
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure()
+
 
 class GraphHeader(BiopacHeader):
     """
@@ -80,7 +80,8 @@ class GraphHeader(BiopacHeader):
     our way around.
     """
     def __init__(self, file_version, byte_order_flag):
-        super(GraphHeader, self).__init__(file_version, byte_order_flag)
+        super(GraphHeader, self).__init__(
+            self.__h_elts, file_version, byte_order_flag)
     
     @property
     def effective_len_bytes(self):
@@ -170,10 +171,11 @@ class ChannelHeader(BiopacHeader):
     our way around.
     """
     def __init__(self, file_version, byte_order_flag):
-        super(ChannelHeader, self).__init__(file_version, byte_order_flag)
+        super(ChannelHeader, self).__init__(
+            self.__h_elts, file_version, byte_order_flag)
     
     @property
-    def effective_length(self):
+    def effective_len_bytes(self):
         return self.data['lChanHeaderLen']
     
     @property
@@ -194,59 +196,76 @@ class ChannelHeader(BiopacHeader):
         ('nDispSize'                ,'h'    ,V_20a ),
         )
 
-class ForeignHeaderPre46(BiopacHeader):
+
+class ForeignHeader(BiopacHeader):
     """
-    The "Foreign Data" header for an AcqKnowledge file. This one is valid
-    for old files, before Revision 46. Newer versions have a different
-    effective_length.
+    The Foreign Data header for AcqKnowledge files. This does some tricky
+    stuff based on file versions, ultimately to correctly determine
+    the effective length.
     """
     def __init__(self, file_version, byte_order_flag):
-        super(ForeignHeaderPre46, self).__init__(file_version, byte_order_flag)
+        self.file_version = file_version
+        super(ForeignHeader, self).__init__(
+            self.__h_elts, file_version, byte_order_flag)
+
+    @property
+    def __version_bin(self):
+        bin = 'Unknown'
+        if self.file_version <= V_390:
+            bin = "PRE_4"
+        elif self.file_version < V_411:
+            bin = "EARLY_4"
+        else:
+            bin = "LATE_4"
+        return bin
     
     @property
-    def effective_length(self):
-        return self.data['nLength']
+    def effective_len_bytes(self):
+        return self.__effective_len_byte_versions[self.__version_bin]()
     
     @property
     def __h_elts(self):
+        return self.__h_elt_versions[self.__version_bin]
+    
+    @property
+    def __effective_len_byte_versions(self):
+        # Make a hash of functions so we don't evaluate all code paths
+        return {
+            "PRE_4"     : lambda: self.data['nLength'],
+            "EARLY_4"   : lambda: self.data['lLengthExtended'] + 8,
+            "LATE_4"    : lambda: self.data['nLength'] + 8 # always correct?
+        }
+    
+    @property
+    def __h_elt_versions(self):
+        return {
+            "PRE_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_20a ),
+                ('nType'                    ,'h'    ,V_20a ),
+            ),
+            "EARLY_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_400 ),
+                ('nType'                    ,'h'    ,V_400 ),
+                ('lReserved'                ,'l'    ,V_400 ),
+                ('lLengthExtended'          ,'l'    ,V_400 ),
+            ),
+            "LATE_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_400 ),
+                ('nType'                    ,'h'    ,V_400 ),
+                ('lReserved'                ,'l'    ,V_400 ),
+            )
+        }
+
+
+class ChannelDTypeHeader(BiopacHeader):
+    def __init__(self, file_version, byte_order_flag):
+        super(ChannelDTypeHeader, self).__init__(
+            self.__h_elts, file_version, byte_order_flag)
+    
+    @property
+    def __h_elts(self):
+        # This lets the standard effective_len_bytes work fine, I think.
         return VersionedHeaderStructure(
-        ('nLength'                  ,'h'    ,V_20a ),
+        ('nSize'                    ,'h'    ,V_20a ),
         ('nType'                    ,'h'    ,V_20a ),
         )
-
-class ForeignHeader78to83(BiopacHeader):
-    """
-    The "Foreign Data" header for an AcqKnowledge file. This one is valid
-    for files between Rev 78 and rev 83. Newer versions have a different
-    effective_length.
-    """
-    def __init__(self, file_version, byte_order_flag):
-        super(ForeignHeader78to83, self).__init__(file_version, byte_order_flag)
-    
-    @property
-    def effective_length(self):
-        return self.data['lLengthExtended'] + 8 # add lengths of prev elements
-    
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('nLength'                  ,'h'    ,V_400 ),
-        ('nType'                    ,'h'    ,V_400 ),
-        ('lReserved'                ,'l'    ,V_400 ),
-        ('lLengthExtended'          ,'l'    ,V_400 ),
-        )
-    
-
-class ForeignHeader84(BiopacHeader):
-    """
-    The "Foreign Data" ehader for a newish AcqKnowledge file. 
-    """
-    
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('nLength'                  ,'h'    ,V_400 ),
-        ('nType'                    ,'h'    ,V_400 ),
-        ('lReserved'                ,'l'    ,V_400 ),
-        )
-    
