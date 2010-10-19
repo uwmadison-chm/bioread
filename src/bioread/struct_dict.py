@@ -12,12 +12,18 @@ import struct
 
 class StructDict(object):
     """
-    This class allows you to declare a header's structure with name and size
-    information, and then will unpack the struct into a dict. For example:
+    This class allows you to declare a binary file's header structure with 
+    name and type information, and then will unpack the header into a
+    dictionary.
+    For example:
     >>> header_structure = [
         ('version', 'h'), ('xy_dim', '2b'), ('name', '5s')
     ]
     >>> sd = StructDict('>', header_structure)
+    >>> sd.format_string
+    'h2b5s'
+    >>> sd.len_bytes
+    9
     >>> header_data = '\x00\x01\x05\x10foo\x00\x00'
     >>> sd.unpack(header_data)
     {
@@ -53,8 +59,18 @@ class StructDict(object):
     def labeled_offsets_lengths(self):
         """
         Primarily for debugging purposes: generate a list of byte offsets
-        and struct lengths, so you can see what fields are where. With, you
-        know, your hex editor.
+        and struct lengths, so you can see what fields are where. Then you
+        can explore with your hex editor, or compare against spec, or whatever.
+        
+        Example:
+        
+        >>> sd = StructDict('>', [('version', 'h'), ('header_len', 'l')])
+        >>> sd.labeled_offsete_lengths()
+        [
+            ('version', 'h', 0, 2),
+            ('header_len', 'l', 2, 4)
+        ]
+        
         """
         table = []
         build_fs = self.byte_order_flag
