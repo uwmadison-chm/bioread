@@ -171,8 +171,18 @@ class ChannelHeader(BiopacHeader):
     our way around.
     """
     def __init__(self, file_version, byte_order_flag):
+        self.file_version = file_version
         super(ChannelHeader, self).__init__(
             self.__h_elts, file_version, byte_order_flag)
+    
+    @property
+    def __version_bin(self):
+        bin = 'Unknown'
+        if self.file_version < V_400:
+            bin = 'PRE_4'
+        else:
+            bin = 'POST_4'
+        return bin
     
     @property
     def effective_len_bytes(self):
@@ -180,21 +190,52 @@ class ChannelHeader(BiopacHeader):
     
     @property
     def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lChanHeaderLen'           ,'l'    ,V_20a ),
-        ('nNum'                     ,'h'    ,V_20a ),
-        ('szCommentText'            ,'40s'  ,V_20a ),
-        ('rgbColor'                 ,'4B'   ,V_20a ),
-        ('nDispChan'                ,'h'    ,V_20a ),
-        ('dVoltOffset'              ,'d'    ,V_20a ),
-        ('dVoltScale'               ,'d'    ,V_20a ),
-        ('szUnitsText'              ,'20s'  ,V_20a ),
-        ('lBufLength'               ,'l'    ,V_20a ),
-        ('dAmplScale'               ,'d'    ,V_20a ),
-        ('dAmplOffset'              ,'d'    ,V_20a ),
-        ('nChanOrder'               ,'h'    ,V_20a ),
-        ('nDispSize'                ,'h'    ,V_20a ),
-        )
+        return self.__h_elt_versions[self.__version_bin]
+    
+    @property
+    def __h_elt_versions(self):
+        return {
+            'PRE_4' : VersionedHeaderStructure(
+                ('lChanHeaderLen'           ,'l'    ,V_20a ),
+                ('nNum'                     ,'h'    ,V_20a ),
+                ('szCommentText'            ,'40s'  ,V_20a ),
+                ('rgbColor'                 ,'4B'   ,V_20a ),
+                ('nDispChan'                ,'h'    ,V_20a ),
+                ('dVoltOffset'              ,'d'    ,V_20a ),
+                ('dVoltScale'               ,'d'    ,V_20a ),
+                ('szUnitsText'              ,'20s'  ,V_20a ),
+                ('lBufLength'               ,'l'    ,V_20a ),
+                ('dAmplScale'               ,'d'    ,V_20a ),
+                ('dAmplOffset'              ,'d'    ,V_20a ),
+                ('nChanOrder'               ,'h'    ,V_20a ),
+                ('nDispSize'                ,'h'    ,V_20a ),
+                ('plotMode'                 ,'h'    ,V_30r ),
+                ('vMid'                     ,'d'    ,V_30r ),
+                ('szDescription'            ,'128s' ,V_370 ),
+                ('nVarSampleDivider'        ,'h'    ,V_370 ),
+                ('vertPrecision'            ,'h'    ,V_373 ),
+                ('activeSegmentColor'       ,'4b'   ,V_382 ),
+                ('activeSegmentStyle'       ,'l'    ,V_382 ),
+            ),
+            'POST_4' : VersionedHeaderStructure(
+                ('lChanHeaderLen'           ,'l'    ,V_20a ),
+                ('nNum'                     ,'h'    ,V_20a ),
+                ('szCommentText'            ,'40s'  ,V_20a ),
+                ('notColor'                 ,'4B'   ,V_20a ),
+                ('nDispChan'                ,'h'    ,V_20a ),
+                ('dVoltOffset'              ,'d'    ,V_20a ),
+                ('dVoltScale'               ,'d'    ,V_20a ),
+                ('szUnitsText'              ,'20s'  ,V_20a ),
+                ('lBufLength'               ,'l'    ,V_20a ),
+                ('dAmplScale'               ,'d'    ,V_20a ),
+                ('dAmplOffset'              ,'d'    ,V_20a ),
+                ('nChanOrder'               ,'h'    ,V_20a ),
+                ('nDispSize'                ,'h'    ,V_20a ),
+                ('unknown'                  ,'40s'  ,V_400 ),
+                ('nVarSampleDivider'        ,'h'    ,V_400 ),
+            )
+        }
+    
 
 
 class ForeignHeader(BiopacHeader):
