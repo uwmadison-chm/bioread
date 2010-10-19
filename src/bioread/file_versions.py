@@ -15,4 +15,6 @@ V_382=43
 V_38P=44
 V_390=45
 V_400=78 # Unsure about exact version... but this is Post-Some-Big-Change.
+V_41a=80 # I'm honestly guessing about this one.
+V_410=83
 V_411=84

@@ -213,7 +213,7 @@ class ForeignHeader(BiopacHeader):
         bin = 'Unknown'
         if self.file_version <= V_390:
             bin = "PRE_4"
-        elif self.file_version < V_411:
+        elif self.file_version < V_41a:
             bin = "EARLY_4"
         else:
             bin = "LATE_4"
