@@ -29,6 +29,14 @@ class AcqReader(object):
     def read(self):
         self.__setup()
     
+    @classmethod
+    def read_file(cls, filename):
+        reader = None
+        with open(filename, 'rb') as f:
+            reader = cls(f)
+            reader.read()
+        return reader
+    
     def __setup(self):
         if self.byte_order_flag is not None:
             return
