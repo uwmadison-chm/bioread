@@ -24,7 +24,7 @@ class AcqReader(object):
         self.acq_file = acq_file
         # This must be set by _set_order_and_version
         self.byte_order_flag = None
-        self.file_version = None
+        self.file_revision = None
 
     def read(self):
         self.__setup()
@@ -46,7 +46,7 @@ class AcqReader(object):
     
     def __read_headers(self):
         # Shorthand
-        v = self.file_version
+        v = self.file_revision
         bof = self.byte_order_flag
         self.graph_header = GraphHeader(v, bof)
         self.graph_header.unpack_from_file(self.acq_file, 0)
@@ -105,4 +105,7 @@ class AcqReader(object):
         bp = byte_order_versions[0]
         
         self.byte_order_flag = bp[1]
-        self.file_version = bp[0]
+        self.file_revision = bp[0]
+        
+def pch(r):
+    return [h.data for h in r.channel_dtype_headers]
