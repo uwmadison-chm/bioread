@@ -11,7 +11,7 @@ h2. Usage (Draft. May change hugely.)
 <pre>
 >>> from bioread.readers import AcqReader
 >>> bpdata = AcqReader.read("myfile.acq")
->>> bpdata.file_version
+>>> bpdata.file_revision
 44
 >>> len(bdata.channels)
 2
@@ -24,8 +24,10 @@ h2. Usage (Draft. May change hugely.)
 >>> len(bdata.channels[1].data) 
 5001
 >>> bdata.channels[0].name
-CO2
+'CO2'
 >>> bdata.channels[0].data[0]
+1.23
+>>> bdata.named_channels['CO2'].data[0]
 1.23
 >>> from bioread.writers import MatlabWriter
 >>> MatlabWriter.write("myfile.mat", bpdata) # Does "something sane"
