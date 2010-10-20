@@ -29,8 +29,9 @@ class Channel(object):
     Also generally created by readers.AcqReader.
     """
     def __init__(self, 
-        freq_divider, dtype_code, raw_scale_factor, raw_offset, 
-        raw_data, name, units, fmt_str):
+        freq_divider=None, raw_scale_factor=None, raw_offset=None, 
+        raw_data=None, name=None, units=None, fmt_str=None):
+        
         self.freq_divider = freq_divider
         self.raw_scale_factor = raw_scale_factor
         self.raw_offset = raw_offset

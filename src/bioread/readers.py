@@ -47,9 +47,11 @@ class AcqReader(object):
             foreign_header=self.foreign_header,
             channel_dtype_headers=self.channel_dtype_headers
             )
-        channels = self.__build_channels()
-        self.read_data(channels)
-        return df
+        self.channels = self.__build_channels()
+        self.__read_data(self.channels)
+        df.channels = self.channels
+        self.data_file = df
+        return self
         
     def __setup(self):
         if self.byte_order_flag is not None:
@@ -101,7 +103,7 @@ class AcqReader(object):
         channels = []
         # For building raw data arrays
         np_map = {
-            1: np.float64
+            1: np.float64,
             2: np.int16
         }
         fmt_map = {
@@ -113,7 +115,7 @@ class AcqReader(object):
             ch = self.channel_headers[i].data
             cdh = self.channel_dtype_headers[i].data
             data = np.zeros(ch['lBufLength'], np_map[cdh['nType']])
-            divider = cdh.get['nVarSampleDivider'] or 1
+            divider = ch['nVarSampleDivider']
             chan = Channel(
                 freq_divider=divider, raw_scale_factor=ch['dAmplScale'],
                 raw_offset=ch['dAmplOffset'], raw_data=data,
@@ -137,6 +139,8 @@ class AcqReader(object):
         
         self.acq_file.seek(self.data_start_offset)
         for i in xrange(max_n):
+            for c in channels:
+                print("i: %s div: %s sample: %s" % (i, c.freq_divider, ((i % c.freq_divider) == 0)))
             sample_channels = [c for c in channels if i % c.freq_divider == 0]
             slice_fmt = self.byte_order_flag+''.join(
                 [c.fmt_str for c in sample_channels])
@@ -144,6 +148,7 @@ class AcqReader(object):
             samples = struct.unpack(slice_fmt, data)
             for chan, samp in zip(sample_channels, samples):
                 d_index = i//chan.freq_divider
+                print("Writing to %s of %s" % (d_index, chan.raw_data.shape[0]))
                 chan.raw_data[d_index] = samp
                 
     
