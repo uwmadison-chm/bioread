@@ -7,6 +7,8 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
+import numpy as np
+
 class Datafile(object):
     """
     A data file for the AcqKnowledge system. Generally, gonna be created
@@ -21,6 +23,18 @@ class Datafile(object):
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
+        self.channels = None
+        self.__named_channels = None
+    
+    @property
+    def named_channels(self):
+        if self.__named_channels is None and self.channels is not None:
+            self.__named_channels = {}
+            for c in self.channels:
+                self.__named_channels[c.name] = c
+        
+        return self.__named_channels
+        
     
 class Channel(object):
     """
