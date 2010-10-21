@@ -2,8 +2,6 @@ h1. Libraries for reading BIOPAC files
 
 These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  "Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf from BIOPAC; however, the file format for 4.0 was determined through the tireless efforts of John Ollinger.
 
-Note: This package does not (yet) work with compressed files. Then again, neither does BIOPAC's file API. So there.
-
 This library is mostly concerned with getting you the data, and less so with interpreting all of the UI-related header values.
 
 h2. Usage (Draft. May change hugely.)
@@ -16,11 +14,11 @@ h2. Usage (Draft. May change hugely.)
 >>> len(bdata.channels)
 2
 >>> bdata.channels[0].samples_per_second
-1000
+1000.0
 >>> len(bdata.channels[0].data)
 10002
 >>> bdata.channels[1].samples_per_second
-500
+500.0
 >>> len(bdata.channels[1].data) 
 5001
 >>> len(bdata.channels[1].upsampled_data)
@@ -37,7 +35,13 @@ h2. Usage (Draft. May change hugely.)
 >>> MatlabWriter.write("myfile.mat", bpdata) # Does "something sane"
 </pre>
 
-h2. Notes
+h2. TODO:
+
+* This package does not (yet) work with compressed files. Then again, neither does BIOPAC's file API. So there.
+* Channel order in the AcqKnowledge interface is different than we get here. There seems to be something more at play than nChanOrder, but I don't know what.
+
+
+h2. Copyright & Disclaimers
 
 bioread is distributed under the GNU Public License, Version 2. For more
 details, see LICENSE.
