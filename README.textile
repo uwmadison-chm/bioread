@@ -23,10 +23,14 @@ h2. Usage (Draft. May change hugely.)
 500
 >>> len(bdata.channels[1].data) 
 5001
->>> bdata.channels[0].name
-'CO2'
+>>> len(bdata.channels[1].upsampled_data)
+10002
 >>> bdata.channels[0].data[0]
 1.23
+>>> bdata.channels[0].raw_data[0] # ints are not scaled
+13
+>>> bdata.channels[0].name
+'CO2'
 >>> bdata.named_channels['CO2'].data[0]
 1.23
 >>> from bioread.writers import MatlabWriter
