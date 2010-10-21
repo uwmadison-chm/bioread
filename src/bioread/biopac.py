@@ -30,12 +30,48 @@ class Channel(object):
     """
     def __init__(self, 
         freq_divider=None, raw_scale_factor=None, raw_offset=None, 
-        raw_data=None, name=None, units=None, fmt_str=None):
+        raw_data=None, name=None, units=None, fmt_str=None, 
+        samples_per_second=None):
         
         self.freq_divider = freq_divider
         self.raw_scale_factor = raw_scale_factor
         self.raw_offset = raw_offset
-        self.raw_data = raw_data
         self.name = name
         self.units = units
         self.fmt_str = fmt_str
+        self.samples_per_second = samples_per_second
+        self.__raw_data = raw_data
+        self.__data = None
+        self.__upsampled_data = None
+    
+    @property
+    def raw_data(self):
+        """
+        The raw data recorded in the AcqKnowledge file. For channels stored
+        as floats, these are the values reported in the AcqKnowledge interface;
+        for ints, the values need to be scaled -- see data().
+        """
+        return self.__raw_data
+    
+    @property
+    def data(self):
+        """
+        The channel's data, scaled by the raw_scale_factor and offset. These
+        will be the values reported by AcqKnowledge.
+        """
+        if self.__data is None:
+            self.__data = (self.raw_data*self.raw_scale_factor)+self.raw_offset
+        return self.__data
+    
+    @property
+    def upsampled_data(self):
+        """
+        The channel's data, sampled at the native frequency of the file.
+        All channels should have the same number of points using this method.
+        Nearest-neighbor sampling is used.
+        """
+        if self.__upsampled_data is None:
+            total_samples = self.data.shape[0]*self.freq_divider
+            self.__upsampled_data = self.data[
+                np.arange(total_samples)//self.freq_divider]
+        return self.__upsampled_data
