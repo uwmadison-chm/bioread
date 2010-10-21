@@ -41,13 +41,15 @@ class AcqReader(object):
             
     def read_file(self):
         self.__setup()
+        samples_per_second = 1000/self.graph_header['dSampleTime']
         df = Datafile(
             graph_header=self.graph_header, 
             channel_headers=self.channel_headers,
             foreign_header=self.foreign_header,
-            channel_dtype_headers=self.channel_dtype_headers
+            channel_dtype_headers=self.channel_dtype_headers,
+            samples_per_second=samples_per_second
             )
-        self.channels = self.__build_channels()
+        self.channels = self.__build_channels(native_sps=samples_per_second)
         self.__read_data(self.channels)
         df.channels = self.channels
         self.data_file = df
@@ -98,7 +100,7 @@ class AcqReader(object):
         )
     
     
-    def __build_channels(self):
+    def __build_channels(self, native_sps=0.0):
         # Build empty channels, ready to get data from the file.
         channels = []
         # For building raw data arrays
@@ -116,11 +118,13 @@ class AcqReader(object):
             cdh = self.channel_dtype_headers[i].data
             data = np.zeros(ch['lBufLength'], np_map[cdh['nType']])
             divider = ch['nVarSampleDivider']
+            samples_per_second=float(native_sps)/divider
             chan = Channel(
                 freq_divider=divider, raw_scale_factor=ch['dAmplScale'],
                 raw_offset=ch['dAmplOffset'], raw_data=data,
                 name=ch['szCommentText'], units=ch['szUnitsText'],
-                fmt_str=fmt_map[cdh['nType']]
+                fmt_str=fmt_map[cdh['nType']],
+                samples_per_second=samples_per_second
             )
             channels.append(chan)
         return channels
