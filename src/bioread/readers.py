@@ -139,8 +139,6 @@ class AcqReader(object):
         
         self.acq_file.seek(self.data_start_offset)
         for i in xrange(max_n):
-            for c in channels:
-                print("i: %s div: %s sample: %s" % (i, c.freq_divider, ((i % c.freq_divider) == 0)))
             sample_channels = [c for c in channels if i % c.freq_divider == 0]
             slice_fmt = self.byte_order_flag+''.join(
                 [c.fmt_str for c in sample_channels])
@@ -148,7 +146,6 @@ class AcqReader(object):
             samples = struct.unpack(slice_fmt, data)
             for chan, samp in zip(sample_channels, samples):
                 d_index = i//chan.freq_divider
-                print("Writing to %s of %s" % (d_index, chan.raw_data.shape[0]))
                 chan.raw_data[d_index] = samp
                 
     
