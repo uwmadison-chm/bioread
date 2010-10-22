@@ -11,24 +11,23 @@ from scipy.io import savemat
 
 class MatlabWriter(object):
     def __init__(self, 
-        data=None, filename=None, format='5', compress=False, oned_as='row'):
+        data=None, filename=None, compress=False, oned_as='row'):
         self.data = data
         self.filename = filename
-        self.format = format
         self.compress = compress
         self.oned_as = oned_as
         
     
     @classmethod
-    def write_file(cls, data, filename, format='5', compress=False, 
+    def write_file(cls, data, filename, compress=False, 
         oned_as='row'):
-        writer = cls(data, filename, format, compress, oned_as)
+        writer = cls(data, filename, compress, oned_as)
         writer.write()
     
     def write(self):
         d = self.__build_dict(self.data)
         savemat(self.filename, d, 
-            format=self.format, do_compression=self.compress, 
+            format='5', do_compression=self.compress, 
             oned_as=self.oned_as)
         
     
