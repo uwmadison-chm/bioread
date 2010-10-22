@@ -8,7 +8,7 @@
 # Wisconsin-Madison
 
 from struct_dict import StructDict
-from file_versions import *
+from file_revisions import *
 
 class Header(object):
     """
@@ -63,29 +63,35 @@ class BiopacHeader(Header):
     """
     A simple superclass for GraphHeader, ChannelHeader, and friends.
     """
-    def __init__(self, header_structure, file_version, byte_order_flag):
-        self.file_version = file_version
+    def __init__(self, header_structure, file_revision, byte_order_flag):
+        self.file_revision = file_revision
         self.byte_order_flag = byte_order_flag
         self.header_structure = header_structure
         sd = StructDict(
-            byte_order_flag, header_structure.elements_for(file_version))
+            byte_order_flag, header_structure.elements_for(file_revision))
         super(BiopacHeader, self).__init__(sd)
 
 
 class GraphHeader(BiopacHeader):
     """
-    The main Graph Header for an AcqKnowledge file. Note that this is known
-    to be wrong for more modern files -- but for the purposes of this
-    reader, we don't care. Enough fields are right that we can still find
-    our way around.
+    The main Graph Header for an AcqKnowledge file. The documentation is much
+    more complete for older files (revision 45 and below); I've looked to find
+    the reliable (and essential) structure information in later files.
+    
+    The fields we really need to decode the data:
+    Length
+    Number of channels
+    Sample time
+    Data compressed?
     """
-    def __init__(self, file_version, byte_order_flag):
+    def __init__(self, file_revision, byte_order_flag):
         super(GraphHeader, self).__init__(
-            self.__h_elts, file_version, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_flag)
     
     @property
     def effective_len_bytes(self):
         return self.data['lExtItemHeaderLen']
+    
     
     @property
     def __h_elts(self):
@@ -170,15 +176,15 @@ class ChannelHeader(BiopacHeader):
     reader, we don't care. Enough fields are right that we can still find
     our way around.
     """
-    def __init__(self, file_version, byte_order_flag):
-        self.file_version = file_version
+    def __init__(self, file_revision, byte_order_flag):
+        self.file_revision = file_revision
         super(ChannelHeader, self).__init__(
-            self.__h_elts, file_version, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_flag)
     
     @property
     def __version_bin(self):
         bin = 'Unknown'
-        if self.file_version < V_400:
+        if self.file_revision < V_400:
             bin = 'PRE_4'
         else:
             bin = 'POST_4'
@@ -244,17 +250,17 @@ class ForeignHeader(BiopacHeader):
     stuff based on file versions, ultimately to correctly determine
     the effective length.
     """
-    def __init__(self, file_version, byte_order_flag):
-        self.file_version = file_version
+    def __init__(self, file_revision, byte_order_flag):
+        self.file_revision = file_revision
         super(ForeignHeader, self).__init__(
-            self.__h_elts, file_version, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_flag)
 
     @property
     def __version_bin(self):
         bin = 'Unknown'
-        if self.file_version <= V_390:
+        if self.file_revision <= V_390:
             bin = "PRE_4"
-        elif self.file_version < V_41a:
+        elif self.file_revision < V_41a:
             bin = "EARLY_4"
         else:
             bin = "LATE_4"
@@ -299,9 +305,9 @@ class ForeignHeader(BiopacHeader):
 
 
 class ChannelDTypeHeader(BiopacHeader):
-    def __init__(self, file_version, byte_order_flag):
+    def __init__(self, file_revision, byte_order_flag):
         super(ChannelDTypeHeader, self).__init__(
-            self.__h_elts, file_version, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_flag)
     
     @property
     def __h_elts(self):

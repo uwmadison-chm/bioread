@@ -12,7 +12,7 @@ import struct
 
 import numpy as np
 
-from file_versions import *
+from file_revisions import *
 from headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from headers import ForeignHeader
 from biopac import Datafile, Channel
