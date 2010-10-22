@@ -15,6 +15,7 @@ setup(
     
     entry_points = {
         'console_scripts': [
+            'acq_to_mat = bioread.runners.acq_to_mat:main'
         ]
     },
 
