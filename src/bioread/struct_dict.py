@@ -12,7 +12,7 @@ import struct
 
 class StructDict(object):
     """
-    This class allows you to declare a binary file's header structure with 
+    This class allows you to declare a binary file's header structure with
     name and type information, and then will unpack the header into a
     dictionary.
     For example:
@@ -32,12 +32,12 @@ class StructDict(object):
         'name' : 'foo'     # Strings get trailing nulls trimmed
     }
     """
-    
+
     def __init__(self, byte_order_flag, struct_info=None):
         self.byte_order_flag = byte_order_flag
         self.struct_info = struct_info
         self.full_struct_info = None
-    
+
     def unpack(self, data):
         """
         Return a dict with the unpacked data.
@@ -55,22 +55,22 @@ class StructDict(object):
                 val = val.replace('\x00', '')
             output[name] = val
         return output
-    
+
     def labeled_offsets_lengths(self):
         """
         Primarily for debugging purposes: generate a list of byte offsets
         and struct lengths, so you can see what fields are where. Then you
         can explore with your hex editor, or compare against spec, or whatever.
-        
+
         Example:
-        
+
         >>> sd = StructDict('>', [('version', 'h'), ('header_len', 'l')])
         >>> sd.labeled_offsete_lengths()
         [
             ('version', 'h', 0, 2),
             ('header_len', 'l', 2, 4)
         ]
-        
+
         """
         table = []
         build_fs = self.byte_order_flag
@@ -80,17 +80,17 @@ class StructDict(object):
             f_len = struct.calcsize(self.byte_order_flag+fs)
             build_fs += fs
             table.append((name, fs, f_offset, f_len))
-            
+
         return table
-    
+
     @property
     def len_bytes(self):
         return struct.calcsize(self.format_string)
-    
+
     @property
     def len_elements(self):
         return len(self.struct_info)
-    
+
     @property
     def format_string(self):
         s = ''.join([si[1] for si in self.struct_info])
@@ -99,10 +99,10 @@ class StructDict(object):
     def __setup(self):
         if self.full_struct_info is None:
             self.full_struct_info = self.__full_struct_info()
-    
+
     def __bof_fs(self, format_str):
         return self.byte_order_flag + format_str
-    
+
     def __unpacked_element_count(self, format_str):
         # We need to figure this out by actually faking some data and
         # unpacking it. Crazy, huh?
@@ -111,7 +111,7 @@ class StructDict(object):
         dummy = '\x00'*f_len
         unpacked = struct.unpack(f_str, dummy)
         return len(unpacked) # The number of elements in the tuple
-    
+
     def __full_struct_info(self):
         full_struct_info = []
         start_index = 0

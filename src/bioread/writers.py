@@ -9,28 +9,28 @@
 
 from scipy.io import savemat
 
+
 class MatlabWriter(object):
-    def __init__(self, 
+
+    def __init__(self,
         data=None, filename=None, compress=False, oned_as='row'):
         self.data = data
         self.filename = filename
         self.compress = compress
         self.oned_as = oned_as
-        
-    
+
     @classmethod
-    def write_file(cls, data, filename, compress=False, 
+    def write_file(cls, data, filename, compress=False,
         oned_as='row'):
         writer = cls(data, filename, compress, oned_as)
         writer.write()
-    
+
     def write(self):
         d = self.__build_dict(self.data)
-        savemat(self.filename, d, 
-            format='5', do_compression=self.compress, 
+        savemat(self.filename, d,
+            format='5', do_compression=self.compress,
             oned_as=self.oned_as)
-        
-    
+
     def __build_dict(self, data):
         d = {}
         d['samples_per_second'] = data.samples_per_second
@@ -47,14 +47,13 @@ class MatlabWriter(object):
             channels[label] = chan_dict
             channel_headers[label] = data.channel_headers[i].data
             channel_dtype_headers[label] = data.channel_dtype_headers[i].data
-            
+
         d['channels'] = channels
-        
+
         d['headers'] = {
-             'graph'         : data.graph_header.data
-            ,'foreign'       : data.foreign_header.data
-            ,'channel'       : channel_headers
-            ,'channel_dtype' : channel_dtype_headers
-        }
-        
+            'graph': data.graph_header.data,
+            'foreign': data.foreign_header.data,
+            'channel': channel_headers,
+            'channel_dtype': channel_dtype_headers}
+
         return d

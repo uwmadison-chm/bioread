@@ -9,12 +9,14 @@
 
 import numpy as np
 
+
 class Datafile(object):
     """
     A data file for the AcqKnowledge system. Generally, gonna be created
     from a file by readers.AcqReader.
     """
-    def __init__(self, 
+
+    def __init__(self,
             graph_header=None, channel_headers=None, foreign_header=None,
             channel_dtype_headers=None, samples_per_second=None, name=None):
         self.graph_header = graph_header
@@ -25,28 +27,29 @@ class Datafile(object):
         self.name = name
         self.channels = None
         self.__named_channels = None
-    
+
     @property
     def named_channels(self):
         if self.__named_channels is None and self.channels is not None:
             self.__named_channels = {}
             for c in self.channels:
                 self.__named_channels[c.name] = c
-        
+
         return self.__named_channels
-        
-    
+
+
 class Channel(object):
     """
     An individual channel of Biopac data. Has methods to access raw data from
     the file, as well as a scaled copy if the raw data is in integer format.
     Also generally created by readers.AcqReader.
     """
-    def __init__(self, 
-        freq_divider=None, raw_scale_factor=None, raw_offset=None, 
-        raw_data=None, name=None, units=None, fmt_str=None, 
+
+    def __init__(self,
+        freq_divider=None, raw_scale_factor=None, raw_offset=None,
+        raw_data=None, name=None, units=None, fmt_str=None,
         samples_per_second=None):
-        
+
         self.freq_divider = freq_divider
         self.raw_scale_factor = raw_scale_factor
         self.raw_offset = raw_offset
@@ -57,7 +60,7 @@ class Channel(object):
         self.__raw_data = raw_data
         self.__data = None
         self.__upsampled_data = None
-    
+
     @property
     def raw_data(self):
         """
@@ -66,7 +69,7 @@ class Channel(object):
         for ints, the values need to be scaled -- see data().
         """
         return self.__raw_data
-    
+
     @property
     def data(self):
         """
@@ -76,7 +79,7 @@ class Channel(object):
         if self.__data is None:
             self.__data = (self.raw_data*self.raw_scale_factor)+self.raw_offset
         return self.__data
-    
+
     @property
     def upsampled_data(self):
         """
