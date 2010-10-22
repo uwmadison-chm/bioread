@@ -6,8 +6,7 @@ This library is mostly concerned with getting you the data, and less so with int
 
 h2. Command-line usage:
 
-There's one command-line utility so far: acq_to_mat. It creates a Matlab
-file from an AcqKnowledge file.
+There's one command-line utility so far: acq_to_mat. It creates a Matlab (version 5) file from an AcqKnowledge file. In the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
 
 <pre>
 acq_to_mat myfile.acq myfile.mat
@@ -15,8 +14,7 @@ acq_to_mat myfile.acq myfile.mat
 
 h2. API usage:
 
-If you want to process the data as NumPy arrays instead, there's an easy
-API to work with it:
+If you want to process the data as NumPy arrays instead, there's an easy API to work with it:
 
 <pre>
 >>> from bioread.readers import AcqReader
@@ -52,13 +50,8 @@ h2. TODO:
 * This package does not (yet) work with compressed files. Then again, neither does BIOPAC's file API. So there.
 * Channel order in the AcqKnowledge interface is different than we get here. There seems to be something more at play than nChanOrder, but I don't know what.
 
-
 h2. Copyright & Disclaimers
 
-bioread is distributed under the GNU Public License, Version 2. For more
-details, see LICENSE.
+bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
 
-BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software
-have no affiliation with BIOPAC Systems, Inc, and that company does not
-endorse this software package.
-
+BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company does not support or endorse this software package.
