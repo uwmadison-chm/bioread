@@ -175,3 +175,20 @@ class AcqReader(object):
 
         self.byte_order_flag = bp[1]
         self.file_revision = bp[0]
+
+
+# Notes on compressed files:
+# At data_start_offset, there's a long, containing the length of some header H1.
+# At data_start_offset + len(H1), there's something.
+# From there, it's 95 bytes to the start of the first channel header.
+# Channel headers are 59+l_channel+l_unit bytes long.
+# The start values' uses are unknown, but:
+# bytes 43-46 are length of channel label (l_channel)
+# bytes 47-50 are length of unit label (l_unit)
+# bytes 51-54 are (related to) number of data points -- maybe size of 
+#                 uncompressed data?
+# bytes 55-58 are length of compressed data (l_comp)
+# So, the compressed data for the first channel should start at offset:
+# data_start_offset + 95+59+l_channel+l_unit
+# and it should be l_comp bytes long.
+# The next channel header follows immediately.
