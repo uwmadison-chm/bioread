@@ -30,16 +30,20 @@ class AcqReader(object):
         self.file_revision = None
 
     @classmethod
-    def read(cls, filename):
+    def read_file(cls, filename):
         """
-        The main access for this 
+        The main method to quickly read a biopac file into memory. 
+        
+        filename: The name of the file to read.
+
+        returns: biopac.Datafile
         """
         df = None
         with open(filename, 'rb') as f:
             reader = cls(f)
-            return reader.read_file()
+            return reader.read()
             
-    def read_file(self):
+    def read(self):
         self.__setup()
         samples_per_second = 1000/self.graph_header['dSampleTime']
         df = Datafile(
@@ -53,7 +57,7 @@ class AcqReader(object):
         self.__read_data(self.channels)
         df.channels = self.channels
         self.data_file = df
-        return self
+        return self.data_file
         
     def __setup(self):
         if self.byte_order_flag is not None:
@@ -178,6 +182,3 @@ class AcqReader(object):
         
         self.byte_order_flag = bp[1]
         self.file_revision = bp[0]
-        
-def pch(r):
-    return [h.data for h in r.channel_dtype_headers]
