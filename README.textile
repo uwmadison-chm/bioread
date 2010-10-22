@@ -1,38 +1,50 @@
 h1. Libraries for reading BIOPAC files
 
-These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  "Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf from BIOPAC; however, the file format for 4.0 was determined through the tireless efforts of John Ollinger.
+These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  "Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger and Nate Vack.
 
-This library is mostly concerned with getting you the data, and less so with interpreting all of the UI-related header values.
+This library is mostly concerned with getting you the data, and less so with interpreting UI-related header values.
 
-h2. Usage (Draft. May change hugely.)
+h2. Command-line usage:
+
+There's one command-line utility so far: acq_to_mat. It creates a Matlab
+file from an AcqKnowledge file.
+
+<pre>
+acq_to_mat myfile.acq myfile.mat
+</pre>
+
+h2. API usage:
+
+If you want to process the data as NumPy arrays instead, there's an easy
+API to work with it:
 
 <pre>
 >>> from bioread.readers import AcqReader
->>> bpdata = AcqReader.read("myfile.acq")
->>> bpdata.file_revision
+>>> data = AcqReader.read_file("myfile.acq")
+>>> data.file_revision
 44
->>> len(bdata.channels)
+>>> len(data.channels)
 2
->>> bdata.channels[0].samples_per_second
+>>> data.channels[0].samples_per_second
 1000.0
->>> len(bdata.channels[0].data)
+>>> len(data.channels[0].data)
 10002
->>> bdata.channels[1].samples_per_second
+>>> data.channels[1].samples_per_second
 500.0
->>> len(bdata.channels[1].data) 
+>>> len(data.channels[1].data) 
 5001
->>> len(bdata.channels[1].upsampled_data)
+>>> len(data.channels[1].upsampled_data)
 10002
->>> bdata.channels[0].data[0]
+>>> data.channels[0].data[0]
 1.23
->>> bdata.channels[0].raw_data[0] # ints are not scaled
+>>> data.channels[0].raw_data[0] # ints are not scaled
 13
->>> bdata.channels[0].name
+>>> data.channels[0].name
 'CO2'
->>> bdata.named_channels['CO2'].data[0]
+>>> data.named_channels['CO2'].data[0]
 1.23
 >>> from bioread.writers import MatlabWriter
->>> MatlabWriter.write("myfile.mat", bpdata) # Does "something sane"
+>>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
 </pre>
 
 h2. TODO:
