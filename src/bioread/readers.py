@@ -71,37 +71,40 @@ class AcqReader(object):
         # Shorthand
         v = self.file_revision
         bof = self.byte_order_flag
-        self.graph_header = GraphHeader(v, bof)
-        self.graph_header.unpack_from_file(self.acq_file, 0)
+        self.graph_header = self.__single_header(0, GraphHeader)
         channel_count = self.graph_header.channel_count
 
-        gh_len = self.graph_header.effective_len_bytes
-        ch_len = 0 # This will be changed when reading the channel headers
-        self.channel_headers = []
-        for i in range(channel_count):
-            ch_offset = gh_len + i*ch_len # OK for ch_len to be 0 on first iter
-            ch = ChannelHeader(v, bof)
-            ch.unpack_from_file(self.acq_file, ch_offset)
-            ch_len = ch.effective_len_bytes
-            self.channel_headers.append(ch)
+        ch_start = self.graph_header.effective_len_bytes
+        self.channel_headers = self.__multi_headers(channel_count, 
+            ch_start, ChannelHeader)
+        ch_len = self.channel_headers[0].effective_len_bytes
 
-        fh_offset = gh_len + len(self.channel_headers)*ch_len
-        self.foreign_header = ForeignHeader(v, bof)
-        self.foreign_header.unpack_from_file(self.acq_file, fh_offset)
+        fh_start = ch_start + len(self.channel_headers)*ch_len
+        self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
-        cdh_len = 0 # Gets changed just like ch_len
-        self.channel_dtype_headers = []
-        for i in range(channel_count):
-            cdh_offset = (fh_offset + self.foreign_header.effective_len_bytes +
-                (i * cdh_len))
-            cdh = ChannelDTypeHeader(v, bof)
-            cdh.unpack_from_file(self.acq_file, cdh_offset)
-            cdh_len = cdh.effective_len_bytes
-            self.channel_dtype_headers.append(cdh)
-
-        self.data_start_offset = (
-            fh_offset + self.foreign_header.effective_len_bytes +
-            (cdh_len * channel_count))
+        cdh_start = fh_start + self.foreign_header.effective_len_bytes
+        self.channel_dtype_headers = self.__multi_headers(channel_count, 
+            cdh_start, ChannelDTypeHeader)
+        cdh_len = self.channel_dtype_headers[0].effective_len_bytes
+        
+        self.data_start_offset = (cdh_start + (cdh_len * channel_count))
+    
+    def __single_header(self, start_offset, h_class):
+        h = h_class(self.file_revision, self.byte_order_flag)
+        h.unpack_from_file(self.acq_file, start_offset)
+        return h
+    
+    def __multi_headers(self, num, start_offset, h_class):
+        headers = []
+        h_len = 0 # This will be changed when reading the channel headers
+        for i in range(num):
+            # OK for ch_len to be 0 on first iter
+            h_offset = start_offset + i*h_len 
+            h = h_class(self.file_revision, self.byte_order_flag)
+            h.unpack_from_file(self.acq_file, h_offset)
+            h_len = h.effective_len_bytes
+            headers.append(h)
+        return headers
 
     def __build_channels(self, native_sps=0.0):
         # Build empty channels, ready to get data from the file.
