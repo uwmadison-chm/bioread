@@ -23,8 +23,8 @@ setup(
     },
 
     # metadata for upload to PyPI
-    author = "John Ollinger",
-    author_email = "ollinger@wisc.edu",
+    author = "Nate Vack",
+    author_email = "njvack@wisc.edu",
     description = ("Utilities to read BIOPAC AcqKnowledge files"),
     license = "GPL 2.0",
     keywords = "science research",
