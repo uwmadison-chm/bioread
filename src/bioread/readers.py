@@ -46,7 +46,7 @@ class AcqReader(object):
 
     def read(self):
         self.__setup()
-        samples_per_second = 1000/self.graph_header['dSampleTime']
+        samples_per_second = 1000/self.graph_header.sample_time
         df = Datafile(
             graph_header=self.graph_header,
             channel_headers=self.channel_headers,
@@ -73,7 +73,7 @@ class AcqReader(object):
         bof = self.byte_order_flag
         self.graph_header = GraphHeader(v, bof)
         self.graph_header.unpack_from_file(self.acq_file, 0)
-        channel_count = self.graph_header['nChannels']
+        channel_count = self.graph_header.channel_count
 
         gh_len = self.graph_header.effective_len_bytes
         ch_len = 0 # This will be changed when reading the channel headers
@@ -115,16 +115,16 @@ class AcqReader(object):
             2: 'h'}
 
         for i in range(len(self.channel_headers)):
-            ch = self.channel_headers[i].data
-            cdh = self.channel_dtype_headers[i].data
-            data = np.zeros(ch['lBufLength'], np_map[cdh['nType']])
-            divider = ch['nVarSampleDivider']
+            ch = self.channel_headers[i]
+            cdh = self.channel_dtype_headers[i]
+            data = np.zeros(ch.point_count, np_map[cdh.type_code])
+            divider = ch.frequency_divider
             samples_per_second=float(native_sps)/divider
             chan = Channel(
-                freq_divider=divider, raw_scale_factor=ch['dAmplScale'],
-                raw_offset=ch['dAmplOffset'], raw_data=data,
-                name=ch['szCommentText'], units=ch['szUnitsText'],
-                fmt_str=fmt_map[cdh['nType']],
+                freq_divider=divider, raw_scale_factor=ch.raw_scale,
+                raw_offset=ch.raw_offset, raw_data=data,
+                name=ch.name, units=ch.units,
+                fmt_str=fmt_map[cdh.type_code],
                 samples_per_second=samples_per_second)
             channels.append(chan)
         return channels

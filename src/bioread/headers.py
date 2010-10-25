@@ -97,6 +97,14 @@ class GraphHeader(BiopacHeader):
         return self.data['lExtItemHeaderLen']
 
     @property
+    def channel_count(self):
+        return self.data['nChannels']
+    
+    @property
+    def sample_time(self):
+        return self.data['dSampleTime']
+    
+    @property
     def __h_elts(self):
         return VersionedHeaderStructure(
         ('nItemHeaderLen'           ,'h'    ,V_ALL),
@@ -198,6 +206,35 @@ class ChannelHeader(BiopacHeader):
     def effective_len_bytes(self):
         return self.data['lChanHeaderLen']
 
+    @property
+    def frequency_divider(self):
+        """ 
+        The number you divide the graph's samples_per_second by to get this
+        channel's samples_per_second. If not defined (as in old file versions),
+        this should be 1.
+        """
+        return self.data.get('nVarSampleDivider') or 1
+
+    @property
+    def raw_scale(self):
+        return self.data['dAmplScale']
+    
+    @property
+    def raw_offset(self):
+        return self.data['dAmplOffset']
+    
+    @property
+    def units(self):
+        return self.data['szUnitsText']
+    
+    @property
+    def name(self):
+        return self.data['szCommentText']
+    
+    @property
+    def point_count(self):
+        return self.data['lBufLength']
+    
     @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
@@ -311,6 +348,10 @@ class ChannelDTypeHeader(BiopacHeader):
     def __init__(self, file_revision, byte_order_flag):
         super(ChannelDTypeHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
+    
+    @property
+    def type_code(self):
+        return self.data['nType']
 
     @property
     def __h_elts(self):
