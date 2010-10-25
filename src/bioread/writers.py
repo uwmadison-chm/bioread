@@ -44,6 +44,8 @@ class MatlabWriter(object):
             chan_dict['data'] = c.data
             chan_dict['samples_per_second'] = c.samples_per_second
             chan_dict['name'] = c.name
+            chan_dict['frequency_divider'] = c.freq_divider
+            chan_dict['units'] = c.units
             channels[label] = chan_dict
             channel_headers[label] = data.channel_headers[i].data
             channel_dtype_headers[label] = data.channel_dtype_headers[i].data
