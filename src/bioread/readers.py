@@ -96,13 +96,13 @@ class AcqReader(object):
     
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
-        h_len = 0 # This will be changed when reading the channel headers
+        last_h_len = 0 # This will be changed when reading the channel headers
+        h_offset = start_offset
         for i in range(num):
-            # OK for ch_len to be 0 on first iter
-            h_offset = start_offset + i*h_len 
+            h_offset += last_h_len 
             h = h_class(self.file_revision, self.byte_order_flag)
             h.unpack_from_file(self.acq_file, h_offset)
-            h_len = h.effective_len_bytes
+            last_h_len = h.effective_len_bytes
             headers.append(h)
         return headers
 
