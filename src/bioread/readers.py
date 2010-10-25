@@ -14,7 +14,8 @@ import numpy as np
 
 from file_revisions import *
 from headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
-from headers import ForeignHeader
+from headers import ForeignHeader, MainCompressionHeader
+from headers import ChannelCompressionHeader
 from biopac import Datafile, Channel
 
 
@@ -68,9 +69,6 @@ class AcqReader(object):
         self.__read_headers()
 
     def __read_headers(self):
-        # Shorthand
-        v = self.file_revision
-        bof = self.byte_order_flag
         self.graph_header = self.__single_header(0, GraphHeader)
         channel_count = self.graph_header.channel_count
 
@@ -88,7 +86,20 @@ class AcqReader(object):
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
         
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
+        if self.graph_header.compressed:
+            self.__read_compression_headers()
     
+    def __read_compression_headers(self):
+        main_ch_start = self.data_start_offset
+        self.main_compression_header = self.__single_header(main_ch_start,
+            MainCompressionHeader)
+        
+        cch_start = (main_ch_start + 
+            self.main_compression_header.effective_len_bytes)
+        self.channel_compression_headers = self.__multi_headers(
+            self.graph_header.channel_count, cch_start, 
+            ChannelCompressionHeader)
+        
     def __single_header(self, start_offset, h_class):
         h = h_class(self.file_revision, self.byte_order_flag)
         h.unpack_from_file(self.acq_file, start_offset)
