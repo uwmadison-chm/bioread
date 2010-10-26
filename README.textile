@@ -4,9 +4,13 @@ These utilities are for reading the files produced by BIOPAC's AcqKnowledge soft
 
 This library is mostly concerned with getting you the data, and less so with interpreting UI-related header values.
 
+h2. Status
+
+As far as I know, this should read any AcqKnowledge file you throw at it. Windows, Mac, compressed, not, old, new... it should happily read 'em all. If you have trouble with a file, I'd love to get a copy and make bioread work with it.
+
 h2. Command-line usage:
 
-There's one command-line utility so far: acq_to_mat. It creates a Matlab (version 5) file from an AcqKnowledge file. In the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
+There's one command-line utility so far: acq2mat. It creates a Matlab (version 5) file from an AcqKnowledge file. In the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
 
 <pre>
 acq_to_mat myfile.acq myfile.mat
@@ -20,7 +24,7 @@ If you want to process the data as NumPy arrays instead, there's an easy API to 
 >>> from bioread.readers import AcqReader
 >>> data = AcqReader.read_file("myfile.acq")
 >>> data.file_revision
-44
+84
 >>> len(data.channels)
 2
 >>> data.channels[0].samples_per_second
@@ -45,10 +49,11 @@ If you want to process the data as NumPy arrays instead, there's an easy API to 
 >>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
 </pre>
 
-h2. TODO:
+h2. Notes
 
-* This package does not (yet) work with compressed files. Then again, neither does BIOPAC's file API. So there.
-* Channel order in the AcqKnowledge interface is different than we get here. There seems to be something more at play than nChanOrder, but I don't know what.
+The two areas I'm not certain about are very old (version 2.x) files, and old-ish (3.8.1) compressed files. I suspect the old compressed files were stored compressed and interleaved, but I don't have a way to generate one to test. Got one you're willing to send my way?
+
+Also, the channel order I read is not the one displayed in the AcqKnowledge interface. Neither the order of the data nor any channel header value I can find seems to entirely control that. I'm gonna just assume it's not a very big deal.
 
 h2. Copyright & Disclaimers
 
