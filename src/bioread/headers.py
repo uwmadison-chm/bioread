@@ -100,15 +100,15 @@ class GraphHeader(BiopacHeader):
     @property
     def channel_count(self):
         return self.data['nChannels']
-    
+
     @property
     def sample_time(self):
         return self.data['dSampleTime']
-    
+
     @property
     def compressed(self):
         return self.data['bCompressed'] == 1
-    
+
     @property
     def data_format(self):
         # I suspect rather strongly that the compressed format changed between
@@ -119,7 +119,7 @@ class GraphHeader(BiopacHeader):
         if self.compressed:
             fmt = 'compressed'
         return fmt
-    
+
     @property
     def __version_bin(self):
         bin = 'Unknown'
@@ -266,7 +266,7 @@ class ChannelHeader(BiopacHeader):
 
     @property
     def frequency_divider(self):
-        """ 
+        """
         The number you divide the graph's samples_per_second by to get this
         channel's samples_per_second. If not defined (as in old file versions),
         this should be 1.
@@ -276,23 +276,23 @@ class ChannelHeader(BiopacHeader):
     @property
     def raw_scale(self):
         return self.data['dAmplScale']
-    
+
     @property
     def raw_offset(self):
         return self.data['dAmplOffset']
-    
+
     @property
     def units(self):
         return self.data['szUnitsText']
-    
+
     @property
     def name(self):
         return self.data['szCommentText']
-    
+
     @property
     def point_count(self):
         return self.data['lBufLength']
-    
+
     @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
@@ -387,14 +387,14 @@ class ForeignHeader(BiopacHeader):
             "PRE_4" : VersionedHeaderStructure(
                 ('nLength'                  ,'h'    ,V_20a),
                 ('nType'                    ,'h'    ,V_20a),
-            ),                                            
-            "EARLY_4" : VersionedHeaderStructure(         
+            ),
+            "EARLY_4" : VersionedHeaderStructure(
                 ('nLength'                  ,'h'    ,V_400),
                 ('nType'                    ,'h'    ,V_400),
                 ('lReserved'                ,'l'    ,V_400),
                 ('lLengthExtended'          ,'l'    ,V_400),
-            ),                                            
-            "LATE_4" : VersionedHeaderStructure(          
+            ),
+            "LATE_4" : VersionedHeaderStructure(
                 ('nLength'                  ,'h'    ,V_400),
                 ('nType'                    ,'h'    ,V_400),
                 ('lReserved'                ,'l'    ,V_400),
@@ -406,7 +406,7 @@ class ChannelDTypeHeader(BiopacHeader):
     def __init__(self, file_revision, byte_order_flag):
         super(ChannelDTypeHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
-    
+
     @property
     def type_code(self):
         return self.data['nType']
@@ -420,23 +420,11 @@ class ChannelDTypeHeader(BiopacHeader):
         )
 
 
-
-# At data_start_offset, there's a long, containing the length of some header H1.
-# At data_start_offset + len(H1), there's something.
-# From there, it's 95 bytes to the start of the first channel header.
-# Channel headers are 59+l_channel+l_unit bytes long.
-# The start values' uses are unknown, but:
-# bytes 43-46 are length of channel label (l_channel)
-# bytes 47-50 are length of unit label (l_unit)
-# bytes 51-54 are (related to) number of data points -- maybe size of 
-#                 uncompressed data?
-# bytes 55-58 are length of compressed data (l_comp)
-# So, the compressed data for the first channel should start at offset:
-# data_start_offset + 95+59+l_channel+l_unit
-# and it should be l_comp bytes long.
-# The next channel header follows immediately.
-
 class MainCompressionHeader(BiopacHeader):
+    # In compressed files, at data_start_offset there's a long, containing the
+    # length of some header H1. At data_start_offset + len(H1), there's
+    # something we don't care about.
+    # From there, it's 94 bytes to the start of the first channel header.
     def __init__(self, file_revision, byte_order_flag):
         super(MainCompressionHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
@@ -444,14 +432,16 @@ class MainCompressionHeader(BiopacHeader):
     @property
     def effective_len_bytes(self):
         return self.data['lSize'] + 94
-    
+
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
         ('lSize'                    ,'l'    ,V_381),
         )
 
+
 class ChannelCompressionHeader(BiopacHeader):
+
     def __init__(self, file_revision, byte_order_flag):
         super(ChannelCompressionHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
@@ -463,12 +453,20 @@ class ChannelCompressionHeader(BiopacHeader):
         compressed data. Use header_only_len_bytes for only the header length.
         """
         return self.header_only_len_bytes + self.data['lCompressedLen']
-    
+
     @property
     def header_only_len_bytes(self):
+        """
+        A truly variable-length header. Oddly, the channel description and
+        units are included in the header. This class doesn't have a way to
+        get those out, but we'll just use them from the earlier channel
+        header.
+        Immediately after this header, the compressed data starts -- it will
+        be after the units text, and starts with 'x'.
+        """
         return (self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
             self.data['lUnitLabelLen'])
-    
+
     @property
     def compressed_data_offset(self):
         """
@@ -476,11 +474,11 @@ class ChannelCompressionHeader(BiopacHeader):
         Note that this won't be valid until self#unpack_from_file() is run.
         """
         return self.offset + self.header_only_len_bytes
-    
+
     @property
     def compressed_data_len(self):
         return self.data['lCompressedLen']
-    
+
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
