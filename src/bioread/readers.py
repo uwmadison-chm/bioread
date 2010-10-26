@@ -101,9 +101,7 @@ class AcqReader(object):
             ChannelCompressionHeader)
         
     def __single_header(self, start_offset, h_class):
-        h = h_class(self.file_revision, self.byte_order_flag)
-        h.unpack_from_file(self.acq_file, start_offset)
-        return h
+        return self.__multi_headers(1, start_offset, h_class)[0]
     
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
