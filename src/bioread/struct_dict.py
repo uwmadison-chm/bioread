@@ -52,7 +52,10 @@ class StructDict(object):
             else:
                 val = unpacked[start_index:end_index]
             if type(val) == str:
-                val = val.replace('\x00', '')
+                null_idx = val.find("\x00")
+                if null_idx == -1:
+                    null_idx = len(val)
+                val = val[0:null_idx]
             output[name] = val
         return output
 
