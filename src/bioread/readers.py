@@ -9,6 +9,7 @@
 
 from __future__ import with_statement
 import struct
+import zlib
 
 import numpy as np
 
@@ -56,7 +57,10 @@ class AcqReader(object):
             samples_per_second=samples_per_second)
 
         self.channels = self.__build_channels(native_sps=samples_per_second)
-        self.__read_data(self.channels)
+        if self.graph_header.compressed:
+            self.__read_data_compressed(self.channels)
+        else:
+            self.__read_data_uncompressed(self.channels)
         df.channels = self.channels
         self.data_file = df
         return self.data_file
@@ -73,7 +77,7 @@ class AcqReader(object):
         channel_count = self.graph_header.channel_count
 
         ch_start = self.graph_header.effective_len_bytes
-        self.channel_headers = self.__multi_headers(channel_count, 
+        self.channel_headers = self.__multi_headers(channel_count,
             ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
 
@@ -81,34 +85,34 @@ class AcqReader(object):
         self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
-        self.channel_dtype_headers = self.__multi_headers(channel_count, 
+        self.channel_dtype_headers = self.__multi_headers(channel_count,
             cdh_start, ChannelDTypeHeader)
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
-        
+
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
         if self.graph_header.compressed:
             self.__read_compression_headers()
-    
+
     def __read_compression_headers(self):
         main_ch_start = self.data_start_offset
         self.main_compression_header = self.__single_header(main_ch_start,
             MainCompressionHeader)
-        
-        cch_start = (main_ch_start + 
+
+        cch_start = (main_ch_start +
             self.main_compression_header.effective_len_bytes)
         self.channel_compression_headers = self.__multi_headers(
-            self.graph_header.channel_count, cch_start, 
+            self.graph_header.channel_count, cch_start,
             ChannelCompressionHeader)
-        
+
     def __single_header(self, start_offset, h_class):
         return self.__multi_headers(1, start_offset, h_class)[0]
-    
+
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
         last_h_len = 0 # This will be changed when reading the channel headers
         h_offset = start_offset
         for i in range(num):
-            h_offset += last_h_len 
+            h_offset += last_h_len
             h = h_class(self.file_revision, self.byte_order_flag)
             h.unpack_from_file(self.acq_file, h_offset)
             last_h_len = h.effective_len_bytes
@@ -141,7 +145,24 @@ class AcqReader(object):
             channels.append(chan)
         return channels
 
-    def __read_data(self, channels):
+    def __read_data_compressed(self, channels):
+        # At least in post-4.0 files, the compressed data isn't interleaved at
+        # all. It's stored in uniform compressed blocks -- this probably
+        # compresses far better than interleaved data.
+        # Strangely, the compressed data seems to always be little-endian.
+        for i in range(len(channels)):
+            cch = self.channel_compression_headers[i]
+            chan = channels[i]
+            # Data seems to be little-endian regardless of the rest of the file
+            fmt_str = '<'+chan.fmt_str
+            self.acq_file.seek(cch.compressed_data_offset)
+            comp_data = self.acq_file.read(cch.compressed_data_len)
+            decomp_data = zlib.decompress(chan.comp_data)
+            # raw_data starts out as zeros. Yeah, this feels hacky to me, too.
+            np.add(chan.raw_data, np.fromstring(decomp_data, fmt_str),
+                chan.raw_data)
+
+    def __read_data_uncompressed(self, channels):
         # The data in the file are interleaved, so we'll potentially have
         # a different amount of data to read at each time slice.
         # It's possible we won't have any data for some time slices, I think.
@@ -187,20 +208,3 @@ class AcqReader(object):
 
         self.byte_order_flag = bp[1]
         self.file_revision = bp[0]
-
-
-# Notes on compressed files:
-# At data_start_offset, there's a long, containing the length of some header H1.
-# At data_start_offset + len(H1), there's something.
-# From there, it's 95 bytes to the start of the first channel header.
-# Channel headers are 59+l_channel+l_unit bytes long.
-# The start values' uses are unknown, but:
-# bytes 43-46 are length of channel label (l_channel)
-# bytes 47-50 are length of unit label (l_unit)
-# bytes 51-54 are (related to) number of data points -- maybe size of 
-#                 uncompressed data?
-# bytes 55-58 are length of compressed data (l_comp)
-# So, the compressed data for the first channel should start at offset:
-# data_start_offset + 95+59+l_channel+l_unit
-# and it should be l_comp bytes long.
-# The next channel header follows immediately.
