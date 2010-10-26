@@ -8,6 +8,14 @@ h2. Status
 
 As far as I know, this should read any AcqKnowledge file you throw at it. Windows, Mac, compressed, not, old, new... it should happily read 'em all. If you have trouble with a file, I'd love to get a copy and make bioread work with it.
 
+h2. Installation
+
+We're up in "pypi":http://pypi.python.org/pypi, so installing should be as simple as:
+
+<pre>
+easy_install bioread
+</pre>
+
 h2. Command-line usage:
 
 There's one command-line utility so far: acq2mat. It creates a Matlab (version 5) file from an AcqKnowledge file. In the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
