@@ -16,12 +16,32 @@ We're up in "pypi":http://pypi.python.org/pypi, so installing should be as simpl
 easy_install bioread
 </pre>
 
+Note that bioread requires the excellent "NumPy":http://numpy.scipy.org/ package, and writing Matlab files requires "SciPy":http://scipy.org/.
+
 h2. Command-line usage:
 
-There's one command-line utility so far: acq2mat. It creates a Matlab (version 5) file from an AcqKnowledge file. In the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
+h3. acq2mat 
+
+This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
 
 <pre>
-acq_to_mat myfile.acq myfile.mat
+  Usage: acq2mat [options] ACQ_FILE MAT_FILE
+
+  Options:
+    -h, --help      show this help message and exit
+    -c, --compress  Save compressed Matlab file
+</pre>
+
+h3. acq_info
+
+acq_info prints out some simple debugging information about an AcqKnowledge file. It'll do its best to print something out even for damaged files.
+
+<pre>
+Usage: acq_info [options] ACQ_FILE
+
+Options:
+  -h, --help   show this help message and exit
+  -d, --debug  Print lots of debugging data
 </pre>
 
 h2. API usage:
