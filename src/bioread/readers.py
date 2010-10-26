@@ -157,7 +157,7 @@ class AcqReader(object):
             fmt_str = '<'+chan.fmt_str
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
-            decomp_data = zlib.decompress(chan.comp_data)
+            decomp_data = zlib.decompress(comp_data)
             # raw_data starts out as zeros. Yeah, this feels hacky to me, too.
             np.add(chan.raw_data, np.fromstring(decomp_data, fmt_str),
                 chan.raw_data)
