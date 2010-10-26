@@ -107,7 +107,7 @@ class GraphHeader(BiopacHeader):
 
     @property
     def compressed(self):
-        return self.data['bCompressed'] == 1
+        return self.data.get('bCompressed') == 1
 
     @property
     def data_format(self):
