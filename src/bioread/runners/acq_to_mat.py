@@ -29,16 +29,31 @@ def main(argv = None):
 class AcqToMatRunner(object):
     """The little wrapper class that converts acq files to mat files"""
 
-    def __init__(self, argv):
+    def __init__(self, argv, err=None):
         self.argv = argv
+        if err is None:
+            err = sys.stderr
+        self.err = err
 
     def run(self):
+        old_err = sys.stderr
+        sys.stderr = self.err
         self.parser = self.__make_parser()
         options, args = self.parser.parse_args(self.argv[1:])
         if len(args) <> 2:
             self.parser.error("Must specify both ACQ_FILE and MAT_FILE.")
-        data = AcqReader.read_file(args[0])
-        MatlabWriter.write_file(data, args[1], compress=options.compress)
+        try:
+            data = AcqReader.read_file(args[0])
+        except:
+            sys.stderr.write("Error reading %s\n" % args[0])
+            sys.exit(1)
+        try:
+            MatlabWriter.write_file(data, args[1], compress=options.compress)
+        except:
+            sys.stderr.write("Error writing %s\n" % args[1])
+            sys.exit(1)
+            
+        sys.stderr = old_err
 
     def __make_parser(self):
         parser = OptionParser("Usage: %prog [options] ACQ_FILE MAT_FILE")
