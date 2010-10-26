@@ -31,6 +31,14 @@ class AcqReader(object):
         # This must be set by _set_order_and_version
         self.byte_order_flag = None
         self.file_revision = None
+        self.samples_per_second = None
+        self.graph_header = None
+        self.channel_headers = []
+        self.foreign_header = None
+        self.channel_dtype_headers = []
+        self.main_compression_header = None
+        self.channel_compression_headers = []
+        self.data_start_offset = None
 
     @classmethod
     def read_file(cls, filename):
@@ -47,32 +55,24 @@ class AcqReader(object):
             return reader.read()
 
     def read(self):
-        self.__setup()
-        samples_per_second = 1000/self.graph_header.sample_time
+        self._read_headers()
+        self.samples_per_second = 1000/self.graph_header.sample_time
         df = Datafile(
             graph_header=self.graph_header,
             channel_headers=self.channel_headers,
             foreign_header=self.foreign_header,
             channel_dtype_headers=self.channel_dtype_headers,
-            samples_per_second=samples_per_second)
+            samples_per_second=self.samples_per_second)
 
-        self.channels = self.__build_channels(native_sps=samples_per_second)
-        if self.graph_header.compressed:
-            self.__read_data_compressed(self.channels)
-        else:
-            self.__read_data_uncompressed(self.channels)
+        self._read_data()
         df.channels = self.channels
         self.data_file = df
         return self.data_file
 
-    def __setup(self):
-        if self.byte_order_flag is not None:
-            return
-        # TODO: Extract this into a factory class
-        self.__set_order_and_version()
-        self.__read_headers()
-
-    def __read_headers(self):
+    def _read_headers(self):
+        if self.byte_order_flag is None:
+            self.__set_order_and_version()
+            
         self.graph_header = self.__single_header(0, GraphHeader)
         channel_count = self.graph_header.channel_count
 
@@ -119,7 +119,7 @@ class AcqReader(object):
             headers.append(h)
         return headers
 
-    def __build_channels(self, native_sps=0.0):
+    def __build_channels(self):
         # Build empty channels, ready to get data from the file.
         channels = []
         # For building raw data arrays
@@ -129,21 +129,27 @@ class AcqReader(object):
         fmt_map = {
             1: 'd',
             2: 'h'}
-
         for i in range(len(self.channel_headers)):
             ch = self.channel_headers[i]
             cdh = self.channel_dtype_headers[i]
             data = np.zeros(ch.point_count, np_map[cdh.type_code])
             divider = ch.frequency_divider
-            samples_per_second=float(native_sps)/divider
+            chan_samp_per_sec=float(self.samples_per_second)/divider
             chan = Channel(
                 freq_divider=divider, raw_scale_factor=ch.raw_scale,
                 raw_offset=ch.raw_offset, raw_data=data,
                 name=ch.name, units=ch.units,
                 fmt_str=fmt_map[cdh.type_code],
-                samples_per_second=samples_per_second)
+                samples_per_second=chan_samp_per_sec)
             channels.append(chan)
         return channels
+
+    def _read_data(self):
+        self.channels = self.__build_channels()
+        if self.graph_header.compressed:
+            self.__read_data_compressed(self.channels)
+        else:
+            self.__read_data_uncompressed(self.channels)
 
     def __read_data_compressed(self, channels):
         # At least in post-4.0 files, the compressed data isn't interleaved at
