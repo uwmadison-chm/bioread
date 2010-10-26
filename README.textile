@@ -25,11 +25,11 @@ h3. acq2mat
 This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are named "n1" through "nN"
 
 <pre>
-  Usage: acq2mat [options] ACQ_FILE MAT_FILE
+Usage: acq2mat [options] ACQ_FILE MAT_FILE
 
-  Options:
-    -h, --help      show this help message and exit
-    -c, --compress  Save compressed Matlab file
+Options:
+  -h, --help      show this help message and exit
+  -c, --compress  Save compressed Matlab file
 </pre>
 
 h3. acq_info
