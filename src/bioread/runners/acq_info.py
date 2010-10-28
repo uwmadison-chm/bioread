@@ -6,6 +6,7 @@
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
+# Project home: http://github.com/njvack/bioread
 
 # This contains the entry point for an executable to print basic information
 # about an AcqKnowledge file.

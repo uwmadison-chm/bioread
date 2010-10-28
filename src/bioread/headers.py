@@ -6,6 +6,7 @@
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
+# Project home: http://github.com/njvack/bioread
 
 from struct_dict import StructDict
 from file_revisions import *
