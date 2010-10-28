@@ -12,10 +12,12 @@
 
 import sys
 import os.path
+import StringIO
 from optparse import OptionParser
 
 from bioread.readers import AcqReader
 from bioread.writers import MatlabWriter
+from bioread.version import version_str
 
 
 def main(argv = None):
@@ -43,7 +45,10 @@ class AcqToMatRunner(object):
         if len(args) <> 2:
             self.parser.error("Must specify both ACQ_FILE and MAT_FILE.")
         try:
-            data = AcqReader.read_file(args[0])
+            infile = args[0]
+            if infile == '-':
+                infile = StringIO.StringIO(sys.stdin.read())
+            data = AcqReader.read_file(infile)
         except:
             sys.stderr.write("Error reading %s\n" % args[0])
             sys.exit(1)
@@ -56,7 +61,10 @@ class AcqToMatRunner(object):
         sys.stderr = old_err
 
     def __make_parser(self):
-        parser = OptionParser("Usage: %prog [options] ACQ_FILE MAT_FILE")
+        parser = OptionParser(
+            "Usage: %prog [options] ACQ_FILE MAT_FILE",
+            version="bioread %s" % version_str(),
+            epilog="Note: Using - for ACQ_FILE reads from stdin.")
         parser.add_option('-c', '--compress', dest='compress', default=False,
             action='store_true', help="Save compressed Matlab file")
 

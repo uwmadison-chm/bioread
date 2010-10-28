@@ -6,7 +6,7 @@ This library is mostly concerned with getting you the data, and less so with int
 
 h2. Status
 
-As far as I know, this should read any AcqKnowledge file you throw at it. Windows, Mac, compressed, not, old, new... it should happily read 'em all. If you have trouble with a file, I'd love to get a copy and make bioread work with it.
+As far as I know, this should read any AcqKnowledge file you throw at it. Windows, Mac, uncompressed, compressed, old, new... it should happily read 'em all. If you have trouble with a file, I'd love to get a copy and make bioread work with it.
 
 h2. Installation
 
@@ -28,8 +28,11 @@ This program creates a Matlab (version 5) file from an AcqKnowledge file. On the
 Usage: acq2mat [options] ACQ_FILE MAT_FILE
 
 Options:
+  --version       show program's version number and exit
   -h, --help      show this help message and exit
   -c, --compress  Save compressed Matlab file
+
+Note: Using - for ACQ_FILE reads from stdin.
 </pre>
 
 h3. acq_info
@@ -40,8 +43,11 @@ acq_info prints out some simple debugging information about an AcqKnowledge file
 Usage: acq_info [options] ACQ_FILE
 
 Options:
+  --version    show program's version number and exit
   -h, --help   show this help message and exit
   -d, --debug  Print lots of debugging data
+
+Note: Using - for ACQ_FILE reads from stdin.
 </pre>
 
 h2. API usage:

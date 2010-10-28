@@ -12,9 +12,11 @@
 
 import sys
 import os.path
+import StringIO
 from optparse import OptionParser
 
 from bioread.readers import AcqReader
+from bioread.version import version_str
 
 
 def main(argv=None):
@@ -47,10 +49,14 @@ class AcqInfoRunner(object):
             parser.error("Must specify ACQ_FILE")
             sys.exit(1)
         df = None
+        infile = args[0]
         try:
-            df = open(args[0], 'rb')
+            if infile == '-':
+                df = StringIO.StringIO(sys.stdin.read())
+            else:
+                df = open(args[0], 'rb')
         except:
-            sys.stderr.write("Error reading %s" % args[0])
+            sys.stderr.write("Error reading %s\n" % args[0])
             sys.exit(1)
 
         self.reader = AcqReader(df)
@@ -120,7 +126,10 @@ class AcqInfoRunner(object):
                 print("\n")
 
     def __make_parser(self):
-        parser = OptionParser("Usage: %prog [options] ACQ_FILE")
+        parser = OptionParser(
+            "Usage: %prog [options] ACQ_FILE", 
+            version="bioread %s" % version_str(),
+            epilog="Note: Using - for ACQ_FILE reads from stdin.")
         parser.add_option("-d", "--debug", dest="debug", default=False,
             action="store_true", help="Print lots of debugging data")
 

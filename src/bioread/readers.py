@@ -41,17 +41,21 @@ class AcqReader(object):
         self.data_start_offset = None
 
     @classmethod
-    def read_file(cls, filename):
+    def read_file(cls, fo):
         """
         The main method to quickly read a biopac file into memory.
 
-        filename: The name of the file to read.
+        fo: The name of the file to read, or a file-like object
 
         returns: biopac.Datafile
         """
         df = None
-        with open(filename, 'rb') as f:
-            reader = cls(f)
+        if type(fo) == str:
+            with open(fo, 'rb') as f:
+                reader = cls(f)
+                return reader.read()
+        else:
+            reader = cls(fo)
             return reader.read()
 
     def read(self):
