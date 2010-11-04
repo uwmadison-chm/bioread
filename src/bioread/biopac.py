@@ -62,6 +62,23 @@ class Channel(object):
         self.__data = None
         self.__upsampled_data = None
 
+    def should_sample_at(self, base_index):
+        """
+        Return true if the channel should be sampled in the graph file's
+        base_index-th sample. This is when we're base_index is exactly 
+        divisible by freq_counter and we have room for it in our data.
+        """
+        return (
+            (base_index % self.freq_divider) == 0 and
+            (base_index // self.freq_divider) < self.point_count)
+
+    @property
+    def point_count(self):
+        """
+        Shorthand for len(self.raw_data).
+        """
+        return self.__raw_data.shape[0]
+
     @property
     def raw_data(self):
         """

@@ -180,14 +180,12 @@ class AcqReader(object):
         # The BIOPAC engineers tell you not to even try reading interleaved
         # data. Wusses.
 
-        # This seems to be the same for all channels, but it's not specced.
-        # This method should prevent us from leaving data from some channels.
+        # This is, unfortunately, not necessarily the same for each channel.
         n_guesses = [c.freq_divider*c.raw_data.shape[0] for c in channels]
         max_n = max(n_guesses)
-
         self.acq_file.seek(self.data_start_offset)
         for i in xrange(max_n):
-            sample_channels = [c for c in channels if i % c.freq_divider == 0]
+            sample_channels = [c for c in channels if c.should_sample_at(i)]
             slice_fmt = self.byte_order_flag+''.join(
                 [c.fmt_str for c in sample_channels])
             data = self.acq_file.read(struct.calcsize(slice_fmt))
