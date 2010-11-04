@@ -1,0 +1,11 @@
+0.7.1: Fix bug reading channels with different freq_dividers
+
+0.7: Command-line utilities now accept data via stdin
+
+0.6.8: Add support for other .acq file revisions
+
+0.6.2: Improve error reporting in command-line utils, fix reading channel names and unit labels
+
+0.6.1: Implement reading .acq files saved with compression
+
+0.6: Initial public release
