@@ -423,9 +423,11 @@ class ChannelDTypeHeader(BiopacHeader):
 
 
 class MainCompressionHeader(BiopacHeader):
-    # In compressed files, at data_start_offset there's a long, containing the
-    # length of some header H1. At data_start_offset + len(H1), there's
-    # something we don't care about.
+    # In old (r41) compressed files, the header's 232 bytes long and I have
+    # no idea what's in it.
+    # In new compressed files, at data_start_offset there's a long, 
+    # containing the length of some header H1. 
+    # At data_start_offset + len(H1), there's something we don't care about.
     # From there, it's 94 bytes to the start of the first channel header.
     def __init__(self, file_revision, byte_order_flag):
         super(MainCompressionHeader, self).__init__(
@@ -433,7 +435,25 @@ class MainCompressionHeader(BiopacHeader):
 
     @property
     def effective_len_bytes(self):
-        return self.data['lSize'] + 94
+        return self.__effective_len_byte_versions[self.__version_bin]()
+
+    @property
+    def __effective_len_byte_versions(self):
+        # Determined through experimentation, may not be correct for some
+        # revisions.
+        return {
+            'PRE_4': lambda: 232, 
+            'POST_4': lambda: self.data['lSize'] + 94
+        }
+
+    @property
+    def __version_bin(self):
+        bin = "Unknown"
+        if self.file_revision < V_400:
+            bin = "PRE_4"
+        else:
+            bin = "POST_4"
+        return bin
 
     @property
     def __h_elts(self):
