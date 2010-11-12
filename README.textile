@@ -35,6 +35,45 @@ Options:
 Note: Using - for ACQ_FILE reads from stdin.
 </pre>
 
+Then, in Matlab:
+
+<pre>
+>> data = load('myfile.mat')
+
+data = 
+
+              channels: [1x1 struct]
+               headers: [1x1 struct]
+    samples_per_second: 1000
+
+>> data.channels
+
+ans = 
+
+n1: [1x1 struct]
+n2: [1x1 struct]
+
+>> data.channels.n1
+
+ans = 
+
+                 units: 'Percent'
+     frequency_divider: 1
+    samples_per_second: 1000
+                  data: [1x10002 double]
+                  name: 'CO2'
+                  
+>> plot(data.channels.n1.data)
+
+(Plots the data)
+</pre>
+
+As noted in the usage instructions, acq2mat will read from stdin, so if your files are gzipped, you can say:
+
+<pre>
+zcat myfile.acq.gz | acq2mat - myfile.mat
+</pre>
+
 h3. acq_info
 
 acq_info prints out some simple debugging information about an AcqKnowledge file. It'll do its best to print something out even for damaged files.
@@ -48,6 +87,12 @@ Options:
   -d, --debug  Print lots of debugging data
 
 Note: Using - for ACQ_FILE reads from stdin.
+</pre>
+
+As noted in the usage instructions, acq_info will read from stdin, so if your files are gzipped, you can say:
+
+<pre>
+zcat myfile.acq.gz | acq_info -
 </pre>
 
 h2. API usage:
@@ -85,7 +130,7 @@ If you want to process the data as NumPy arrays instead, there's an easy API to 
 
 h2. Notes
 
-The two areas I'm not certain about are very old (version 2.x) files, and old-ish (3.8.1) compressed files. I suspect the old compressed files were stored compressed and interleaved, but I don't have a way to generate one to test. Got one you're willing to send my way?
+I've tested all the various vintages of files I can think of and find, except very old (AcqKnowledge 2.x) files.
 
 Also, the channel order I read is not the one displayed in the AcqKnowledge interface. Neither the order of the data nor any channel header value I can find seems to entirely control that. I'm gonna just assume it's not a very big deal.
 
@@ -93,4 +138,4 @@ h2. Copyright & Disclaimers
 
 bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
 
-BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company does not support or endorse this software package.
+BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company neither supports nor endorses this software package.
