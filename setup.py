@@ -6,7 +6,7 @@ ez_setup.use_setuptools()
 from setuptools import setup, find_packages
 setup(
     name = "bioread",
-    version = "0.8.0",
+    version = "0.8.1",
     package_dir = {'':'src'},
     packages = find_packages('src'),
     install_requires = [
@@ -15,7 +15,7 @@ setup(
     
     entry_points = {
         'console_scripts': [
-            'acq2mat = bioread.runners.acq_to_mat:main',
+            'acq2mat = bioread.runners.acq2mat:main',
             'acq_info = bioread.runners.acq_info:main'
         ]
     },

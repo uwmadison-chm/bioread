@@ -1,3 +1,7 @@
+0.8.1: Small changes to make deploying without easy_install easier.
+
+0.8.0: Now reads compressed files from version 3.8.2 (rev 41)
+
 0.7.1: Fix bug reading channels with different freq_dividers
 
 0.7: Command-line utilities now accept data via stdin

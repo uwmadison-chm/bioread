@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
@@ -44,7 +45,9 @@ class AcqToMatRunner(object):
         self.parser = self.__make_parser()
         options, args = self.parser.parse_args(self.argv[1:])
         if len(args) <> 2:
-            self.parser.error("Must specify both ACQ_FILE and MAT_FILE.")
+            self.parser.error(
+                "Must specify both ACQ_FILE and MAT_FILE.\n"+
+                "Try --help for more instructions.")
         try:
             infile = args[0]
             if infile == '-':
