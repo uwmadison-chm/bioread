@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
@@ -47,7 +48,9 @@ class AcqInfoRunner(object):
         parser = self.__make_parser()
         opts, args = parser.parse_args(self.argv[1:])
         if len(args) < 1:
-            parser.error("Must specify ACQ_FILE")
+            parser.error(
+                "Must specify ACQ_FILE.\n"+
+                "Try --help for more instructions.")
             sys.exit(1)
         df = None
         infile = args[0]
