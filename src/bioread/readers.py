@@ -188,6 +188,11 @@ class AcqReader(object):
         self.block_len = len(stream_byte_indexes)
         # Allocate memory for our data stream -- it'll be padded if recording
         # stops in the middle of a block.
+        # AcqKnowledge seems to occasionally do something funny at the ends of
+        # truncated blocks -- this reading technique seems to disagree with
+        # it. I'm not convinced this will come up in the real world; it just
+        # seems to be possible to generate files where the last couple samples
+        # are screwed up.
         self.data_len = sum([c.data_length for c in channels])
         self.num_blocks = int(np.ceil(float(self.data_len)/self.block_len))
         self.buf_len = self.block_len*self.num_blocks
