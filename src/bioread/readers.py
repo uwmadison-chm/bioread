@@ -19,6 +19,7 @@ from headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from headers import ForeignHeader, MainCompressionHeader
 from headers import ChannelCompressionHeader
 from biopac import Datafile, Channel
+from utils import lcm
 
 
 class AcqReader(object):
@@ -77,7 +78,7 @@ class AcqReader(object):
     def _read_headers(self):
         if self.byte_order_flag is None:
             self.__set_order_and_version()
-            
+
         self.graph_header = self.__single_header(0, GraphHeader)
         channel_count = self.graph_header.channel_count
 
@@ -180,19 +181,51 @@ class AcqReader(object):
         # The BIOPAC engineers tell you not to even try reading interleaved
         # data. Wusses.
 
-        # This is, unfortunately, not necessarily the same for each channel.
-        n_guesses = [c.freq_divider*c.raw_data.shape[0] for c in channels]
-        max_n = max(n_guesses)
+        # Using adapted algorithm by Sven Marnarch from:
+        # http://stackoverflow.com/questions/4227990
+        stream_byte_indexes = self.__stream_byte_indexes(channels)
+        block_len = len(stream_byte_indexes)
+        # Allocate memory for our data stream -- it'll be padded if recording
+        # stopped in the middle of a block.
+        data_len = sum([c.data_length for c in channels])
+        num_blocks = int(np.ceil(float(data_len)/block_len))
+        buf_len = block_len*num_blocks
+        buf = np.zeros(buf_len, dtype=np.byte)
         self.acq_file.seek(self.data_start_offset)
-        for i in xrange(max_n):
-            sample_channels = [c for c in channels if c.should_sample_at(i)]
-            slice_fmt = self.byte_order_flag+''.join(
-                [c.fmt_str for c in sample_channels])
-            data = self.acq_file.read(struct.calcsize(slice_fmt))
-            samples = struct.unpack(slice_fmt, data)
-            for chan, samp in zip(sample_channels, samples):
-                d_index = i//chan.freq_divider
-                chan.raw_data[d_index] = samp
+        self.acq_file.readinto(buf)
+        # Now, partition the data into chunks of block_len
+        buf = buf.reshape(-1, block_len)
+        # and fill in the data.
+        for i, ch in enumerate(channels):
+            tmp = buf[:,stream_byte_indexes == i].ravel()
+            tmp.dtype = ch.fmt_str
+            np.add(tmp[0:ch.point_count], 0, ch.raw_data)
+
+    def __stream_sample_indexes(self, channels):
+        """
+        Returns the shortest repeating pattern of samples that'll appear in
+        our data stream. If our freq_dividers look like [1,2,4], we'll return
+        [0,1,2,0,0,1,0]
+        """
+        dividers =[c.freq_divider for c in channels]
+        channel_lcm = lcm(*dividers)
+        # Make a list like [0,1,2,0,0,1,0]
+        stream_sample_indexes = [
+            ch_idx for pat_idx in range(channel_lcm)
+            for ch_idx, div in enumerate(dividers)
+            if pat_idx % div == 0]
+        return stream_sample_indexes
+
+    def __stream_byte_indexes(self, channels):
+        """
+        Returns the shortest repeating pattern of bytes that'll appear in
+        our data stream. If our freq_dividers look like [1,2,4], and our
+        sample_lengths are [2,2,8], we'll return:
+        [0,0,1,1,2,2,2,2,2,2,2,2,0,0,0,0,1,1,0,0]
+        """
+        ssi = self.__stream_sample_indexes(channels)
+        repeats = [channels[i].sample_size for i in ssi]
+        return np.array(ssi).repeat(repeats)
 
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian

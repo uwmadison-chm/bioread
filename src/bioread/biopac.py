@@ -71,6 +71,27 @@ class Channel(object):
         return (
             (base_index % self.freq_divider) == 0 and
             (base_index // self.freq_divider) < self.point_count)
+    
+    @property
+    def sample_size(self):
+        """
+        The size, in bytes, of one sample's worth of data.
+        """
+        return self.__raw_data.dtype.itemsize
+    
+    @property
+    def data_length(self):
+        """
+        The size, in bytes, of the entire channel's raw data stream.
+        """
+        return self.sample_size * self.point_count
+    
+    @property
+    def data_proportion(self):
+        """
+        The sample size divided by the frequency divider.
+        """
+        return float(self.sample_size)/self.freq_divider
 
     @property
     def point_count(self):
