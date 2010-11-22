@@ -192,9 +192,9 @@ class AcqReader(object):
         self.num_blocks = int(np.ceil(float(self.data_len)/self.block_len))
         self.buf_len = self.block_len*self.num_blocks
         self.buf = np.zeros(self.buf_len, dtype=np.ubyte)
+        self.acq_file.seek(self.data_start_offset)
         self.buf[0:self.data_len] += np.fromfile(
             self.acq_file, np.ubyte, self.data_len)
-        self.acq_file.seek(self.data_start_offset)
         # Now, partition the data into chunks of block_len
         self.buf = self.buf.reshape(-1, self.block_len)
         # and fill in the data.
