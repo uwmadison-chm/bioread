@@ -145,7 +145,7 @@ class AcqReader(object):
                 freq_divider=divider, raw_scale_factor=ch.raw_scale,
                 raw_offset=ch.raw_offset, raw_data=data,
                 name=ch.name, units=ch.units,
-                fmt_str=fmt_map[cdh.type_code],
+                fmt_str=self.byte_order_flag+fmt_map[cdh.type_code],
                 samples_per_second=chan_samp_per_sec)
             channels.append(chan)
         return channels
@@ -166,7 +166,7 @@ class AcqReader(object):
             cch = self.channel_compression_headers[i]
             chan = channels[i]
             # Data seems to be little-endian regardless of the rest of the file
-            fmt_str = '<'+chan.fmt_str
+            fmt_str = '<'+chan.fmt_str[1]
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
@@ -184,20 +184,22 @@ class AcqReader(object):
         # Using adapted algorithm by Sven Marnarch from:
         # http://stackoverflow.com/questions/4227990
         stream_byte_indexes = self.__stream_byte_indexes(channels)
-        block_len = len(stream_byte_indexes)
+        self.stream_byte_indexes = stream_byte_indexes
+        self.block_len = len(stream_byte_indexes)
         # Allocate memory for our data stream -- it'll be padded if recording
-        # stopped in the middle of a block.
-        data_len = sum([c.data_length for c in channels])
-        num_blocks = int(np.ceil(float(data_len)/block_len))
-        buf_len = block_len*num_blocks
-        buf = np.zeros(buf_len, dtype=np.byte)
+        # stops in the middle of a block.
+        self.data_len = sum([c.data_length for c in channels])
+        self.num_blocks = int(np.ceil(float(self.data_len)/self.block_len))
+        self.buf_len = self.block_len*self.num_blocks
+        self.buf = np.zeros(self.buf_len, dtype=np.ubyte)
+        self.buf[0:self.data_len] += np.fromfile(
+            self.acq_file, np.ubyte, self.data_len)
         self.acq_file.seek(self.data_start_offset)
-        self.acq_file.readinto(buf)
         # Now, partition the data into chunks of block_len
-        buf = buf.reshape(-1, block_len)
+        self.buf = self.buf.reshape(-1, self.block_len)
         # and fill in the data.
         for i, ch in enumerate(channels):
-            tmp = buf[:,stream_byte_indexes == i].ravel()
+            tmp = self.buf[:,stream_byte_indexes == i].ravel()
             tmp.dtype = ch.fmt_str
             np.add(tmp[0:ch.point_count], 0, ch.raw_data)
 
