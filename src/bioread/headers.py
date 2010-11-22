@@ -112,10 +112,6 @@ class GraphHeader(BiopacHeader):
 
     @property
     def data_format(self):
-        # I suspect rather strongly that the compressed format changed between
-        # version 3 and version 4. The non-interleaved compressed data format
-        # is probably new.
-        # When I have an old compressed file, I'll verify.
         fmt = 'uncompressed'
         if self.compressed:
             fmt = 'compressed'
