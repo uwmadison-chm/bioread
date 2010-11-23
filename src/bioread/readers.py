@@ -183,30 +183,30 @@ class AcqReader(object):
 
         # Using adapted algorithm by Sven Marnarch from:
         # http://stackoverflow.com/questions/4227990
-        stream_byte_indexes = self.__stream_byte_indexes(channels)
-        self.stream_byte_indexes = stream_byte_indexes
-        self.block_len = len(stream_byte_indexes)
-        # Allocate memory for our data stream -- it'll be padded if recording
-        # stops in the middle of a block.
-        # AcqKnowledge seems to occasionally do something funny at the ends of
-        # truncated blocks -- this reading technique seems to disagree with
-        # it. I'm not convinced this will come up in the real world; it just
-        # seems to be possible to generate files where the last couple samples
-        # are screwed up.
-        self.data_len = sum([c.data_length for c in channels])
-        self.num_blocks = int(np.ceil(float(self.data_len)/self.block_len))
-        self.buf_len = self.block_len*self.num_blocks
-        self.buf = np.zeros(self.buf_len, dtype=np.ubyte)
+        self.stream_sample_indexes = self.__stream_sample_indexes(channels)
+        self.samples_per_block = len(self.stream_sample_indexes)
+        self.total_samples = sum([c.point_count for c in channels])
+        self.total_blocks = int(
+            np.ceil(float(self.total_samples)/self.samples_per_block))
+
+        self.all_sample_indexes = np.tile(self.stream_sample_indexes,
+            self.total_blocks)
+        self.channel_lengths = np.array([c.point_count for c in channels])
+        self.channel_sizes = np.array([c.sample_size for c in channels])
+        self.sample_counts = self.__indexes_to_counts(self.all_sample_indexes)
+        self.sample_mask = (
+            self.sample_counts < self.channel_lengths[self.all_sample_indexes])
+        self.sample_map = self.all_sample_indexes[self.sample_mask]
+        # The mapping of actual bytes on disk to channels.
+        self.data_map = self.sample_map.repeat(
+            self.channel_sizes[self.sample_map])
+
         self.acq_file.seek(self.data_start_offset)
-        self.buf[0:self.data_len] += np.fromfile(
-            self.acq_file, np.ubyte, self.data_len)
-        # Now, partition the data into chunks of block_len
-        self.buf = self.buf.reshape(-1, self.block_len)
-        # and fill in the data.
+        self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
         for i, ch in enumerate(channels):
-            tmp = self.buf[:,stream_byte_indexes == i].ravel()
+            tmp = self.buf[:,self.data_map == i]
             tmp.dtype = ch.fmt_str
-            np.add(tmp[0:ch.point_count], 0, ch.raw_data)
+            np.add(tmp, 0, ch.raw_data)
 
     def __stream_sample_indexes(self, channels):
         """
@@ -223,16 +223,23 @@ class AcqReader(object):
             if pat_idx % div == 0]
         return stream_sample_indexes
 
-    def __stream_byte_indexes(self, channels):
+    def __to_byte_indexes(self, sample_indexes, channels):
         """
-        Returns the shortest repeating pattern of bytes that'll appear in
-        our data stream. If our freq_dividers look like [1,2,4], and our
-        sample_lengths are [2,2,8], we'll return:
-        [0,0,1,1,2,2,2,2,2,2,2,2,0,0,0,0,1,1,0,0]
+        Transform an array of sample_indexes (eg [0,1,2,0,0,1,0]) into an
+        array of byte indexes: eg [0,0,1,1,2,2,2,2,2,2,2,2,0,0,0,0,1,1,0,0]
+        if our channels' sample sizes are [2,2,8]
         """
-        ssi = self.__stream_sample_indexes(channels)
-        repeats = [channels[i].sample_size for i in ssi]
-        return np.array(ssi).repeat(repeats)
+        repeats = [channels[i].sample_size for i in sample_indexes]
+        return np.array(sample_indexes).repeat(repeats)
+
+    def __indexes_to_counts(self, sample_list):
+        from collections import defaultdict
+        counts = defaultdict(lambda: 0)
+        def get_count(num):
+            c = counts[num]
+            counts[num] += 1
+            return c
+        return np.array([get_count(e) for e in sample_list])
 
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
