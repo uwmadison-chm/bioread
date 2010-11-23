@@ -193,7 +193,8 @@ class AcqReader(object):
             self.total_blocks)
         self.channel_lengths = np.array([c.point_count for c in channels])
         self.channel_sizes = np.array([c.sample_size for c in channels])
-        self.sample_counts = self.__indexes_to_counts(self.all_sample_indexes)
+        self.sample_counts = self.__sample_counts(
+            self.stream_sample_indexes, self.total_blocks)
         self.sample_mask = (
             self.sample_counts < self.channel_lengths[self.all_sample_indexes])
         self.sample_map = self.all_sample_indexes[self.sample_mask]
@@ -232,7 +233,17 @@ class AcqReader(object):
         repeats = [channels[i].sample_size for i in sample_indexes]
         return np.array(sample_indexes).repeat(repeats)
 
-    def __indexes_to_counts(self, sample_list):
+    def __sample_counts(self, sample_indexes, reps):
+        tile_bins = np.histogram(sample_indexes, np.max(sample_indexes)+1)[0]
+        tile_mult = tile_bins[sample_indexes]
+        first_steps = self.__running_counts(sample_indexes)
+        tiled = np.tile(tile_mult, reps).reshape(reps, -1)
+        multiplier = np.reshape(np.arange(reps), (reps, 1))
+        tiled *= multiplier
+        tiled += first_steps
+        return tiled.ravel()
+
+    def __running_counts(self, sample_list):
         from collections import defaultdict
         counts = defaultdict(lambda: 0)
         def get_count(num):
