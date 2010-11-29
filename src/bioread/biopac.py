@@ -104,10 +104,16 @@ class Channel(object):
     def data(self):
         """
         The channel's data, scaled by the raw_scale_factor and offset. These
-        will be the values reported by AcqKnowledge.
-        """
+        will be the values reported by AcqKnowledge. Note: only integer data
+        types are scaled and offset.
+        """        
+        scale_factor = self.raw_scale_factor
+        raw_offset = self.raw_offset
+        if self.fmt_str.find("d") >= 0: # test for float-ness
+            scale_factor = 1.0
+            raw_offset = 0.0
         if self.__data is None:
-            self.__data = (self.raw_data*self.raw_scale_factor)+self.raw_offset
+            self.__data = (self.raw_data*scale_factor)+raw_offset
         return self.__data
 
     @property
