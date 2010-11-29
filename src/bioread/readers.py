@@ -170,9 +170,7 @@ class AcqReader(object):
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            # raw_data starts out as zeros. Yeah, this feels hacky to me, too.
-            np.add(chan.raw_data, np.fromstring(decomp_data, fmt_str),
-                chan.raw_data)
+            chan.raw_data[:] = np.fromstring(decomp_data, fmt_str)
 
     def __read_data_uncompressed(self, channels):
         # The data in the file are interleaved, so we'll potentially have
