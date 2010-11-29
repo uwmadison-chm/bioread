@@ -205,9 +205,9 @@ class AcqReader(object):
         self.acq_file.seek(self.data_start_offset)
         self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
         for i, ch in enumerate(channels):
-            tmp = self.buf[:,self.data_map == i]
-            tmp.dtype = ch.fmt_str
-            np.add(tmp, 0, ch.raw_data)
+            ch.raw_data.dtype = np.ubyte
+            ch.raw_data[:] = self.buf[:,self.data_map == i]
+            ch.dtype = ch.fmt_str
 
     def __stream_sample_indexes(self, channels):
         """
