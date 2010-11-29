@@ -58,7 +58,7 @@ class Channel(object):
         self.units = units
         self.fmt_str = fmt_str
         self.samples_per_second = samples_per_second
-        self.__raw_data = raw_data
+        self.raw_data = raw_data
         self.__data = None
         self.__upsampled_data = None
 
@@ -77,7 +77,7 @@ class Channel(object):
         """
         The size, in bytes, of one sample's worth of data.
         """
-        return self.__raw_data.dtype.itemsize
+        return self.raw_data.dtype.itemsize
     
     @property
     def data_length(self):
@@ -98,16 +98,7 @@ class Channel(object):
         """
         Shorthand for len(self.raw_data).
         """
-        return self.__raw_data.shape[0]
-
-    @property
-    def raw_data(self):
-        """
-        The raw data recorded in the AcqKnowledge file. For channels stored
-        as floats, these are the values reported in the AcqKnowledge interface;
-        for ints, the values need to be scaled -- see data().
-        """
-        return self.__raw_data
+        return self.raw_data.shape[0]
 
     @property
     def data(self):
