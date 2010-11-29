@@ -114,7 +114,8 @@ class Channel(object):
     def upsampled_data(self):
         """
         The channel's data, sampled at the native frequency of the file.
-        All channels should have the same number of points using this method.
+        All channels will have the same number of points using this method,
+        unless recording stopped in the middle of a block.
         Nearest-neighbor sampling is used.
         """
         if self.__upsampled_data is None:
