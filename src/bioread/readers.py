@@ -138,7 +138,7 @@ class AcqReader(object):
         for i in range(len(self.channel_headers)):
             ch = self.channel_headers[i]
             cdh = self.channel_dtype_headers[i]
-            data = np.zeros(ch.point_count, np_map[cdh.type_code])
+            data = np.empty(ch.point_count, np_map[cdh.type_code])
             divider = ch.frequency_divider
             chan_samp_per_sec=float(self.samples_per_second)/divider
             chan = Channel(
