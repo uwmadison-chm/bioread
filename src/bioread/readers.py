@@ -220,7 +220,7 @@ class AcqReader(object):
             ch_idx for pat_idx in range(channel_lcm)
             for ch_idx, div in enumerate(dividers)
             if pat_idx % div == 0]
-        return stream_sample_indexes
+        return np.array(stream_sample_indexes, dtype=np.int32)
 
     def __to_byte_indexes(self, sample_indexes, channels):
         """
@@ -236,19 +236,18 @@ class AcqReader(object):
         tile_mult = tile_bins[sample_indexes]
         first_steps = self.__running_counts(sample_indexes)
         tiled = np.tile(tile_mult, reps).reshape(reps, -1)
-        multiplier = np.reshape(np.arange(reps), (reps, 1))
+        multiplier = np.reshape(np.arange(reps, dtype=np.int32), (reps, 1))
         tiled *= multiplier
         tiled += first_steps
         return tiled.ravel()
 
-    def __running_counts(self, sample_list):
-        from collections import defaultdict
-        counts = defaultdict(lambda: 0)
-        def get_count(num):
-            c = counts[num]
-            counts[num] += 1
-            return c
-        return np.array([get_count(e) for e in sample_list])
+    def __running_counts(self, sample_indexes):
+        uniques = np.unique(sample_indexes)
+        my_range = np.arange(len(sample_indexes), dtype=np.int32)
+        counts = np.empty(sample_indexes.shape, dtype=np.int32)
+        for i in uniques:
+            counts[sample_indexes == i] = my_range
+        return counts
 
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
