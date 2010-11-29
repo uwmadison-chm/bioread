@@ -170,7 +170,7 @@ class AcqReader(object):
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            chan.raw_data[:] = np.fromstring(decomp_data, fmt_str)
+            chan.raw_data = np.fromstring(decomp_data, fmt_str)
 
     def __read_data_uncompressed(self, channels):
         # The data in the file are interleaved, so we'll potentially have
@@ -203,9 +203,7 @@ class AcqReader(object):
         self.acq_file.seek(self.data_start_offset)
         self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
         for i, ch in enumerate(channels):
-            ch.raw_data.dtype = np.ubyte
-            ch.raw_data[:] = self.buf[:,self.data_map == i]
-            ch.dtype = ch.fmt_str
+            self.__copy_uncompressed_data(ch, i, self.data_map, self.buf)
 
     def __stream_sample_indexes(self, channels):
         """
@@ -221,6 +219,10 @@ class AcqReader(object):
             for ch_idx, div in enumerate(dividers)
             if pat_idx % div == 0]
         return np.array(stream_sample_indexes, dtype=np.int32)
+
+    def __copy_uncompressed_data(self, channel, d_map, channel_index, buf):
+        channel.raw_data = buf[d_map == channel_index]
+        channel.raw_data.dtype = channel.fmt_str
 
     def __to_byte_indexes(self, sample_indexes, channels):
         """
