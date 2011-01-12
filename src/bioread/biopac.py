@@ -38,6 +38,17 @@ class Datafile(object):
 
         return self.__named_channels
 
+    def __unicode__(self):
+        return("Biopac file (rev %s): %s channels, %s samples/sec" % (
+            self.graph_header.file_revision, len(self.channels),
+            self.samples_per_second))
+
+    def __str__(self):
+        return str(unicode(self))
+
+    def __repr__(self):
+        return str(self)
+
 
 class Channel(object):
     """
@@ -129,3 +140,13 @@ class Channel(object):
             self.__upsampled_data = self.data[
                 np.arange(total_samples)//self.freq_divider]
         return self.__upsampled_data
+
+    def __unicode__(self):
+        return("Channel %s: %s samples, %s samples/sec" % (
+            self.name, len(self.raw_data), self.samples_per_second))
+
+    def __str__(self):
+        return str(unicode(self))
+
+    def __repr__(self):
+        return str(self)
