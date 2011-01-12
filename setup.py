@@ -6,7 +6,7 @@ ez_setup.use_setuptools()
 from setuptools import setup, find_packages
 setup(
     name = "bioread",
-    version = "0.8.3",
+    version = "0.8.4",
     package_dir = {'':'src'},
     packages = find_packages('src'),
     install_requires = [
