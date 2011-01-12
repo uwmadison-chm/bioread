@@ -65,27 +65,27 @@ class Channel(object):
     def should_sample_at(self, base_index):
         """
         Return true if the channel should be sampled in the graph file's
-        base_index-th sample. This is when we're base_index is exactly 
+        base_index-th sample. This is when we're base_index is exactly
         divisible by freq_counter and we have room for it in our data.
         """
         return (
             (base_index % self.freq_divider) == 0 and
             (base_index // self.freq_divider) < self.point_count)
-    
+
     @property
     def sample_size(self):
         """
         The size, in bytes, of one sample's worth of data.
         """
         return self.raw_data.dtype.itemsize
-    
+
     @property
     def data_length(self):
         """
         The size, in bytes, of the entire channel's raw data stream.
         """
         return self.sample_size * self.point_count
-    
+
     @property
     def data_proportion(self):
         """
@@ -106,7 +106,7 @@ class Channel(object):
         The channel's data, scaled by the raw_scale_factor and offset. These
         will be the values reported by AcqKnowledge. Note: only integer data
         types are scaled and offset.
-        """        
+        """
         scale_factor = self.raw_scale_factor
         raw_offset = self.raw_offset
         if self.fmt_str.find("d") >= 0: # test for float-ness
