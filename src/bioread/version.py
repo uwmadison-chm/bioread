@@ -8,7 +8,7 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-VERSION=(0, 8, 3)
+VERSION=(0, 8, 4)
 
 
 def version_str():

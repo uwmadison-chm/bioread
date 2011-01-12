@@ -1,3 +1,5 @@
+0.8.4: Add convenience method: bioread.read_file(). Add usefule __unicode__(), __str__(), and __repr__() methods to biopac.Datafile and biopac.Channel.
+
 0.8.3: Reading uncompressed data now ~50% faster. Fixed bug in improperly scaling data converted from int to float by AcqKnowledge.
 
 0.8.2: Rewrite algorithm to read uncompressed data; now ~15x faster.
