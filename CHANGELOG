@@ -1,4 +1,6 @@
-0.8.4: Add convenience method: bioread.read_file(). Add usefule __unicode__(), __str__(), and __repr__() methods to biopac.Datafile and biopac.Channel.
+0.9.0: Change MATLAB file writer to create a cell array for channels instead of the silly named struct thing.
+
+0.8.4: Add convenience method: bioread.read_file(). Add useful __unicode__(), __str__(), and __repr__() methods to biopac.Datafile and biopac.Channel.
 
 0.8.3: Reading uncompressed data now ~50% faster. Fixed bug in improperly scaling data converted from int to float by AcqKnowledge.
 

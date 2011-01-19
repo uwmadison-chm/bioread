@@ -8,6 +8,7 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
+import numpy as np
 from scipy.io import savemat
 
 
@@ -35,21 +36,21 @@ class MatlabWriter(object):
     def __build_dict(self, data):
         d = {}
         d['samples_per_second'] = data.samples_per_second
-        channels = {}
-        channel_headers = {}
-        channel_dtype_headers = {}
-        for i in range(len(data.channels)):
+        nc = len(data.channels)
+        channels = np.zeros(nc, dtype=np.object)
+        channel_headers = np.zeros(nc, dtype=np.object)
+        channel_dtype_headers = np.zeros(nc, dtype=np.object)
+        for i in range(nc):
             c = data.channels[i]
-            label = "n%s" % (i+1)
             chan_dict = {}
             chan_dict['data'] = c.data
             chan_dict['samples_per_second'] = c.samples_per_second
             chan_dict['name'] = c.name
             chan_dict['frequency_divider'] = c.freq_divider
             chan_dict['units'] = c.units
-            channels[label] = chan_dict
-            channel_headers[label] = data.channel_headers[i].data
-            channel_dtype_headers[label] = data.channel_dtype_headers[i].data
+            channels[i] = chan_dict
+            channel_headers[i] = data.channel_headers[i].data
+            channel_dtype_headers[i] = data.channel_dtype_headers[i].data
 
         d['channels'] = channels
 
