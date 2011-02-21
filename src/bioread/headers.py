@@ -120,7 +120,7 @@ class GraphHeader(BiopacHeader):
     @property
     def __version_bin(self):
         bin = 'Unknown'
-        if self.file_revision < V_400:
+        if self.file_revision < V_400B:
             bin = 'PRE_4'
         else:
             bin = 'POST_4'
@@ -227,8 +227,8 @@ class GraphHeader(BiopacHeader):
                 ('nPlotDraft'               ,'h'    ,V_20a),
                 ('nDispMode'                ,'h'    ,V_20a),
                 ('rRReserved'               ,'h'    ,V_20a),
-                ('Unknown'                  ,'822B' ,V_400),
-                ('bCompressed'              ,'l'    ,V_400),
+                ('Unknown'                  ,'822B' ,V_400B),
+                ('bCompressed'              ,'l'    ,V_400B),
             )}
 
     @property
@@ -252,7 +252,7 @@ class ChannelHeader(BiopacHeader):
     @property
     def __version_bin(self):
         bin = 'Unknown'
-        if self.file_revision < V_400:
+        if self.file_revision < V_400B:
             bin = 'PRE_4'
         else:
             bin = 'POST_4'
@@ -334,8 +334,8 @@ class ChannelHeader(BiopacHeader):
                 ('dAmplOffset'              ,'d'    ,V_20a),
                 ('nChanOrder'               ,'h'    ,V_20a),
                 ('nDispSize'                ,'h'    ,V_20a),
-                ('unknown'                  ,'40s'  ,V_400),
-                ('nVarSampleDivider'        ,'h'    ,V_400),
+                ('unknown'                  ,'40s'  ,V_400B),
+                ('nVarSampleDivider'        ,'h'    ,V_400B),
             )}
 
 
@@ -387,15 +387,15 @@ class ForeignHeader(BiopacHeader):
                 ('nType'                    ,'h'    ,V_20a),
             ),
             "EARLY_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_400),
-                ('nType'                    ,'h'    ,V_400),
-                ('lReserved'                ,'l'    ,V_400),
-                ('lLengthExtended'          ,'l'    ,V_400),
+                ('nLength'                  ,'h'    ,V_400B),
+                ('nType'                    ,'h'    ,V_400B),
+                ('lReserved'                ,'l'    ,V_400B),
+                ('lLengthExtended'          ,'l'    ,V_400B),
             ),
             "LATE_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_400),
-                ('nType'                    ,'h'    ,V_400),
-                ('lReserved'                ,'l'    ,V_400),
+                ('nLength'                  ,'h'    ,V_400B),
+                ('nType'                    ,'h'    ,V_400B),
+                ('lReserved'                ,'l'    ,V_400B),
             )}
 
 
@@ -445,7 +445,7 @@ class MainCompressionHeader(BiopacHeader):
     @property
     def __version_bin(self):
         bin = "Unknown"
-        if self.file_revision < V_400:
+        if self.file_revision < V_400B:
             bin = "PRE_4"
         else:
             bin = "POST_4"

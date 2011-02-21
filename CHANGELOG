@@ -1,3 +1,5 @@
+0.9.1: Add ability to read file revision 61 (appears to be an old version 4.x for Mac). Thanks to <David.Gutman@med.nyu.edu> for bug report & example file.
+
 0.9.0: Change MATLAB file writer to create a cell array for channels instead of the silly named struct thing.
 
 0.8.4: Add convenience method: bioread.read_file(). Add useful __unicode__(), __str__(), and __repr__() methods to biopac.Datafile and biopac.Channel.
