@@ -12,6 +12,21 @@ import numpy as np
 from scipy.io import savemat
 
 
+class TxtWriter(object):
+
+    def __init__(self, channel=None, out_stream=None):
+        self.channel = channel
+        self.out_stream = out_stream
+
+    @classmethod
+    def write_file(cls, channel, out_stream):
+        writer = cls(channel, out_stream)
+        writer.write()
+
+    def write(self):
+        np.savetxt(self.out_stream, self.channel.data)
+
+
 class MatlabWriter(object):
 
     def __init__(self,
