@@ -70,7 +70,7 @@ class AcqToMatRunner(object):
             version="bioread %s" % version_str(),
             epilog="Note: Using - for ACQ_FILE reads from stdin.")
         parser.add_option('-c', '--compress', dest='compress', default=False,
-            action='store_true', help="Save compressed Matlab file")
+            action='store_true', help="save compressed Matlab file")
 
         return parser
 

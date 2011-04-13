@@ -135,7 +135,7 @@ class AcqInfoRunner(object):
             version="bioread %s" % version_str(),
             epilog="Note: Using - for ACQ_FILE reads from stdin.")
         parser.add_option("-d", "--debug", dest="debug", default=False,
-            action="store_true", help="Print lots of debugging data")
+            action="store_true", help="print lots of debugging data")
 
         return parser
 
