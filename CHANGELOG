@@ -1,3 +1,5 @@
+0.9.3: Fix bug with modern numpy
+
 0.9.2: Add acq2txt, which (not surprisingly) turns acq files into text files.
 
 0.9.1: Add ability to read file revision 61 (appears to be an old version 4.x for Mac). Thanks to <David.Gutman@med.nyu.edu> for bug report & example file.

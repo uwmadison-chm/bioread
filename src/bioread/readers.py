@@ -248,7 +248,7 @@ class AcqReader(object):
         my_range = np.arange(len(sample_indexes), dtype=np.int32)
         counts = np.empty(sample_indexes.shape, dtype=np.int32)
         for i in uniques:
-            counts[sample_indexes == i] = my_range
+            counts[sample_indexes == i] = my_range[i]
         return counts
 
     def __set_order_and_version(self):
