@@ -8,8 +8,8 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-from struct_dict import StructDict
-from file_revisions import *
+from bioread.struct_dict import StructDict
+from bioread.file_revisions import *
 
 
 class Header(object):
