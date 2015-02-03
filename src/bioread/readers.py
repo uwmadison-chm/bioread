@@ -2,11 +2,13 @@
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2010 Board of Regents of the University of Wisconsin System
+#               2015 Alexander Schlemmer, bmp.ds.mpg.de
 #
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
+# Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
 import struct
@@ -42,7 +44,7 @@ class AcqReader(object):
         self.channel_compression_headers = []
         self.data_start_offset = None
         # This can be used to load data having only channels with
-        # equal samplerate and bitrate much more memory-efficient:
+        # equal samplerate and bitrate much more memory-efficiently:
         self.simple_layout = simple_layout
 
     @classmethod
@@ -204,9 +206,12 @@ class AcqReader(object):
                 self.channel_sizes[self.sample_map])
 
         else:
-            self.data_map = np.repeat(np.tile(np.arange(self.samples_per_block, dtype=np.byte),
-                                              self.total_samples/self.samples_per_block), 2)
-    
+            self.data_map = np.repeat(np.tile(
+                np.arange(self.samples_per_block,
+                          dtype=np.byte),
+                self.total_samples/self.samples_per_block),
+                2)
+
         self.acq_file.seek(self.data_start_offset)
         self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
         for i, ch in enumerate(channels):

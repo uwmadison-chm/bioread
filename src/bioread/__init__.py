@@ -17,4 +17,4 @@ def read_file(filelike, simple_layout=False):
     object. Simply a shorthand for bioread.readers.AcqReader.read_file()
     """
     return AcqReader(simple_layout).read_file(filelike)
-  
+
