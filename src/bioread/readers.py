@@ -46,7 +46,7 @@ class AcqReader(object):
         self.simple_layout = simple_layout
 
     @classmethod
-    def read_file(cls, fo):
+    def read_file(cls, fo, simple_layout=False):
         """
         The main method to quickly read a biopac file into memory.
 
@@ -57,10 +57,10 @@ class AcqReader(object):
         df = None
         if type(fo) == str:
             with open(fo, 'rb') as f:
-                reader = cls(f)
+                reader = cls(f, simple_layout)
                 return reader.read()
         else:
-            reader = cls(fo)
+            reader = cls(fo, simple_layout)
             return reader.read()
 
     def read(self):

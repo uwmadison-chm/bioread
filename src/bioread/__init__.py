@@ -16,5 +16,5 @@ def read_file(filelike, simple_layout=False):
     Read a file (either an IO object or a filename) and return a biopac.Datafile
     object. Simply a shorthand for bioread.readers.AcqReader.read_file()
     """
-    return AcqReader(simple_layout).read_file(filelike)
+    return AcqReader.read_file(filelike, simple_layout)
   
