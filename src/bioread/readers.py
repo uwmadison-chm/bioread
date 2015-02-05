@@ -2,24 +2,27 @@
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2010 Board of Regents of the University of Wisconsin System
+#               2015 Alexander Schlemmer, bmp.ds.mpg.de
 #
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
+# Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
+import six
 import struct
 import zlib
 
 import numpy as np
 
-from file_revisions import *
-from headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
-from headers import ForeignHeader, MainCompressionHeader
-from headers import ChannelCompressionHeader
-from biopac import Datafile, Channel
-from utils import lcm
+from bioread.file_revisions import *
+from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
+from bioread.headers import ForeignHeader, MainCompressionHeader
+from bioread.headers import ChannelCompressionHeader
+from bioread.biopac import Datafile, Channel
+from bioread.utils import lcm
 
 
 class AcqReader(object):
@@ -52,7 +55,7 @@ class AcqReader(object):
         returns: biopac.Datafile
         """
         df = None
-        if type(fo) == str:
+        if isinstance(fo, six.string_types):
             with open(fo, 'rb') as f:
                 reader = cls(f)
                 return reader.read()
@@ -84,7 +87,7 @@ class AcqReader(object):
 
         ch_start = self.graph_header.effective_len_bytes
         self.channel_headers = self.__multi_headers(channel_count,
-            ch_start, ChannelHeader)
+                                                    ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
 
         fh_start = ch_start + len(self.channel_headers)*ch_len
@@ -92,7 +95,7 @@ class AcqReader(object):
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
         self.channel_dtype_headers = self.__multi_headers(channel_count,
-            cdh_start, ChannelDTypeHeader)
+                                                          cdh_start, ChannelDTypeHeader)
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
@@ -102,10 +105,10 @@ class AcqReader(object):
     def __read_compression_headers(self):
         main_ch_start = self.data_start_offset
         self.main_compression_header = self.__single_header(main_ch_start,
-            MainCompressionHeader)
+                                                            MainCompressionHeader)
 
         cch_start = (main_ch_start +
-            self.main_compression_header.effective_len_bytes)
+                     self.main_compression_header.effective_len_bytes)
         self.channel_compression_headers = self.__multi_headers(
             self.graph_header.channel_count, cch_start,
             ChannelCompressionHeader)
@@ -115,7 +118,7 @@ class AcqReader(object):
 
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
-        last_h_len = 0 # This will be changed when reading the channel headers
+        last_h_len = 0  # This will be changed when reading the channel headers
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
@@ -140,7 +143,7 @@ class AcqReader(object):
             cdh = self.channel_dtype_headers[i]
             data = np.empty(ch.point_count, np_map[cdh.type_code])
             divider = ch.frequency_divider
-            chan_samp_per_sec=float(self.samples_per_second)/divider
+            chan_samp_per_sec = float(self.samples_per_second)/divider
             chan = Channel(
                 freq_divider=divider, raw_scale_factor=ch.raw_scale,
                 raw_offset=ch.raw_offset, raw_data=data,
@@ -211,7 +214,7 @@ class AcqReader(object):
         our data stream. If our freq_dividers look like [1,2,4], we'll return
         [0,1,2,0,0,1,0]
         """
-        dividers =[c.freq_divider for c in channels]
+        dividers = [c.freq_divider for c in channels]
         channel_lcm = lcm(*dividers)
         # Make a list like [0,1,2,0,0,1,0]
         stream_sample_indexes = [
