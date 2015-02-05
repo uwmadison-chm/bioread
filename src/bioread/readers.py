@@ -11,6 +11,7 @@
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
+import six
 import struct
 import zlib
 
@@ -57,7 +58,7 @@ class AcqReader(object):
         returns: biopac.Datafile
         """
         df = None
-        if type(fo) == str:
+        if isinstance(fo, six.string_types):
             with open(fo, 'rb') as f:
                 reader = cls(f)
                 return reader.read()
