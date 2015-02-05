@@ -31,7 +31,7 @@ class AcqReader(object):
     >>> data = AcqReader.read("some_file.acq")
     """
 
-    def __init__(self, acq_file):
+    def __init__(self, acq_file, simple_layout=False):
         self.acq_file = acq_file
         # This must be set by _set_order_and_version
         self.byte_order_flag = None
@@ -44,9 +44,12 @@ class AcqReader(object):
         self.main_compression_header = None
         self.channel_compression_headers = []
         self.data_start_offset = None
+        # This can be used to load data having only channels with
+        # equal samplerate and bitrate much more memory-efficiently:
+        self.simple_layout = simple_layout
 
     @classmethod
-    def read_file(cls, fo):
+    def read_file(cls, fo, simple_layout=False):
         """
         The main method to quickly read a biopac file into memory.
 
@@ -57,10 +60,10 @@ class AcqReader(object):
         df = None
         if isinstance(fo, six.string_types):
             with open(fo, 'rb') as f:
-                reader = cls(f)
+                reader = cls(f, simple_layout)
                 return reader.read()
         else:
-            reader = cls(fo)
+            reader = cls(fo, simple_layout)
             return reader.read()
 
     def read(self):
@@ -190,18 +193,25 @@ class AcqReader(object):
         self.total_blocks = int(
             np.ceil(float(self.total_samples)/self.samples_per_block))
 
-        self.all_sample_indexes = np.tile(self.stream_sample_indexes,
-            self.total_blocks)
-        self.channel_lengths = np.array([c.point_count for c in channels])
-        self.channel_sizes = np.array([c.sample_size for c in channels])
-        self.sample_counts = self.__sample_counts(
-            self.stream_sample_indexes, self.total_blocks)
-        self.sample_mask = (
-            self.sample_counts < self.channel_lengths[self.all_sample_indexes])
-        self.sample_map = self.all_sample_indexes[self.sample_mask]
-        # The mapping of actual bytes on disk to channels.
-        self.data_map = self.sample_map.repeat(
-            self.channel_sizes[self.sample_map])
+        if not self.simple_layout:
+            self.all_sample_indexes = np.tile(self.stream_sample_indexes, self.total_blocks)
+            self.channel_lengths = np.array([c.point_count for c in channels])
+            self.channel_sizes = np.array([c.sample_size for c in channels])
+            self.sample_counts = self.__sample_counts(
+                self.stream_sample_indexes, self.total_blocks)
+            self.sample_mask = (
+                self.sample_counts < self.channel_lengths[self.all_sample_indexes])
+            self.sample_map = self.all_sample_indexes[self.sample_mask]
+            # The mapping of actual bytes on disk to channels.
+            self.data_map = self.sample_map.repeat(
+                self.channel_sizes[self.sample_map])
+
+        else:
+            self.data_map = np.repeat(np.tile(
+                np.arange(self.samples_per_block,
+                          dtype=np.byte),
+                self.total_samples/self.samples_per_block),
+                2)
 
         self.acq_file.seek(self.data_start_offset)
         self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
