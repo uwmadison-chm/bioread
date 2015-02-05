@@ -2,24 +2,27 @@
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2010 Board of Regents of the University of Wisconsin System
+#               2015 Alexander Schlemmer, bmp.ds.mpg.de
 #
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
+# Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
+import six
 import struct
 import zlib
 
 import numpy as np
 
-from file_revisions import *
-from headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
-from headers import ForeignHeader, MainCompressionHeader
-from headers import ChannelCompressionHeader
-from biopac import Datafile, Channel
-from utils import lcm
+from bioread.file_revisions import *
+from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
+from bioread.headers import ForeignHeader, MainCompressionHeader
+from bioread.headers import ChannelCompressionHeader
+from bioread.biopac import Datafile, Channel
+from bioread.utils import lcm
 
 
 class AcqReader(object):
@@ -28,7 +31,7 @@ class AcqReader(object):
     >>> data = AcqReader.read("some_file.acq")
     """
 
-    def __init__(self, acq_file):
+    def __init__(self, acq_file, simple_layout=False):
         self.acq_file = acq_file
         # This must be set by _set_order_and_version
         self.byte_order_flag = None
@@ -41,9 +44,12 @@ class AcqReader(object):
         self.main_compression_header = None
         self.channel_compression_headers = []
         self.data_start_offset = None
+        # This can be used to load data having only channels with
+        # equal samplerate and bitrate much more memory-efficiently:
+        self.simple_layout = simple_layout
 
     @classmethod
-    def read_file(cls, fo):
+    def read_file(cls, fo, simple_layout=False):
         """
         The main method to quickly read a biopac file into memory.
 
@@ -52,12 +58,12 @@ class AcqReader(object):
         returns: biopac.Datafile
         """
         df = None
-        if type(fo) == str:
+        if isinstance(fo, six.string_types):
             with open(fo, 'rb') as f:
-                reader = cls(f)
+                reader = cls(f, simple_layout)
                 return reader.read()
         else:
-            reader = cls(fo)
+            reader = cls(fo, simple_layout)
             return reader.read()
 
     def read(self):
@@ -84,7 +90,7 @@ class AcqReader(object):
 
         ch_start = self.graph_header.effective_len_bytes
         self.channel_headers = self.__multi_headers(channel_count,
-            ch_start, ChannelHeader)
+                                                    ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
 
         fh_start = ch_start + len(self.channel_headers)*ch_len
@@ -92,7 +98,7 @@ class AcqReader(object):
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
         self.channel_dtype_headers = self.__multi_headers(channel_count,
-            cdh_start, ChannelDTypeHeader)
+                                                          cdh_start, ChannelDTypeHeader)
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
@@ -102,10 +108,10 @@ class AcqReader(object):
     def __read_compression_headers(self):
         main_ch_start = self.data_start_offset
         self.main_compression_header = self.__single_header(main_ch_start,
-            MainCompressionHeader)
+                                                            MainCompressionHeader)
 
         cch_start = (main_ch_start +
-            self.main_compression_header.effective_len_bytes)
+                     self.main_compression_header.effective_len_bytes)
         self.channel_compression_headers = self.__multi_headers(
             self.graph_header.channel_count, cch_start,
             ChannelCompressionHeader)
@@ -115,7 +121,7 @@ class AcqReader(object):
 
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
-        last_h_len = 0 # This will be changed when reading the channel headers
+        last_h_len = 0  # This will be changed when reading the channel headers
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
@@ -140,7 +146,7 @@ class AcqReader(object):
             cdh = self.channel_dtype_headers[i]
             data = np.empty(ch.point_count, np_map[cdh.type_code])
             divider = ch.frequency_divider
-            chan_samp_per_sec=float(self.samples_per_second)/divider
+            chan_samp_per_sec = float(self.samples_per_second)/divider
             chan = Channel(
                 freq_divider=divider, raw_scale_factor=ch.raw_scale,
                 raw_offset=ch.raw_offset, raw_data=data,
@@ -187,18 +193,25 @@ class AcqReader(object):
         self.total_blocks = int(
             np.ceil(float(self.total_samples)/self.samples_per_block))
 
-        self.all_sample_indexes = np.tile(self.stream_sample_indexes,
-            self.total_blocks)
-        self.channel_lengths = np.array([c.point_count for c in channels])
-        self.channel_sizes = np.array([c.sample_size for c in channels])
-        self.sample_counts = self.__sample_counts(
-            self.stream_sample_indexes, self.total_blocks)
-        self.sample_mask = (
-            self.sample_counts < self.channel_lengths[self.all_sample_indexes])
-        self.sample_map = self.all_sample_indexes[self.sample_mask]
-        # The mapping of actual bytes on disk to channels.
-        self.data_map = self.sample_map.repeat(
-            self.channel_sizes[self.sample_map])
+        if not self.simple_layout:
+            self.all_sample_indexes = np.tile(self.stream_sample_indexes, self.total_blocks)
+            self.channel_lengths = np.array([c.point_count for c in channels])
+            self.channel_sizes = np.array([c.sample_size for c in channels])
+            self.sample_counts = self.__sample_counts(
+                self.stream_sample_indexes, self.total_blocks)
+            self.sample_mask = (
+                self.sample_counts < self.channel_lengths[self.all_sample_indexes])
+            self.sample_map = self.all_sample_indexes[self.sample_mask]
+            # The mapping of actual bytes on disk to channels.
+            self.data_map = self.sample_map.repeat(
+                self.channel_sizes[self.sample_map])
+
+        else:
+            self.data_map = np.repeat(np.tile(
+                np.arange(self.samples_per_block,
+                          dtype=np.byte),
+                self.total_samples/self.samples_per_block),
+                2)
 
         self.acq_file.seek(self.data_start_offset)
         self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
@@ -211,7 +224,7 @@ class AcqReader(object):
         our data stream. If our freq_dividers look like [1,2,4], we'll return
         [0,1,2,0,0,1,0]
         """
-        dividers =[c.freq_divider for c in channels]
+        dividers = [c.freq_divider for c in channels]
         channel_lcm = lcm(*dividers)
         # Make a list like [0,1,2,0,0,1,0]
         stream_sample_indexes = [

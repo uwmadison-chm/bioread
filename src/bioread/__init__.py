@@ -9,10 +9,12 @@
 # Project home: http://github.com/njvack/bioread
 
 from bioread.readers import AcqReader
-def read_file(filelike):
-  """
-  Read a file (either an IO object or a filename) and return a biopac.Datafile
-  object. Simply a shorthand for bioread.readers.AcqReader.read_file()
-  """
-  return AcqReader.read_file(filelike)
-  
+
+
+def read_file(filelike, simple_layout=False):
+    """
+    Read a file (either an IO object or a filename) and return a biopac.
+    Datafile object.
+    Simply a shorthand for bioread.readers.AcqReader.read_file()
+    """
+    return AcqReader.read_file(filelike, simple_layout)
