@@ -110,7 +110,7 @@ If you want to process the data as NumPy arrays instead, there's an easy API to 
 <pre>
 >>> import bioread
 >>> data = bioread.read_file("myfile.acq")
->>> data.file_revision
+>>> data.graph_header.file_revision
 84
 >>> len(data.channels)
 2
