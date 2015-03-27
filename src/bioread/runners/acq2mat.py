@@ -14,7 +14,7 @@
 
 import sys
 import os.path
-import StringIO
+from bioread.six import StringIO
 from optparse import OptionParser
 
 from bioread.readers import AcqReader

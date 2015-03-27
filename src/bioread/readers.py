@@ -11,7 +11,7 @@
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
-import six
+from bioread import six
 import struct
 import zlib
 
