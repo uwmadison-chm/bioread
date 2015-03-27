@@ -112,7 +112,7 @@ class StructDict(object):
         # unpacking it. Crazy, huh?
         f_str = self.__bof_fs(format_str)
         f_len = struct.calcsize(f_str)
-        dummy = '\x00'*f_len
+        dummy = struct.pack('%ss' % f_len, b'')
         unpacked = struct.unpack(f_str, dummy)
         return len(unpacked) # The number of elements in the tuple
 

@@ -8,8 +8,8 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-from struct_dict import StructDict
-from file_revisions import *
+from bioread.struct_dict import StructDict
+from bioread.file_revisions import *
 
 
 class Header(object):
@@ -281,11 +281,11 @@ class ChannelHeader(BiopacHeader):
 
     @property
     def units(self):
-        return self.data['szUnitsText']
+        return self.data['szUnitsText'].decode('ascii')
 
     @property
     def name(self):
-        return self.data['szCommentText']
+        return self.data['szCommentText'].decode('ascii')
 
     @property
     def point_count(self):

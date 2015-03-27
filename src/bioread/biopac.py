@@ -141,12 +141,9 @@ class Channel(object):
                 np.arange(total_samples)//self.freq_divider]
         return self.__upsampled_data
 
-    def __unicode__(self):
+    def __str__(self):
         return("Channel %s: %s samples, %s samples/sec" % (
             self.name, len(self.raw_data), self.samples_per_second))
-
-    def __str__(self):
-        return str(unicode(self))
 
     def __repr__(self):
         return str(self)
