@@ -266,8 +266,8 @@ class ChannelHeader(BiopacHeader):
     def frequency_divider(self):
         """
         The number you divide the graph's samples_per_second by to get this
-        channel's samples_per_second. If not defined (as in old file versions),
-        this should be 1.
+        channel's samples_per_second. If not defined (as in old file
+        versions), this should be 1.
         """
         return self.data.get('nVarSampleDivider') or 1
 
@@ -376,7 +376,7 @@ class ForeignHeader(BiopacHeader):
         return {
             "PRE_4"     : lambda: self.data['nLength'],
             "EARLY_4"   : lambda: self.data['lLengthExtended'] + 8,
-            "LATE_4"    : lambda: self.data['nLength'] + 8 # always correct?
+            "LATE_4"    : lambda: self.data['nLength'] + 8  # always correct?
         }
 
     @property
@@ -421,8 +421,8 @@ class ChannelDTypeHeader(BiopacHeader):
 class MainCompressionHeader(BiopacHeader):
     # In old (r41) compressed files, the header's 232 bytes long and I have
     # no idea what's in it.
-    # In new compressed files, at data_start_offset there's a long, 
-    # containing the length of some header H1. 
+    # In new compressed files, at data_start_offset there's a long,
+    # containing the length of some header H1.
     # At data_start_offset + len(H1), there's something we don't care about.
     # From there, it's 94 bytes to the start of the first channel header.
     def __init__(self, file_revision, byte_order_flag):
@@ -438,7 +438,7 @@ class MainCompressionHeader(BiopacHeader):
         # Determined through experimentation, may not be correct for some
         # revisions.
         return {
-            'PRE_4': lambda: 232, 
+            'PRE_4': lambda: 232,
             'POST_4': lambda: self.data['lSize'] + 94
         }
 
@@ -482,7 +482,8 @@ class ChannelCompressionHeader(BiopacHeader):
         Immediately after this header, the compressed data starts -- it will
         be after the units text, and starts with 'x'.
         """
-        return (self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
+        return (
+            self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
             self.data['lUnitLabelLen'])
 
     @property

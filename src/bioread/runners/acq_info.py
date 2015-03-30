@@ -13,7 +13,6 @@
 # about an AcqKnowledge file.
 
 import sys
-import os.path
 from bioread.six import StringIO
 from optparse import OptionParser
 
@@ -27,6 +26,7 @@ def main(argv=None):
 
     air = AcqInfoRunner(argv)
     air.run()
+
 
 class AcqInfoRunner(object):
 
@@ -49,7 +49,7 @@ class AcqInfoRunner(object):
         opts, args = parser.parse_args(self.argv[1:])
         if len(args) < 1:
             parser.error(
-                "Must specify ACQ_FILE.\n"+
+                "Must specify ACQ_FILE.\n" +
                 "Try --help for more instructions.")
             sys.exit(1)
         df = None
@@ -69,7 +69,7 @@ class AcqInfoRunner(object):
         except:
             sys.stderr.write("Error reading headers!\n")
             # Don't exit here; it'll still print what it can.
-            
+
         if not opts.debug:
             self.__print_simple()
         else:
@@ -109,7 +109,8 @@ class AcqInfoRunner(object):
         print(fh.data)
         print("\n")
         for i, cdh in enumerate(cdhs):
-            print("Channel dtype header %s starts at offset %s" %
+            print(
+                "Channel dtype header %s starts at offset %s" %
                 (i, cdh.offset))
             print(cdh.data)
             print("\n")
@@ -122,19 +123,22 @@ class AcqInfoRunner(object):
             print("Main compression header starts at offset %s" % mch.offset)
             print("\n")
             for i, cch in enumerate(cchs):
-                print("Channel compression header %s starts at offset %s" %
+                print(
+                    "Channel compression header %s starts at offset %s" %
                     (i, cch.offset))
                 print(cch.data)
-                print("Compressed data starts at offset %s" %
+                print(
+                    "Compressed data starts at offset %s" %
                     cch.compressed_data_offset)
                 print("\n")
 
     def __make_parser(self):
         parser = OptionParser(
-            "Usage: %prog [options] ACQ_FILE", 
+            "Usage: %prog [options] ACQ_FILE",
             version="bioread %s" % version_str(),
             epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option("-d", "--debug", dest="debug", default=False,
+        parser.add_option(
+            "-d", "--debug", dest="debug", default=False,
             action="store_true", help="print lots of debugging data")
 
         return parser

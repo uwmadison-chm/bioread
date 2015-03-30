@@ -13,10 +13,12 @@
 # Simple LCM routine adapted from:
 # http://stackoverflow.com/questions/147515/least-common-multiple-for-3-or-more-numbers
 
+
 def gcd(a, b):
     while b:
         a, b = b, a % b
     return a
+
 
 def lcm(*ar):
     if len(ar) > 2:
@@ -24,4 +26,4 @@ def lcm(*ar):
     elif len(ar) == 2:
         return (ar[0] * ar[1]) // gcd(ar[0], ar[1])
     else:
-        return ar[0] 
+        return ar[0]

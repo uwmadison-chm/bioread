@@ -29,22 +29,24 @@ class TxtWriter(object):
 
 class MatlabWriter(object):
 
-    def __init__(self,
-        data=None, filename=None, compress=False, oned_as='row'):
+    def __init__(
+            self,
+            data=None, filename=None, compress=False, oned_as='row'):
         self.data = data
         self.filename = filename
         self.compress = compress
         self.oned_as = oned_as
 
     @classmethod
-    def write_file(cls, data, filename, compress=False,
-        oned_as='row'):
+    def write_file(
+            cls, data, filename, compress=False, oned_as='row'):
         writer = cls(data, filename, compress, oned_as)
         writer.write()
 
     def write(self):
         d = self.__build_dict(self.data)
-        savemat(self.filename, d,
+        savemat(
+            self.filename, d,
             format='5', do_compression=self.compress,
             oned_as=self.oned_as)
 

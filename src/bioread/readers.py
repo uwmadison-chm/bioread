@@ -1,7 +1,7 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2010 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2015 Board of Regents of the University of Wisconsin System
 #               2015 Alexander Schlemmer, bmp.ds.mpg.de
 #
 # Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>

@@ -13,7 +13,6 @@
 # AcqKnowledge files into Matlab files.
 
 import sys
-import os.path
 from bioread.six import StringIO
 from optparse import OptionParser
 
@@ -22,7 +21,7 @@ from bioread.writers import MatlabWriter
 from bioread.version import version_str
 
 
-def main(argv = None):
+def main(argv=None):
     if argv is None:
         argv = sys.argv
 
@@ -44,9 +43,9 @@ class AcqToMatRunner(object):
         sys.stderr = self.err
         self.parser = self.__make_parser()
         options, args = self.parser.parse_args(self.argv[1:])
-        if len(args) <> 2:
+        if len(args) != 2:
             self.parser.error(
-                "Must specify both ACQ_FILE and MAT_FILE.\n"+
+                "Must specify both ACQ_FILE and MAT_FILE.\n" +
                 "Try --help for more instructions.")
         try:
             infile = args[0]
@@ -61,7 +60,7 @@ class AcqToMatRunner(object):
         except:
             sys.stderr.write("Error writing %s\n" % args[1])
             sys.exit(1)
-            
+
         sys.stderr = old_err
 
     def __make_parser(self):
@@ -69,7 +68,8 @@ class AcqToMatRunner(object):
             "Usage: %prog [options] ACQ_FILE MAT_FILE",
             version="bioread %s" % version_str(),
             epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option('-c', '--compress', dest='compress', default=False,
+        parser.add_option(
+            '-c', '--compress', dest='compress', default=False,
             action='store_true', help="save compressed Matlab file")
 
         return parser

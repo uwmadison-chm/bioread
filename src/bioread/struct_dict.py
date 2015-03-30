@@ -64,7 +64,8 @@ class StructDict(object):
         """
         Primarily for debugging purposes: generate a list of byte offsets
         and struct lengths, so you can see what fields are where. Then you
-        can explore with your hex editor, or compare against spec, or whatever.
+        can explore with your hex editor, or compare against spec, or
+        whatever.
 
         Example:
 

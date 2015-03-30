@@ -13,7 +13,6 @@
 # AcqKnowledge files into Matlab files.
 
 import sys
-import os.path
 import StringIO
 from optparse import OptionParser
 
@@ -22,7 +21,7 @@ from bioread.writers import TxtWriter
 from bioread.version import version_str
 
 
-def main(argv = None):
+def main(argv=None):
     if argv is None:
         argv = sys.argv
 
@@ -44,9 +43,9 @@ class AcqToTxtRunner(object):
         sys.stderr = self.err
         self.parser = self.__make_parser()
         options, args = self.parser.parse_args(self.argv[1:])
-        if len(args) <> 1:
+        if len(args) != 1:
             self.parser.error(
-                "Must specify ACQ_FILE.\n"+
+                "Must specify ACQ_FILE.\n" +
                 "Try --help for more instructions.")
         try:
             infile = args[0]
@@ -59,7 +58,8 @@ class AcqToTxtRunner(object):
         try:
             chan = data.channels[options.channel]
         except:
-            sys.stderr.write("Channel %s out of bounds -- max: %s\n" %
+            sys.stderr.write(
+                "Channel %s out of bounds -- max: %s\n" %
                 (options.channel, len(data.channels)))
             sys.exit(2)
         try:
@@ -75,7 +75,8 @@ class AcqToTxtRunner(object):
             "Usage: %prog [options] ACQ_FILE",
             version="bioread %s" % version_str(),
             epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option("--channel", dest="channel", default=0,
+        parser.add_option(
+            "--channel", dest="channel", default=0,
             action="store", help="channel number to extract (default=0)",
             type="int")
 

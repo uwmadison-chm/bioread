@@ -17,7 +17,8 @@ class Datafile(object):
     from a file by readers.AcqReader.
     """
 
-    def __init__(self,
+    def __init__(
+            self,
             graph_header=None, channel_headers=None, foreign_header=None,
             channel_dtype_headers=None, samples_per_second=None, name=None):
         self.graph_header = graph_header
@@ -57,10 +58,11 @@ class Channel(object):
     Also generally created by readers.AcqReader.
     """
 
-    def __init__(self,
-        freq_divider=None, raw_scale_factor=None, raw_offset=None,
-        raw_data=None, name=None, units=None, fmt_str=None,
-        samples_per_second=None):
+    def __init__(
+            self,
+            freq_divider=None, raw_scale_factor=None, raw_offset=None,
+            raw_data=None, name=None, units=None, fmt_str=None,
+            samples_per_second=None):
 
         self.freq_divider = freq_divider
         self.raw_scale_factor = raw_scale_factor
@@ -120,7 +122,7 @@ class Channel(object):
         """
         scale_factor = self.raw_scale_factor
         raw_offset = self.raw_offset
-        if self.fmt_str.find("d") >= 0: # test for float-ness
+        if self.fmt_str.find("d") >= 0:  # test for float-ness
             scale_factor = 1.0
             raw_offset = 0.0
         if self.__data is None:
