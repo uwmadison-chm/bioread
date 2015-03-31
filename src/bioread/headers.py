@@ -96,7 +96,12 @@ class GraphHeader(BiopacHeader):
 
     @property
     def effective_len_bytes(self):
-        return self.data['lExtItemHeaderLen']
+        l = self.data['lExtItemHeaderLen']
+        # We're going to skip an extra 40 bytes. This is kind of an ugly hack;
+        # there seems to be a whole other 40-byte header in there.
+        if self.file_revision >= V_430:
+            l += 40
+        return l
 
     @property
     def channel_count(self):
