@@ -13,6 +13,9 @@ import struct
 
 class StructDict(object):
     """
+    TODO: This class is basically a shittier version of ctypes. Remove this
+          and replace it with ctypes.
+
     This class allows you to declare a binary file's header structure with
     name and type information, and then will unpack the header into a
     dictionary.
