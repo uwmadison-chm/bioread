@@ -94,8 +94,8 @@ class AcqReader(object):
         self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
-        self.channel_dtype_headers = self.__multi_headers(channel_count,
-                                                          cdh_start, ChannelDTypeHeader)
+        self.channel_dtype_headers = self.__multi_headers(
+            channel_count, cdh_start, ChannelDTypeHeader)
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
@@ -104,8 +104,8 @@ class AcqReader(object):
 
     def __read_compression_headers(self):
         main_ch_start = self.data_start_offset
-        self.main_compression_header = self.__single_header(main_ch_start,
-                                                            MainCompressionHeader)
+        self.main_compression_header = self.__single_header(
+            main_ch_start, MainCompressionHeader)
 
         cch_start = (main_ch_start +
                      self.main_compression_header.effective_len_bytes)
@@ -118,7 +118,7 @@ class AcqReader(object):
 
     def __multi_headers(self, num, start_offset, h_class):
         headers = []
-        last_h_len = 0  # This will be changed when reading the channel headers
+        last_h_len = 0  # This will be changed reading the channel headers
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
