@@ -18,6 +18,12 @@ easy_install bioread
 
 Note that bioread requires the excellent "NumPy":http://numpy.scipy.org/ package, and writing Matlab files requires "SciPy":http://scipy.org/.
 
+h2. Tests
+
+Ensure you are in @src@. 
+
+Run @python -m tests.main@
+
 h2. Command-line usage:
 
 h3. acq2mat 
