@@ -138,19 +138,6 @@ class IntegrationTestCase(unittest.TestCase):
         self.load("huge")
 
 
-"""
-Maybe someday:
-
-tests for headers?
-tests for TxtWriter and MatlabWriter?
-Journal with time?
-Markers
-Segment
-
-extremely fast base rate
-extremely slow base rate
-"""
-
 simpleSuite = unittest.makeSuite(IntegrationTestCase,'test')
 
 if __name__ == "__main__":
