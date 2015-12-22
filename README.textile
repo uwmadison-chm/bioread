@@ -1,36 +1,30 @@
-h1. Libraries for reading BIOPAC files
+# Libraries for reading BIOPAC files
 
-These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  "Application Note 156":http://www.biopac.com/Manuals/app_pdf/app156.pdf from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger and Nate Vack.
+These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on  [Application Note 156](http://www.biopac.com/Manuals/app_pdf/app156.pdf) from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger and Nate Vack.
 
 This library is mostly concerned with getting you the data, and less so with interpreting UI-related header values.
 
-h2. Status
+## Status
 
 As far as I know, this should read any AcqKnowledge file you throw at it. Windows, Mac, uncompressed, compressed, old, new... it should happily read 'em all. If you have trouble with a file, I'd love to get a copy and make bioread work with it.
 
-h2. Installation
+## Installation
 
-We're up in "pypi":http://pypi.python.org/pypi, so installing should be as simple as:
+We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simple as:
 
-<pre>
+```
 easy_install bioread
-</pre>
+```
 
-Note that bioread requires the excellent "NumPy":http://numpy.scipy.org/ package, and writing Matlab files requires "SciPy":http://scipy.org/.
+Note that bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/).
 
-h2. Tests
+## Command-line usage:
 
-Ensure you are in @src@. 
+### acq2mat
 
-Run @python -m tests.main@
+This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses [scipy.io.savemat](http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html). Channels are stored in a cell array named 'channels'.
 
-h2. Command-line usage:
-
-h3. acq2mat 
-
-This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses "scipy.io.savemat":http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html. Channels are stored in a cell array named 'channels'.
-
-<pre>
+```
 Usage: acq2mat [options] ACQ_FILE MAT_FILE
 
 Options:
@@ -39,11 +33,11 @@ Options:
   -c, --compress  Save compressed Matlab file
 
 Note: Using - for ACQ_FILE reads from stdin.
-</pre>
+```
 
 Then, in Matlab:
 
-<pre>
+```
 >> data = load('myfile.mat')
 
 data = 
@@ -65,19 +59,19 @@ ans =
 >> plot(data.channels{1}.data)
 
 (Plots the data)
-</pre>
+```
 
 As noted in the usage instructions, acq2mat will read from stdin, so if your files are gzipped, you can say:
 
-<pre>
+```
 zcat myfile.acq.gz | acq2mat - myfile.mat
-</pre>
+```
 
-h3. acq2txt
+### acq2txt
 
 acq2mat will take the data in an AcqKnowledge file and write it to a text file.
 
-<pre>
+```
 Usage: acq2txt [options] ACQ_FILE
 
 Options:
@@ -86,13 +80,13 @@ Options:
   -c, --channel   channel number to extract (default=0)
 
 Note: Using - for ACQ_FILE reads from stdin.
-</pre>
+```
 
-h3. acq_info
+### acq_info
 
 acq_info prints out some simple debugging information about an AcqKnowledge file. It'll do its best to print something out even for damaged files.
 
-<pre>
+```
 Usage: acq_info [options] ACQ_FILE
 
 Options:
@@ -101,19 +95,19 @@ Options:
   -d, --debug  Print lots of debugging data
 
 Note: Using - for ACQ_FILE reads from stdin.
-</pre>
+```
 
 As noted in the usage instructions, acq_info will read from stdin, so if your files are gzipped, you can say:
 
-<pre>
+```
 zcat myfile.acq.gz | acq_info -
-</pre>
+```
 
-h2. API usage:
+## API usage:
 
 If you want to process the data as NumPy arrays instead, there's an easy API to work with it:
 
-<pre>
+```
 >>> import bioread
 >>> data = bioread.read_file("myfile.acq")
 >>> data.graph_header.file_revision
@@ -140,15 +134,15 @@ If you want to process the data as NumPy arrays instead, there's an easy API to 
 1.23
 >>> from bioread.writers import MatlabWriter
 >>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
-</pre>
+```
 
-h2. Notes
+## Notes
 
 I've tested all the various vintages of files I can think of and find, except very old (AcqKnowledge 2.x) files.
 
 Also, the channel order I read is not the one displayed in the AcqKnowledge interface. Neither the order of the data nor any channel header value I can find seems to entirely control that. I'm gonna just assume it's not a very big deal.
 
-h2. Copyright & Disclaimers
+## Copyright & Disclaimers
 
 bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
 
