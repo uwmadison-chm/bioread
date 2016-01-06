@@ -18,10 +18,11 @@ import zlib
 import numpy as np
 
 from bioread.file_revisions import *
+from bioread import headers as bh
 from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
-from bioread.biopac import Datafile, Channel
+from bioread.biopac import Datafile, Channel, Marker
 from bioread.utils import lcm
 
 
@@ -44,6 +45,10 @@ class AcqReader(object):
         self.main_compression_header = None
         self.channel_compression_headers = []
         self.data_start_offset = None
+        self.marker_start_offset = None
+        self.marker_header = None
+        self.marker_item_headers = None
+        self.markers = None
 
     @classmethod
     def read_file(cls, fo):
@@ -99,6 +104,11 @@ class AcqReader(object):
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
+        data_length = sum(
+            [c.point_count * cd.sample_size for c, cd in
+                zip(self.channel_headers, self.channel_dtype_headers)])
+        # This will be changed if we're compressed
+        self.marker_start_offset = self.data_start_offset + data_length
         if self.graph_header.compressed:
             self.__read_compression_headers()
 
@@ -159,6 +169,33 @@ class AcqReader(object):
             self.__read_data_compressed(self.channels)
         else:
             self.__read_data_uncompressed(self.channels)
+
+    def _read_markers(self):
+        if self.marker_start_offset is None:
+            self._read_headers()
+        mh_class = bh.V2MarkerHeader
+        mih_class = bh.V2MarkerItemHeader
+        if self.file_revision >= V_400B:
+            mh_class = bh.V4MarkerHeader
+            mih_class = bh.V4MarkerItemHeader
+        self.marker_header = self.__single_header(
+            self.marker_start_offset, mh_class)
+        self.__read_marker_items(mih_class)
+
+    def __read_marker_items(self, marker_item_header_class):
+        """
+        self.acq_file must be seek()ed to the start of the first item header
+        """
+        self.markers = []
+        self.marker_item_headers = []
+        for i in range(self.marker_header.marker_count):
+            mih = self.__single_header(
+                self.acq_file.tell(), marker_item_header_class)
+            marker_text_bytes = self.acq_file.read(mih.text_length)
+            marker_text = marker_text_bytes.decode('utf-8').strip('\0')
+            self.marker_item_headers.append(mih)
+            self.markers.append(Marker(
+                mih.sample_index, marker_text, mih.channel, mih.style))
 
     def __read_data_compressed(self, channels):
         # At least in post-4.0 files, the compressed data isn't interleaved at
