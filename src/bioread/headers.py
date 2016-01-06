@@ -516,3 +516,135 @@ class ChannelCompressionHeader(BiopacHeader):
         ('lUncompressedLen'         ,'l'    ,V_381),
         ('lCompressedLen'           ,'l'    ,V_381),
         )
+
+
+class V2MarkerHeader(BiopacHeader):
+    """
+    Marker structure for files in Version 3, very likely down to version 2.
+    """
+
+    def __init__(self, file_revision, byte_order_flag):
+        super(V2MarkerHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    # NOTE: lLength does NOT include this header length -- only the length
+    # of all the marker items. This is different than in the v4 header.
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('lLength'              ,'l'    ,V_20a),
+        ('lMarkers'             ,'l'    ,V_20a),
+        )
+
+    @property
+    def marker_count(self):
+        return self.data['lMarkers']
+
+
+class V4MarkerHeader(BiopacHeader):
+    """
+    Marker structure for files from Version 4 onwards
+    """
+
+    def __init__(self, file_revision, byte_order_flag):
+        super(V4MarkerHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    # NOTE: lLength INCLUDES this header length -- the markers end at
+    # marker_start_offset + lLength. This is different than in the v2 header.
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('lLength'              ,'l'    ,V_400B),
+        ('lMarkersExtra'        ,'l'    ,V_400B),
+        ('lMarkers'             ,'l'    ,V_400B),
+        ('Unknown'              ,'6B'   ,V_400B),
+        ('szDefl'               ,'5s'   ,V_400B),
+        ('Unknown2'             ,'h'    ,V_400B)
+        )
+
+    @property
+    def marker_count(self):
+        return self.data['lMarkers']
+
+
+class V2MarkerItemHeader(BiopacHeader):
+    """
+    Marker Items for files in Version 3, very likely down to version 2.
+    """
+
+    def __init__(self, file_revision, byte_order_flag):
+        super(V2MarkerItemHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('lSample'              ,'l'    ,V_20a),
+        ('fSelected'            ,'h'    ,V_20a),
+        ('fTextLocked'          ,'h'    ,V_20a),
+        ('fPositionLocked'      ,'h'    ,V_20a),
+        ('nTextLength'          ,'h'    ,V_20a),
+        )
+
+    # Note: The spec says nTextLength includes the trailing null, but it
+    # seems to not...?
+    @property
+    def text_length(self):
+        return self.data['nTextLength'] + 1
+
+    @property
+    def sample_index(self):
+        return self.data['lSample']
+
+    @property
+    def channel(self):
+        """ None means it's a global marker """
+        return None
+
+    @property
+    def style(self):
+        """ These markers don't get styles, but it's OK """
+        return None
+
+
+
+class V4MarkerItemHeader(BiopacHeader):
+    """
+    Marker Items for files in Version 4 ownards.
+    """
+
+    def __init__(self, file_revision, byte_order_flag):
+        super(V4MarkerItemHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('lSample'              ,'l'    ,V_400B),
+        ('Unknown'              ,'4B'   ,V_400B),
+        ('nChannel'             ,'h'    ,V_400B),
+        ('sMarkerStyle'         ,'4s'   ,V_400B),
+        ('nTextLength'          ,'h'    ,V_400B),
+        )
+
+    # Unlike in older versions, nTextLength does include the trailing null.
+    @property
+    def text_length(self):
+        return self.data['nTextLength']
+
+    @property
+    def sample_index(self):
+        return self.data['lSample']
+
+    @property
+    def channel(self):
+        """ None means it's a global marker """
+        chan = self.data['nChannel']
+        if chan == -1:
+            chan = None
+        return chan
+
+    @property
+    def style(self):
+        return self.data['sMarkerStyle']
