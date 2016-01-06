@@ -415,6 +415,10 @@ class ChannelDTypeHeader(BiopacHeader):
         return self.data['nType']
 
     @property
+    def sample_size(self):
+        return self.data['nSize']
+
+    @property
     def __h_elts(self):
         # This lets the standard effective_len_bytes work fine, I think.
         return VersionedHeaderStructure(
