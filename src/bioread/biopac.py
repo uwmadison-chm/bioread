@@ -149,3 +149,25 @@ class Channel(object):
 
     def __repr__(self):
         return str(self)
+
+
+class Marker(object):
+    """
+    A marker -- some kind of annotation for an AcqKnowledge file. They all
+    have a sample index and some text, and more modern ones can be one of
+    several styles (say, a flag or a star or a waveform start) and can be
+    attached to a particular channel.
+    """
+
+    def __init__(
+            self,
+            sample_index,
+            text,
+            channel,
+            style=None):
+
+        self.sample_index = sample_index
+        self.text = text
+        self.channel = channel
+        self.style = style
+        super(Marker, self).__init__()
