@@ -20,7 +20,8 @@ class Datafile(object):
     def __init__(
             self,
             graph_header=None, channel_headers=None, foreign_header=None,
-            channel_dtype_headers=None, samples_per_second=None, name=None):
+            channel_dtype_headers=None, samples_per_second=None, name=None,
+            marker_header=None, marker_item_headers=None,):
         self.graph_header = graph_header
         self.channel_headers = channel_headers
         self.foreign_header = foreign_header
@@ -28,6 +29,9 @@ class Datafile(object):
         self.samples_per_second = samples_per_second
         self.name = name
         self.channels = None
+        self.marker_header = marker_header
+        self.marker_item_headers = marker_item_headers
+        self.markers = None
         self.__named_channels = None
 
     @property
