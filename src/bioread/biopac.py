@@ -171,3 +171,10 @@ class Marker(object):
         self.channel = channel
         self.style = style
         super(Marker, self).__init__()
+
+    def __str__(self):
+        return("Marker {0}: sample index: {1} channel: {2} style: {3}".format(
+            self.text, self.sample_index, self.channel, self.style))
+
+    def __repr__(self):
+        return str(self)
