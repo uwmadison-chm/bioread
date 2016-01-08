@@ -78,7 +78,11 @@ class AcqReader(object):
             samples_per_second=self.samples_per_second)
 
         self._read_data()
+        self._read_markers()
         df.channels = self.channels
+        df.marker_header = self.marker_header
+        df.marker_item_headers = self.marker_item_headers
+        df.markers = self.markers
         self.data_file = df
         return self.data_file
 
@@ -112,10 +116,13 @@ class AcqReader(object):
             self.__read_compression_headers()
 
     def __read_compression_headers(self):
-        main_ch_start = self.data_start_offset
+        # We need to start by reading the markers; this puts us right
+        # at the start of the compression headers
+        self.marker_start_offset = self.data_start_offset
+        self._read_markers()
+        main_ch_start = self.acq_file.tell()
         self.main_compression_header = self.__single_header(
             main_ch_start, MainCompressionHeader)
-
         cch_start = (main_ch_start +
                      self.main_compression_header.effective_len_bytes)
         self.channel_compression_headers = self.__multi_headers(

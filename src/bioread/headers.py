@@ -428,13 +428,11 @@ class ChannelDTypeHeader(BiopacHeader):
 
 
 class MainCompressionHeader(BiopacHeader):
-    # In old (r41) compressed files, the header's 232 bytes long and I have
-    # no idea what's in it.
-    # In new compressed files, at data_start_offset there's a long,
-    # containing the length of some header H1.
-    # At data_start_offset + len(H1), there's something we don't care about.
-    # From there, it's 94 bytes to the start of the first channel header.
+    # In compressed files, the markers are stored where the data would be in
+    # uncompressed files. There's also some padding, and I don't know
+    # what's in it.
     def __init__(self, file_revision, byte_order_flag):
+        self.file_revision = file_revision
         super(MainCompressionHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
 
@@ -445,16 +443,21 @@ class MainCompressionHeader(BiopacHeader):
     @property
     def __effective_len_byte_versions(self):
         # Determined through experimentation, may not be correct for some
-        # revisions.
+        # revisions. Or files, for that matter. We'll see.
         return {
-            'PRE_4': lambda: 232,
-            'POST_4': lambda: self.data['lSize'] + 94
+            'PRE_4': lambda: (
+                self.struct_dict.len_bytes + self.data['lTextLen']),
+            'POST_4': lambda: (
+                self.struct_dict.len_bytes +
+                self.data['lStrLen1'] +
+                self.data['lStrLen2']
+                )
         }
 
     @property
     def __version_bin(self):
         bin = "Unknown"
-        if self.file_revision < V_400B:
+        if self.file_revision <= V_400B:
             bin = "PRE_4"
         else:
             bin = "POST_4"
@@ -462,9 +465,23 @@ class MainCompressionHeader(BiopacHeader):
 
     @property
     def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lSize'                    ,'l'    ,V_381),
-        )
+        return self.__h_elts_versions[self.__version_bin]
+
+    @property
+    def __h_elts_versions(self):
+        return {
+            'PRE_4': VersionedHeaderStructure(
+                ('Unknown', '156B', V_20a),
+                ('lTextLen', 'l', V_20a)
+            ),
+            'POST_4': VersionedHeaderStructure(
+                ('Unknown1', '30B', V_400B),
+                ('lStrLen1', 'l', V_400B),
+                ('lStrLen2', 'l', V_400B),
+                ('Unknown2', '20B', V_400B),
+                ('Unknown3', '6B', V_420),
+            )
+        }
 
 
 class ChannelCompressionHeader(BiopacHeader):
@@ -560,12 +577,16 @@ class V4MarkerHeader(BiopacHeader):
         ('lMarkers'             ,'l'    ,V_400B),
         ('Unknown'              ,'6B'   ,V_400B),
         ('szDefl'               ,'5s'   ,V_400B),
-        ('Unknown2'             ,'h'    ,V_400B)
+        ('Unknown2'             ,'h'    ,V_400B),
+        ('Unknown3'             ,'8B'   ,V_430),
+        ('Unknown4'             ,'8B'   ,V_440)
         )
 
+    # I'm not quite sure about these two marker count headers; they seem to
+    # both be wrong.
     @property
     def marker_count(self):
-        return self.data['lMarkers']
+        return self.data['lMarkersExtra'] - 1
 
 
 class V2MarkerItemHeader(BiopacHeader):
@@ -625,6 +646,8 @@ class V4MarkerItemHeader(BiopacHeader):
         ('Unknown'              ,'4B'   ,V_400B),
         ('nChannel'             ,'h'    ,V_400B),
         ('sMarkerStyle'         ,'4s'   ,V_400B),
+        ('Uknnown2'             ,'8B'   ,V_430),
+        ('Uknnown3'             ,'8B'   ,V_440),
         ('nTextLength'          ,'h'    ,V_400B),
         )
 
