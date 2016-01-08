@@ -59,7 +59,6 @@ class AcqReader(object):
 
         returns: biopac.Datafile
         """
-        df = None
         if isinstance(fo, six.string_types):
             with open(fo, 'rb') as f:
                 reader = cls(f)
