@@ -10,7 +10,7 @@
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement
-from bioread import six
+from bioread.vendor import six
 import struct
 import zlib
 

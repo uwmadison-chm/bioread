@@ -13,7 +13,7 @@
 # AcqKnowledge files into Matlab files.
 
 import sys
-from bioread.six import StringIO
+from bioread.vendor.six import BytesIO
 from optparse import OptionParser
 
 from bioread.readers import AcqReader

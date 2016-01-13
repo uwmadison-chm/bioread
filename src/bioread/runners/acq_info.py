@@ -13,7 +13,7 @@
 # about an AcqKnowledge file.
 
 import sys
-from bioread.six import StringIO
+from bioread.vendor.six import BytesIO
 from optparse import OptionParser
 
 from bioread.readers import AcqReader
