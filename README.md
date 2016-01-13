@@ -173,6 +173,16 @@ I've tested all the various vintages of files I can think of and find, except ve
 
 Also, the channel order I read is not the one displayed in the AcqKnowledge interface. Neither the order of the data nor any channel header value I can find seems to entirely control that. I'm gonna just assume it's not a very big deal.
 
+## Credits
+
+This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger, and some test code by Dan Fitch.
+
+Bioread packages a couple great libraries:
+
+[six](http://pythonhosted.org/six/) is copyright (c) 2010-2015 Benjamin Peterson.
+
+[docopt](https://github.com/docopt/docopt) is copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>.
+
 ## Copyright & Disclaimers
 
 bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
