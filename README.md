@@ -103,6 +103,27 @@ As noted in the usage instructions, acq_info will read from stdin, so if your fi
 zcat myfile.acq.gz | acq_info -
 ```
 
+### acq_markers
+
+Prints all of the markers in an AcqKnowlege file to a tab-delimited format, either to stdout or to a specified file. Fields are:
+
+`filename    time (s)    label    channel    style`
+
+
+```
+Print the markers from an AcqKnowledge file.
+
+Usage:
+  acq_markers [options] <file>...
+  acq_markers -h | --help
+  acq_markers --version
+
+Options:
+  -o <file>     Write to a file instead of standard output.
+```
+
+Note that this one does not read from stdin; in this case, printing the markers from a large number of files was more important than feeding from `zcat` or something.
+
 ## API usage:
 
 If you want to process the data as NumPy arrays instead, there's an easy API to work with it:
