@@ -22,7 +22,7 @@ Usage:
 Options:
   -d, --debug  print lots of debugging data
 
-Note: Using - for ACQ_FILE reads from stdin.
+Note: Using - for <acq_file> reads from stdin.
 
 """
 
