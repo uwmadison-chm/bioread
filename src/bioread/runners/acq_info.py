@@ -12,9 +12,23 @@
 # This contains the entry point for an executable to print basic information
 # about an AcqKnowledge file.
 
+"""Print some information about an AcqKnowledge file.
+
+Usage:
+    acq_info [options] <acq_file>
+    acq_info -h | --help
+    acq_info --version
+
+Options:
+  -d, --debug  print lots of debugging data
+
+Note: Using - for ACQ_FILE reads from stdin.
+
+"""
+
 import sys
 from bioread.vendor.six import BytesIO
-from optparse import OptionParser
+from bioread.vendor.docopt import docopt
 
 from bioread.readers import AcqReader
 from bioread.version import version_str
@@ -22,7 +36,7 @@ from bioread.version import version_str
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     air = AcqInfoRunner(argv)
     air.run()
@@ -45,22 +59,21 @@ class AcqInfoRunner(object):
         sys.stdout = self.out
         sys.stderr = self.err
 
-        parser = self.__make_parser()
-        opts, args = parser.parse_args(self.argv[1:])
-        if len(args) < 1:
-            parser.error(
-                "Must specify ACQ_FILE.\n" +
-                "Try --help for more instructions.")
-            sys.exit(1)
+        pargs = docopt(
+            __doc__,
+            self.argv,
+            version="bioread {0}".format(version_str()))
+
+        print(pargs)
         df = None
-        infile = args[0]
+        infile = pargs['<acq_file>']
         try:
             if infile == '-':
                 df = BytesIO(sys.stdin.read())
             else:
-                df = open(args[0], 'rb')
+                df = open(infile, 'rb')
         except:
-            sys.stderr.write("Error reading %s\n" % args[0])
+            sys.stderr.write("Error reading {0}\n".format(infile))
             sys.exit(1)
 
         self.reader = AcqReader(df)
@@ -70,10 +83,10 @@ class AcqInfoRunner(object):
             sys.stderr.write("Error reading headers!\n")
             # Don't exit here; it'll still print what it can.
 
-        if not opts.debug:
-            self.__print_simple()
-        else:
+        if pargs['--debug']:
             self.__print_debug()
+        else:
+            self.__print_simple()
 
         sys.stderr = old_err
         sys.stdout = old_out
@@ -131,17 +144,6 @@ class AcqInfoRunner(object):
                     "Compressed data starts at offset %s" %
                     cch.compressed_data_offset)
                 print("\n")
-
-    def __make_parser(self):
-        parser = OptionParser(
-            "Usage: %prog [options] ACQ_FILE",
-            version="bioread %s" % version_str(),
-            epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option(
-            "-d", "--debug", dest="debug", default=False,
-            action="store_true", help="print lots of debugging data")
-
-        return parser
 
 
 if __name__ == '__main__':

@@ -97,12 +97,15 @@ Note: Using - for ACQ_FILE reads from stdin.
 acq_info prints out some simple debugging information about an AcqKnowledge file. It'll do its best to print something out even for damaged files.
 
 ```
-Usage: acq_info [options] ACQ_FILE
+Print some information about an AcqKnowledge file.
+
+Usage:
+    acq_info [options] <acq_file>
+    acq_info -h | --help
+    acq_info --version
 
 Options:
-  --version    show program's version number and exit
-  -h, --help   show this help message and exit
-  -d, --debug  Print lots of debugging data
+  -d, --debug  print lots of debugging data
 
 Note: Using - for ACQ_FILE reads from stdin.
 ```
