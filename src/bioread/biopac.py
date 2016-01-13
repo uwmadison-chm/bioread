@@ -43,13 +43,10 @@ class Datafile(object):
 
         return self.__named_channels
 
-    def __unicode__(self):
+    def __str__(self):
         return("Biopac file (rev %s): %s channels, %s samples/sec" % (
             self.graph_header.file_revision, len(self.channels),
             self.samples_per_second))
-
-    def __str__(self):
-        return str(unicode(self))
 
     def __repr__(self):
         return str(self)
