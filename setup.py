@@ -17,7 +17,8 @@ setup(
         'console_scripts': [
             'acq2mat = bioread.runners.acq2mat:main',
             'acq2txt = bioread.runners.acq2txt:main',
-            'acq_info = bioread.runners.acq_info:main'
+            'acq_info = bioread.runners.acq_info:main',
+            'acq_markers = bioread.runners.acq_markers:main'
         ]
     },
 
