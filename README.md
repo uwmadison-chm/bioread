@@ -40,25 +40,35 @@ Then, in Matlab:
 ```
 >> data = load('myfile.mat')
 
-data = 
+data =
 
-              channels: [1x2 cell]
+              channels: {1x2 cell}
+               markers: {1x3 cell}
                headers: [1x1 struct]
     samples_per_second: 1000
 
 >> data.channels{1}
 
-ans = 
+ans =
 
                  units: 'Percent'
      frequency_divider: 1
     samples_per_second: 1000
                   data: [1x10002 double]
                   name: 'CO2'
-                  
+
 >> plot(data.channels{1}.data)
 
 (Plots the data)
+
+>> data.markers{1}
+
+ans =
+
+           style: 'apnd'
+    sample_index: 0
+           label: 'Segment 1'
+         channel: Global
 ```
 
 As noted in the usage instructions, acq2mat will read from stdin, so if your files are gzipped, you can say:

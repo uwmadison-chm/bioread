@@ -71,6 +71,16 @@ class MatlabWriter(object):
 
         d['channels'] = channels
 
+        d['markers'] = np.zeros(len(data.markers), dtype=np.object)
+        for i, marker in enumerate(data.markers):
+            md = {
+                'label': marker.text,
+                'sample_index': marker.sample_index,
+                'style': marker.style or 'None',
+                'channel': marker.channel or -1
+            }
+            d['markers'][i] = md
+
         d['headers'] = {
             'graph': data.graph_header.data,
             'foreign': data.foreign_header.data,
