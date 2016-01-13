@@ -670,4 +670,4 @@ class V4MarkerItemHeader(BiopacHeader):
 
     @property
     def style(self):
-        return self.data['sMarkerStyle']
+        return self.data['sMarkerStyle'].decode('ascii')
