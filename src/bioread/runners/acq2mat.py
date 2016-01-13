@@ -50,7 +50,7 @@ class AcqToMatRunner(object):
         try:
             infile = args[0]
             if infile == '-':
-                infile = StringIO.StringIO(sys.stdin.read())
+                infile = BytesIO(sys.stdin.read())
             data = AcqReader.read_file(infile)
         except:
             sys.stderr.write("Error reading %s\n" % args[0])

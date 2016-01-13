@@ -56,7 +56,7 @@ class AcqInfoRunner(object):
         infile = args[0]
         try:
             if infile == '-':
-                df = StringIO.StringIO(sys.stdin.read())
+                df = BytesIO(sys.stdin.read())
             else:
                 df = open(args[0], 'rb')
         except:
