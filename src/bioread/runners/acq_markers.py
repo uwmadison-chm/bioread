@@ -4,8 +4,9 @@
 #
 # Copyright (c) 2016 Board of Regents of the University of Wisconsin System
 #
-# Written by Nate Vack <njvack@wisc.edu> at the Waisman Laboratory for Brain
-# Imaging and Behavior, University of Wisconsin-Madison
+# Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
+# at the Waisman Laboratory for Brain Imaging and Behavior, University of
+# Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 #
 # This script pulls all the markers from an AcqKnowledge file and writes it

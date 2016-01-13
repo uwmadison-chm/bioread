@@ -1,10 +1,9 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2015 Board of Regents of the University of Wisconsin System
-#               2015 Alexander Schlemmer, bmp.ds.mpg.de
+# Copyright (c) 2016 Board of Regents of the University of Wisconsin System
 #
-# Written by John Ollinger <ollinger@wisc.edu> and Nate Vack <njvack@wisc.edu>
+# Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
