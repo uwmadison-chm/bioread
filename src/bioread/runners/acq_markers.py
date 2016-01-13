@@ -74,7 +74,7 @@ def acq_markers(input_filenames, output_stream):
 
 def main(args=None):
     if args is None:
-        args = []
+        args = sys.argv[1:]
     pargs = docopt(
         __doc__,
         args,
