@@ -1,3 +1,7 @@
+0.10.1: Use docopt everywhere.
+
+0.10.0: Add reading markers
+
 0.9.5: Fix reading AcqKnowledge 4.3 and 4.4 files.
 
 0.9.4: Python 3.x compatiblity.

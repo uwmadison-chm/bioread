@@ -25,14 +25,17 @@ Note that bioread requires the excellent [NumPy][http://numpy.scipy.org/] packag
 This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses [scipy.io.savemat](http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html). Channels are stored in a cell array named 'channels'.
 
 ```
-Usage: acq2mat [options] ACQ_FILE MAT_FILE
+Convert an AcqKnowledge file to a MATLAB file.
+
+Usage:
+  acq2mat [options] <acq_file> <mat_file>
+  acq2mat -h | --help
+  acq2mat --version
 
 Options:
-  --version       show program's version number and exit
-  -h, --help      show this help message and exit
-  -c, --compress  Save compressed Matlab file
+  -c, --compress  save compressed Matlab file
 
-Note: Using - for ACQ_FILE reads from stdin.
+Note: scipy is required for this program.
 ```
 
 Then, in Matlab:
@@ -82,14 +85,21 @@ zcat myfile.acq.gz | acq2mat - myfile.mat
 acq2mat will take the data in an AcqKnowledge file and write it to a text file.
 
 ```
-Usage: acq2txt [options] ACQ_FILE
+Write the data from an AcqKnowledge file channel to a text file.
+
+Usage:
+  acq2txt [options] <acq_file>
+  acq2txt -h | --help
+  acq2txt --version
 
 Options:
-  --version       show program's version number and exit
-  -h, --help      show this help message and exit
-  -c, --channel   channel number to extract (default=0)
+  --version          show program's version number and exit
+  -h, --help         show this help message and exit
+  --channel=CHANNEL  channel number to extract [default: 0]
 
-Note: Using - for ACQ_FILE reads from stdin.
+Writing more than one channel is not supported at the current time, because
+different channels can have different sampling rates, and it's hard to know
+what to do in those cases.
 ```
 
 ### acq_info
@@ -107,7 +117,7 @@ Usage:
 Options:
   -d, --debug  print lots of debugging data
 
-Note: Using - for ACQ_FILE reads from stdin.
+Note: Using - for <acq_file> reads from stdin.
 ```
 
 As noted in the usage instructions, acq_info will read from stdin, so if your files are gzipped, you can say:
