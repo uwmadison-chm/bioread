@@ -11,7 +11,7 @@
 
 # This contains the entry point for an executable to convert BIOPAC
 # AcqKnowledge files into text files
-""" Write the data from an AcqKnowledge file channel to a text file.
+"""Write the data from an AcqKnowledge file channel to a text file.
 
 Usage:
   acq2txt [options] <acq_file>
