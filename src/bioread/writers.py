@@ -9,7 +9,6 @@
 # Project home: http://github.com/njvack/bioread
 
 import numpy as np
-from scipy.io import savemat
 
 
 class TxtWriter(object):
@@ -44,6 +43,7 @@ class MatlabWriter(object):
         writer.write()
 
     def write(self):
+        from scipy.io import savemat
         d = self.__build_dict(self.data)
         savemat(
             self.filename, d,
