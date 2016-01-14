@@ -12,18 +12,31 @@
 # This contains the entry point for an executable to convert BIOPAC
 # AcqKnowledge files into Matlab files.
 
+"""Convert an AcqKnowledge file to a MATLAB file.
+
+Usage:
+  acq2mat [options] <acq_file> <mat_file>
+  acq2mat -h | --help
+  acq2mat --version
+
+Note: scipy is required for this program.
+
+Options:
+  -c, --compress  save compressed Matlab file
+
+"""
+
 import sys
-from bioread.vendor.six import BytesIO
-from optparse import OptionParser
+from bioread.vendor.docopt import docopt
 
 from bioread.readers import AcqReader
 from bioread.writers import MatlabWriter
-from bioread.version import version_str
+from bioread import version
 
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     amr = AcqToMatRunner(argv)
     amr.run()
@@ -41,38 +54,31 @@ class AcqToMatRunner(object):
     def run(self):
         old_err = sys.stderr
         sys.stderr = self.err
-        self.parser = self.__make_parser()
-        options, args = self.parser.parse_args(self.argv[1:])
-        if len(args) != 2:
-            self.parser.error(
-                "Must specify both ACQ_FILE and MAT_FILE.\n" +
-                "Try --help for more instructions.")
+        pargs = docopt(
+            __doc__,
+            self.argv,
+            version=version.description)
         try:
-            infile = args[0]
-            if infile == '-':
-                infile = BytesIO(sys.stdin.read())
+            import scipy
+        except:
+            sys.stderr.write("scipy is required for writing matlab files\n")
+            sys.exit(1)
+        infile = pargs['<acq_file>']
+        matfile = pargs['<mat_file>']
+        compress = pargs['--compress']
+        try:
             data = AcqReader.read_file(infile)
         except:
-            sys.stderr.write("Error reading %s\n" % args[0])
+            sys.stderr.write("Error reading %s\n" % infile)
             sys.exit(1)
         try:
-            MatlabWriter.write_file(data, args[1], compress=options.compress)
+            MatlabWriter.write_file(data, matfile, compress=compress)
         except:
-            sys.stderr.write("Error writing %s\n" % args[1])
+            sys.stderr.write("Error writing %s\n" % matfile)
             sys.exit(1)
 
         sys.stderr = old_err
 
-    def __make_parser(self):
-        parser = OptionParser(
-            "Usage: %prog [options] ACQ_FILE MAT_FILE",
-            version="bioread %s" % version_str(),
-            epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option(
-            '-c', '--compress', dest='compress', default=False,
-            action='store_true', help="save compressed Matlab file")
-
-        return parser
 
 if __name__ == '__main__':
     main()
