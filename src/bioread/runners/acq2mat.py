@@ -19,11 +19,10 @@ Usage:
   acq2mat -h | --help
   acq2mat --version
 
-Note: scipy is required for this program.
-
 Options:
   -c, --compress  save compressed Matlab file
 
+Note: scipy is required for this program.
 """
 
 import sys
