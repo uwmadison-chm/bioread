@@ -10,20 +10,36 @@
 # Project home: http://github.com/njvack/bioread
 
 # This contains the entry point for an executable to convert BIOPAC
-# AcqKnowledge files into Matlab files.
+# AcqKnowledge files into text files
+""" Write the data from an AcqKnowledge file channel to a text file.
+
+Usage:
+  acq2txt [options] <acq_file>
+  acq2txt -h | --help
+  acq2txt --version
+
+Options:
+  --version          show program's version number and exit
+  -h, --help         show this help message and exit
+  --channel=CHANNEL  channel number to extract [default: 0]
+
+Writing more than one channel is not supported at the current time, because
+different channels can have different sampling rates, and it's hard to know
+what to do in those cases.
+"""
 
 import sys
-import StringIO
-from optparse import OptionParser
+
+from bioread.vendor.docopt import docopt
 
 import bioread
 from bioread.writers import TxtWriter
-from bioread.version import version_str
+from bioread import version
 
 
 def main(argv=None):
     if argv is None:
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     amr = AcqToTxtRunner(argv)
     amr.run()
@@ -41,26 +57,22 @@ class AcqToTxtRunner(object):
     def run(self):
         old_err = sys.stderr
         sys.stderr = self.err
-        self.parser = self.__make_parser()
-        options, args = self.parser.parse_args(self.argv[1:])
-        if len(args) != 1:
-            self.parser.error(
-                "Must specify ACQ_FILE.\n" +
-                "Try --help for more instructions.")
+        pargs = docopt(
+            __doc__,
+            self.argv,
+            version=version.description)
+        infile = pargs['<acq_file>']
         try:
-            infile = args[0]
-            if infile == '-':
-                infile = StringIO.StringIO(sys.stdin.read())
             data = bioread.read_file(infile)
         except:
-            sys.stderr.write("Error reading %s\n" % args[0])
+            sys.stderr.write("Error reading %s\n" % infile)
             sys.exit(1)
         try:
-            chan = data.channels[options.channel]
+            chan = data.channels[int(pargs['--channel'])]
         except:
             sys.stderr.write(
                 "Channel %s out of bounds -- max: %s\n" %
-                (options.channel, len(data.channels)))
+                (pargs['--channel'], len(data.channels) - 1))
             sys.exit(2)
         try:
             TxtWriter.write_file(chan, sys.stdout)
@@ -70,17 +82,6 @@ class AcqToTxtRunner(object):
 
         sys.stderr = old_err
 
-    def __make_parser(self):
-        parser = OptionParser(
-            "Usage: %prog [options] ACQ_FILE",
-            version="bioread %s" % version_str(),
-            epilog="Note: Using - for ACQ_FILE reads from stdin.")
-        parser.add_option(
-            "--channel", dest="channel", default=0,
-            action="store", help="channel number to extract (default=0)",
-            type="int")
-
-        return parser
 
 if __name__ == '__main__':
     main()

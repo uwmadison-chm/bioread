@@ -13,3 +13,6 @@ VERSION = (0, 10, 0)
 
 def version_str():
     return ".".join([str(p) for p in VERSION])
+
+
+description = "bioread {0}".format(version_str())
