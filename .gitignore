@@ -28,3 +28,4 @@ notebooks/
 
 # Local development python settings
 .python-version
+.cache/
