@@ -1,0 +1,37 @@
+Thoughts on reading interleaved channels:
+
+Channels can have different lengths, and different sampling rates -- the file has a base sampling rate and each channel has an integer "frequency divider" which means "collect this sample at 1/N of the base rate." At the end of the file, channels with lower dividers may run longer than those with higher dividers -- if you have channel 1 at a FD of 1 and channel 2 with a FD of 512, channel 1 may have up to 511 "extra" samples. Fortunately, this cannot happen at the beginning of the file.
+
+Some examples:
+
+1: One channel (simplest case):
+
+c1: freq_divider: 1, length: 10
+
+1 1 1 1 1 1 1 1 1 1
+
+2: Two channels, balanced lengths, freq div
+
+c1: freq_divider: 1, length: 10
+c2: freq_divider: 1, length: 10
+
+1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2 1 2
+
+3: Two channels, matched length, diff freq div
+
+c1: freq_divider: 1, length: 10
+c2: freq_divider: 2, length: 5
+
+1 2 1 1 2 1 1 2 1 1 2 1 1 2 1
+
+4: Two channels, mismatch len, diff freq div
+
+c1: freq_divider: 1, length: 7
+c2: freq_divider: 2, length: 3
+
+1 2 1 1 2 1 1 2 1 1
+
+
+Algorithm:
+
+1: Determine channel pattern
