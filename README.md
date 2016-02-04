@@ -13,7 +13,7 @@ As far as I know, this should read any AcqKnowledge file you throw at it. Window
 We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simple as:
 
 ```
-easy_install bioread
+pip install bioread
 ```
 
 Note that bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/).
