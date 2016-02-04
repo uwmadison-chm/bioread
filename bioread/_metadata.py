@@ -8,13 +8,11 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-from bioread.readers import AcqReader
+version_parts = ('1', '0', '0dev')
 
-
-def read_file(filelike):
-    """
-    Read a file (either an IO object or a filename) and return a
-    biopac.Datafile object. Simply a shorthand for
-    bioread.readers.AcqReader.read_file()
-    """
-    return AcqReader.read_file(filelike)
+version = ".".join(version_parts)
+author = "Nate Vack"
+author_email = "njvack@freshforever.net"
+license = "GPL 2.0"
+copyright = "Copyright 2016 Boards of Regent of the University of Wisconsin System"  # noqa
+url = "https://github.com/njvack/bioread"
