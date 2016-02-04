@@ -320,6 +320,34 @@ class AcqReader(object):
         self.file_revision = bp[0]
 
 
+def sample_pattern(frequency_dividers):
+    """ Compute the pattern of samples in a file's uncompressed data stream.
+
+    The basic algorithm:
+    * Take the least common multiple of the frequency dividers. This is the
+      "base" of the pattern length -- the most times a channel could appear in
+      the pattern.
+    * Make a [base_len x num_channels] dimension matrix, counting from 0 to
+      pattern_len in each row -- call this "pattern_slots"
+    * Make a pattern_mask -- a boolean mask where each channel slots modulo
+      frequency_divider == 0
+    * The pattern, then, are the pattern_slots where patter_mask is true
+
+    Note that this is not quite the byte pattern -- these samples can either
+    by int16 or float64.
+    """
+    dividers = np.array(frequency_dividers)
+    channel_count = len(dividers)
+    base_len = least_common_multiple(*dividers)
+    pattern_slots = np.arange(
+        base_len).repeat(
+        channel_count).reshape(
+        (base_len, channel_count))
+    pattern_mask = ((pattern_slots % dividers) == 0)
+    channel_slots = np.tile(np.arange(channel_count), (base_len, 1))
+    return channel_slots[pattern_mask]
+
+
 def least_common_multiple(*ar):
     # Adapted from:
     # http://stackoverflow.com/questions/147515/least-common-multiple-for-3-or-more-numbers
