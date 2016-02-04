@@ -26,4 +26,5 @@ var/
 # iPython notebooks for testing
 notebooks/
 
-# I don't even know
+# Local development python settings
+.python-version
