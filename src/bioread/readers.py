@@ -22,7 +22,6 @@ from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
 from bioread.biopac import Datafile, Channel, Marker
-from bioread.utils import lcm
 
 
 class AcqReader(object):
@@ -257,7 +256,7 @@ class AcqReader(object):
         [0,1,2,0,0,1,0]
         """
         dividers = [c.freq_divider for c in channels]
-        channel_lcm = lcm(*dividers)
+        channel_lcm = least_common_multiple(*dividers)
         # Make a list like [0,1,2,0,0,1,0]
         stream_sample_indexes = [
             ch_idx for pat_idx in range(channel_lcm)
@@ -319,3 +318,21 @@ class AcqReader(object):
 
         self.byte_order_flag = bp[1]
         self.file_revision = bp[0]
+
+
+def least_common_multiple(*ar):
+    # Adapted from:
+    # http://stackoverflow.com/questions/147515/least-common-multiple-for-3-or-more-numbers
+
+    if len(ar) > 2:
+        return least_common_multiple(ar[0], least_common_multiple(*ar[1:]))
+    elif len(ar) == 2:
+        return (ar[0] * ar[1]) // greatest_common_denominator(ar[0], ar[1])
+    else:
+        return ar[0]
+
+
+def greatest_common_denominator(a, b):
+    while not b == 0:
+        a, b = b, a % b
+    return a
