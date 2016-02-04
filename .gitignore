@@ -22,3 +22,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# iPython notebooks for testing
+notebooks/
+
+# I don't even know
