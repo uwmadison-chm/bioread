@@ -66,7 +66,7 @@ class AcqReader(object):
             return reader.read()
 
     def read(self):
-        self._read_headers()
+        self.read_headers()
         self.samples_per_second = 1000/self.graph_header.sample_time
         df = Datafile(
             graph_header=self.graph_header,
@@ -84,7 +84,7 @@ class AcqReader(object):
         self.data_file = df
         return self.data_file
 
-    def _read_headers(self):
+    def read_headers(self):
         if self.byte_order_flag is None:
             self.__set_order_and_version()
 
@@ -176,7 +176,7 @@ class AcqReader(object):
 
     def _read_markers(self):
         if self.marker_start_offset is None:
-            self._read_headers()
+            self.read_headers()
         mh_class = bh.V2MarkerHeader
         mih_class = bh.V2MarkerItemHeader
         if self.file_revision >= V_400B:
