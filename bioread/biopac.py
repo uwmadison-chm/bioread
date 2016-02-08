@@ -28,7 +28,7 @@ class Datafile(object):
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
-        self.channels = None
+        self.channels = []
         self.marker_header = marker_header
         self.marker_item_headers = marker_item_headers
         self.markers = None
@@ -45,7 +45,7 @@ class Datafile(object):
 
     def __str__(self):
         return("Biopac file (rev %s): %s channels, %s samples/sec" % (
-            self.graph_header.file_revision, len(self.channels),
+            self.graph_header.file_revision, self.graph_header.channel_count,
             self.samples_per_second))
 
     def __repr__(self):
