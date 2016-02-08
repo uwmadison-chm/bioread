@@ -16,11 +16,20 @@ import zlib
 
 import numpy as np
 
+import logging
+logger = logging.getLogger("bioread")
+logger.setLevel(logging.DEBUG)
+log_handler = logging.StreamHandler()
+log_handler.setLevel(logging.DEBUG)
+log_handler.setFormatter(logging.Formatter("%(message)s"))
+logger.addHandler(log_handler)
+
 from bioread.file_revisions import *
 from bioread import headers as bh
 from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
+from bioread.headers import PostMarkerHeader, JournalHeader
 from bioread.biopac import Datafile, Channel, Marker
 
 
@@ -65,15 +74,18 @@ class AcqReader(object):
             reader = cls(fo)
             return reader.read()
 
+    @classmethod
+    def read_without_data(cls, fo):
+        if isinstance(fo, six.string_types):
+            with open(fo, 'rb') as f:
+                reader = cls(f)
+                return reader.read_headers()
+        else:
+            reader = cls(fo)
+            return reader.read_headers()
+
     def read(self):
-        self.read_headers()
-        self.samples_per_second = 1000/self.graph_header.sample_time
-        df = Datafile(
-            graph_header=self.graph_header,
-            channel_headers=self.channel_headers,
-            foreign_header=self.foreign_header,
-            channel_dtype_headers=self.channel_dtype_headers,
-            samples_per_second=self.samples_per_second)
+        df = self.read_headers()
 
         self._read_data()
         self._read_markers()
@@ -113,11 +125,20 @@ class AcqReader(object):
         if self.graph_header.compressed:
             self.__read_compression_headers()
 
+        self.samples_per_second = 1000/self.graph_header.sample_time
+        return Datafile(
+            graph_header=self.graph_header,
+            channel_headers=self.channel_headers,
+            foreign_header=self.foreign_header,
+            channel_dtype_headers=self.channel_dtype_headers,
+            samples_per_second=self.samples_per_second)
+
     def __read_compression_headers(self):
         # We need to start by reading the markers; this puts us right
         # at the start of the compression headers
         self.marker_start_offset = self.data_start_offset
         self._read_markers()
+        self._read_journal()
         main_ch_start = self.acq_file.tell()
         self.main_compression_header = self.__single_header(
             main_ch_start, MainCompressionHeader)
@@ -126,6 +147,20 @@ class AcqReader(object):
         self.channel_compression_headers = self.__multi_headers(
             self.graph_header.channel_count, cch_start,
             ChannelCompressionHeader)
+
+    def _read_journal(self):
+        if self.file_revision <= V_400B:
+            self.post_marker_header = self.__single_header(
+                self.acq_file.tell(), PostMarkerHeader)
+            logger.debug(self.acq_file.tell())
+            logger.debug(self.post_marker_header.rep_bytes)
+            self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
+            logger.debug(self.acq_file.tell())
+            self.journal_header = self.__single_header(
+                self.acq_file.tell(), JournalHeader)
+            self.journal = self.acq_file.read(
+                self.journal_header.data['lJournalLen']).decode(
+                'utf-8').strip('\x00')
 
     def __single_header(self, start_offset, h_class):
         return self.__multi_headers(1, start_offset, h_class)[0]
@@ -136,6 +171,8 @@ class AcqReader(object):
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
+            logger.debug(
+                "Reading {0} at offset {1}".format(h_class, h_offset))
             h = h_class(self.file_revision, self.byte_order_flag)
             h.unpack_from_file(self.acq_file, h_offset)
             last_h_len = h.effective_len_bytes
@@ -318,6 +355,9 @@ class AcqReader(object):
 
         self.byte_order_flag = bp[1]
         self.file_revision = bp[0]
+
+    def __repr__(self):
+        return "AcqReader('{0}')".format(self.acq_file)
 
 
 def sample_pattern(frequency_dividers):

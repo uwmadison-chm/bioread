@@ -427,6 +427,50 @@ class ChannelDTypeHeader(BiopacHeader):
         )
 
 
+class PostMarkerHeader(BiopacHeader):
+    def __init__(self, file_revision, byte_order_flag):
+        super(PostMarkerHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+            ('hUnknown1', 'h', V_20a),
+            ('hUknnown2', 'h', V_20a),
+            ('lReps', 'l', V_20a),
+            ('Unknown3', '80B', V_20a)
+        )
+
+    @property
+    def effective_len_bytes(self):
+        return self.struct_dict.len_bytes + self.rep_bytes
+
+    @property
+    def rep_bytes(self):
+        # We seem to always need to read at least one of these...
+        # I have no idea what these things are for. From what I've seen, the
+        # file repeats the same data over and over, with a leading counter
+        # byte. The last four bytes in the structure are 44 33 22 11.
+        # The journal header follows immediately afterwards.
+        reps = self.data['lReps']
+        if reps < 1:
+            reps = 1
+        return 28 * reps
+
+
+class JournalHeader(BiopacHeader):
+    def __init__(self, file_revision, byte_order_flag):
+        super(JournalHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+            ('hUnknown', 'h', V_20a),
+            ('lJournalLen', 'l', V_20a)
+        )
+
+
 class MainCompressionHeader(BiopacHeader):
     # In compressed files, the markers are stored where the data would be in
     # uncompressed files. There's also some padding, and I don't know
@@ -471,7 +515,7 @@ class MainCompressionHeader(BiopacHeader):
     def __h_elts_versions(self):
         return {
             'PRE_4': VersionedHeaderStructure(
-                ('Unknown', '156B', V_20a),
+                ('Unknown', '34B', V_20a),
                 ('lTextLen', 'l', V_20a)
             ),
             'POST_4': VersionedHeaderStructure(
