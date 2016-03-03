@@ -29,7 +29,8 @@ from bioread import headers as bh
 from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
-from bioread.headers import PostMarkerHeader, JournalHeader
+from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
+from bioread.headers import V4JournalLengthHeader
 from bioread.biopac import Datafile, Channel, Marker
 
 
@@ -88,13 +89,16 @@ class AcqReader(object):
         df = self.read_headers()
 
         self._read_data()
-        self._read_markers()
         df.channels = self.channels
         df.marker_header = self.marker_header
         df.marker_item_headers = self.marker_item_headers
         df.markers = self.markers
         self.data_file = df
         return self.data_file
+
+    @property
+    def is_compressed(self):
+        return self.graph_header.compressed
 
     def read_headers(self):
         if self.byte_order_flag is None:
@@ -120,9 +124,13 @@ class AcqReader(object):
         data_length = sum(
             [c.point_count * cd.sample_size for c, cd in
                 zip(self.channel_headers, self.channel_dtype_headers)])
-        # This will be changed if we're compressed
         self.marker_start_offset = self.data_start_offset + data_length
-        if self.graph_header.compressed:
+        if self.is_compressed:
+            # In this case, the marker and journal come *before* the data
+            self.marker_start_offset = self.data_start_offset
+        self._read_markers()
+        self._read_journal()
+        if self.is_compressed:
             self.__read_compression_headers()
 
         self.samples_per_second = 1000/self.graph_header.sample_time
@@ -134,11 +142,9 @@ class AcqReader(object):
             samples_per_second=self.samples_per_second)
 
     def __read_compression_headers(self):
-        # We need to start by reading the markers; this puts us right
-        # at the start of the compression headers
+        # We need to have read the markers and journal; this puts us
+        # at the correct file offset.
         self.marker_start_offset = self.data_start_offset
-        self._read_markers()
-        self._read_journal()
         main_ch_start = self.acq_file.tell()
         self.main_compression_header = self.__single_header(
             main_ch_start, MainCompressionHeader)
@@ -150,17 +156,44 @@ class AcqReader(object):
 
     def _read_journal(self):
         if self.file_revision <= V_400B:
-            self.post_marker_header = self.__single_header(
-                self.acq_file.tell(), PostMarkerHeader)
-            logger.debug(self.acq_file.tell())
-            logger.debug(self.post_marker_header.rep_bytes)
-            self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
-            logger.debug(self.acq_file.tell())
+            self.__read_journal_v2()
+        else:
+            self.__read_journal_v4()
+
+    def __read_journal_v2(self):
+        self.post_marker_header = self.__single_header(
+            self.acq_file.tell(), PostMarkerHeader)
+        logger.debug(self.acq_file.tell())
+        logger.debug(self.post_marker_header.rep_bytes)
+        self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
+        logger.debug(self.acq_file.tell())
+        self.journal_header = self.__single_header(
+            self.acq_file.tell(), V2JournalHeader)
+        self.journal = self.acq_file.read(
+            self.journal_header.data['lJournalLen']).decode(
+            'utf-8').strip('\x00')
+
+    def __read_journal_v4(self):
+        self.journal_length_header = self.__single_header(
+            self.acq_file.tell(),
+            V4JournalLengthHeader)
+        journal_len = self.journal_length_header.journal_len
+        self.journal = None
+        jh = V4JournalHeader(
+            self.file_revision, self.byte_order_flag)
+        # If journal_length_header.journal_len is small, we don't have a
+        # journal to read.
+        if (jh.effective_len_bytes <= journal_len):
             self.journal_header = self.__single_header(
-                self.acq_file.tell(), JournalHeader)
+                self.acq_file.tell(),
+                V4JournalHeader)
+            logger.debug("Reading {0} bytes of journal at {0}".format(
+                self.journal_header.journal_len,
+                self.acq_file.tell()))
             self.journal = self.acq_file.read(
-                self.journal_header.data['lJournalLen']).decode(
-                'utf-8').strip('\x00')
+                self.journal_header.journal_len).decode('utf-8').strip('\x00')
+        # Either way, we should seek to this point.
+        self.acq_file.seek(self.journal_length_header.data_end)
 
     def __single_header(self, start_offset, h_class):
         return self.__multi_headers(1, start_offset, h_class)[0]
@@ -206,7 +239,7 @@ class AcqReader(object):
 
     def _read_data(self):
         self.channels = self.__build_channels()
-        if self.graph_header.compressed:
+        if self.is_compressed:
             self.__read_data_compressed(self.channels)
         else:
             self.__read_data_uncompressed(self.channels)

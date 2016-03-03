@@ -59,16 +59,12 @@ def test_sample_pattern():
 
 
 def test_reads_files_without_error():
-    # TODO: This fails both on compressed and v3 files because shitty
-    # It's possibly journal data that's causing problems? Probably not
-    # for v3 files though.
-    for filename in V4_FILES.intersection(UNCOMPRESSED_FILES):
+    for filename in PHYSIO_FILES:
         logger.debug(filename)
         assert readers.AcqReader.read_file(filename)
 
 
 def test_reads_headers_without_error():
-    # TODO This fails with compressed v3 files because shitty
     for filename in PHYSIO_FILES:
         logger.debug("Reading {0}".format(filename))
         df = readers.AcqReader.read_without_data(filename)

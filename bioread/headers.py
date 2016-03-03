@@ -458,9 +458,14 @@ class PostMarkerHeader(BiopacHeader):
         return 28 * reps
 
 
-class JournalHeader(BiopacHeader):
+class V2JournalHeader(BiopacHeader):
+    """
+    Version 2-3 journal headers are trivial -- there's two bytes of
+    "I don't know what this is" followed by a long containing the length of
+    the journal text.
+    """
     def __init__(self, file_revision, byte_order_flag):
-        super(JournalHeader, self).__init__(
+        super(V2JournalHeader, self).__init__(
             self.__h_elts, file_revision, byte_order_flag)
 
     @property
@@ -469,6 +474,73 @@ class JournalHeader(BiopacHeader):
             ('hUnknown', 'h', V_20a),
             ('lJournalLen', 'l', V_20a)
         )
+
+
+class V4JournalLengthHeader(BiopacHeader):
+    """
+    In the case where there's no journal data, there's no full journal header.
+    Instead, we just have a single long that tells us how much journal stuff
+    (data + header) there is. Basically, if this value is less than the
+    length of the V4JournalHeader, don't even try to read that header or
+    journal data.
+
+    The next stuff (if there is any) will be at self.offset + lJournalDataLen
+    """
+    def __init__(self, file_revision, byte_order_flag):
+        super(V4JournalLengthHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+            ('lJournalDataLen', 'l', V_400B)
+        )
+
+    @property
+    def journal_len(self):
+        return self.data['lJournalDataLen']
+
+    @property
+    def data_end(self):
+        return self.offset + self.journal_len
+
+
+
+class V4JournalHeader(BiopacHeader):
+    """
+    In Version 4.1 and less, the journal is stored as plain text. From 4.2,
+    it's stored as HTML. The start of the header tells the length of the
+    entire journal section -- journal text and some preamble; the compression
+    headers (if compressed) follow at self.offset + lFullLength.
+
+    The length of the actual journal text is contained 266 bytes into the
+    preamble for 4.1 files; in 4.2 files it's a long immediately before the
+    journal data.
+
+    The journal data starts at 560 bytes after the start of this header in
+    4.1 files; in 4.2 it's at 594 bytes, and 4.4 it's at 598 bytes.
+    """
+    def __init__(self, file_revision, byte_order_flag):
+        super(V4JournalHeader, self).__init__(
+            self.__h_elts, file_revision, byte_order_flag)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+            ('bUnknown1', '262b', V_400B),
+            ('lEarlyJournalLen', 'l', V_400B),
+            ('bUnknown2', '290b', V_400B),
+            ('bUnknown3', '26b', V_420),
+            ('bUnknown4', '4b', V_430),
+            ('lLateJournalLenMinusOne', 'l', V_420),
+            ('lLateJournalLen', 'l', V_420)
+        )
+
+    @property
+    def journal_len(self):
+        if self.file_revision < V_420:
+            return self.data['lEarlyJournalLen']
+        return self.data['lLateJournalLen']
 
 
 class MainCompressionHeader(BiopacHeader):
@@ -491,7 +563,7 @@ class MainCompressionHeader(BiopacHeader):
         return {
             'PRE_4': lambda: (
                 self.struct_dict.len_bytes + self.data['lTextLen']),
-            'POST_4': lambda: (
+            'POST_4': lambda: (  # This is incorrect for data with journals
                 self.struct_dict.len_bytes +
                 self.data['lStrLen1'] +
                 self.data['lStrLen2']
@@ -519,7 +591,7 @@ class MainCompressionHeader(BiopacHeader):
                 ('lTextLen', 'l', V_20a)
             ),
             'POST_4': VersionedHeaderStructure(
-                ('Unknown1', '30B', V_400B),
+                ('Unknown1', '24B', V_400B),  # Should probably be 24.
                 ('lStrLen1', 'l', V_400B),
                 ('lStrLen2', 'l', V_400B),
                 ('Unknown2', '20B', V_400B),
