@@ -404,10 +404,10 @@ def sample_pattern(frequency_dividers):
       pattern_len in each row -- call this "pattern_slots"
     * Make a pattern_mask -- a boolean mask where each channel slots modulo
       frequency_divider == 0
-    * The pattern, then, are the pattern_slots where patter_mask is true
+    * The pattern, then, are the pattern_slots where pattern_mask is true
 
     Note that this is not quite the byte pattern -- these samples can either
-    by int16 or float64.
+    be int16 or float64.
     """
     dividers = np.array(frequency_dividers)
     channel_count = len(dividers)
