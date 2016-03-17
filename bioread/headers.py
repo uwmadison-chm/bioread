@@ -414,6 +414,20 @@ class ChannelDTypeHeader(BiopacHeader):
     def type_code(self):
         return self.data['nType']
 
+    CODE_MAP = {
+        1: 'f8',
+        2: 'i2'
+    }
+
+    @property
+    def numpy_dtype(self):
+        """
+        A valid numpy dtype string: byte order and data type.
+
+        Examples: '<i2', '>f8'
+        """
+        return self.byte_order_char + CODE_MAP[self.type_code]
+
     @property
     def sample_size(self):
         return self.data['nSize']
