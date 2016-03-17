@@ -16,7 +16,71 @@ We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simp
 pip install bioread
 ```
 
-Note that bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/).
+Bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/).
+
+## API usage:
+
+If you want to process the data as NumPy arrays, there's an easy API to work with it:
+
+```
+>>> import bioread
+>>> data = bioread.read_file("myfile.acq")
+>>> data.graph_header.file_revision
+84
+>>> len(data.channels)
+2
+>>> data.channels[0].samples_per_second
+1000.0
+>>> len(data.channels[0].data)
+10002
+>>> data.channels[1].samples_per_second
+500.0
+>>> len(data.channels[1].data) 
+5001
+>>> len(data.channels[1].upsampled_data)
+10002
+>>> data.channels[0].data[0]
+1.23
+>>> data.channels[0].raw_data[0] # ints are not scaled
+13
+>>> data.channels[0].name
+'CO2'
+>>> data.named_channels['CO2'].data[0]
+1.23
+>>> from bioread.writers import MatlabWriter
+>>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
+```
+
+If you don't want to read the channel data, you can read just the headers:
+
+```
+>>> data = bioread.read_headers("myfile.acq")
+```
+
+And you can also read only some of the channels:
+
+```
+>>> [c.name for c in data.channels]
+['CO2', 'Pulse Ox']
+>>> heartrate_data = bioread.read_file("myfile.acq", channel_indexes=[1])
+>>> heartrate_data.channels[0].data
+None
+>>> heartrate_data.channels[1].data
+array(...)
+```
+
+Finally, if the file is uncompressed, you can stream it:
+
+```
+>>> for chunks in bioread.stream_file("myfile.acq"):
+        print([len(chunks[0].buffer, chunks[1].buffer])])
+
+[100000, 100000]
+...
+[500, 500]
+```
+
+Streaming of compressed files isn't supported -- the data isn't stored in a convenient way.
 
 ## Command-line usage:
 
@@ -146,39 +210,6 @@ Options:
 ```
 
 Note that this one does not read from stdin; in this case, printing the markers from a large number of files was more important than feeding from `zcat` or something.
-
-## API usage:
-
-If you want to process the data as NumPy arrays instead, there's an easy API to work with it:
-
-```
->>> import bioread
->>> data = bioread.read_file("myfile.acq")
->>> data.graph_header.file_revision
-84
->>> len(data.channels)
-2
->>> data.channels[0].samples_per_second
-1000.0
->>> len(data.channels[0].data)
-10002
->>> data.channels[1].samples_per_second
-500.0
->>> len(data.channels[1].data) 
-5001
->>> len(data.channels[1].upsampled_data)
-10002
->>> data.channels[0].data[0]
-1.23
->>> data.channels[0].raw_data[0] # ints are not scaled
-13
->>> data.channels[0].name
-'CO2'
->>> data.named_channels['CO2'].data[0]
-1.23
->>> from bioread.writers import MatlabWriter
->>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
-```
 
 ## Notes
 
