@@ -37,8 +37,8 @@ class StructDict(object):
     }
     """
 
-    def __init__(self, byte_order_flag, struct_info=None):
-        self.byte_order_flag = byte_order_flag
+    def __init__(self, byte_order_char, struct_info=None):
+        self.byte_order_char = byte_order_char
         self.struct_info = struct_info
         self.full_struct_info = None
 
@@ -81,11 +81,11 @@ class StructDict(object):
 
         """
         table = []
-        build_fs = self.byte_order_flag
+        build_fs = self.byte_order_char
         for si in self.struct_info:
             name, fs = si[0:2]
             f_offset = struct.calcsize(build_fs)
-            f_len = struct.calcsize(self.byte_order_flag+fs)
+            f_len = struct.calcsize(self.byte_order_char+fs)
             build_fs += fs
             table.append((name, fs, f_offset, f_len))
 
@@ -109,7 +109,7 @@ class StructDict(object):
             self.full_struct_info = self.__full_struct_info()
 
     def __bof_fs(self, format_str):
-        return self.byte_order_flag + format_str
+        return self.byte_order_char + format_str
 
     def __unpacked_element_count(self, format_str):
         # We need to figure this out by actually faking some data and

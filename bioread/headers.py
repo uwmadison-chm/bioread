@@ -67,12 +67,12 @@ class BiopacHeader(Header):
     A simple superclass for GraphHeader, ChannelHeader, and friends.
     """
 
-    def __init__(self, header_structure, file_revision, byte_order_flag):
+    def __init__(self, header_structure, file_revision, byte_order_char):
         self.file_revision = file_revision
-        self.byte_order_flag = byte_order_flag
+        self.byte_order_char = byte_order_char
         self.header_structure = header_structure
         sd = StructDict(
-            byte_order_flag, header_structure.elements_for(file_revision))
+            byte_order_char, header_structure.elements_for(file_revision))
         super(BiopacHeader, self).__init__(sd)
 
 
@@ -89,10 +89,10 @@ class GraphHeader(BiopacHeader):
     Data compressed?
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         self.file_revision = file_revision
         super(GraphHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def effective_len_bytes(self):
@@ -249,10 +249,10 @@ class ChannelHeader(BiopacHeader):
     our way around.
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         self.file_revision = file_revision
         super(ChannelHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __version_bin(self):
@@ -351,10 +351,10 @@ class ForeignHeader(BiopacHeader):
     the effective length.
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         self.file_revision = file_revision
         super(ForeignHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __version_bin(self):
@@ -406,9 +406,9 @@ class ForeignHeader(BiopacHeader):
 
 class ChannelDTypeHeader(BiopacHeader):
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(ChannelDTypeHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def type_code(self):
@@ -428,9 +428,9 @@ class ChannelDTypeHeader(BiopacHeader):
 
 
 class PostMarkerHeader(BiopacHeader):
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(PostMarkerHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):
@@ -464,9 +464,9 @@ class V2JournalHeader(BiopacHeader):
     "I don't know what this is" followed by a long containing the length of
     the journal text.
     """
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V2JournalHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):
@@ -486,9 +486,9 @@ class V4JournalLengthHeader(BiopacHeader):
 
     The next stuff (if there is any) will be at self.offset + lJournalDataLen
     """
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V4JournalLengthHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):
@@ -520,9 +520,9 @@ class V4JournalHeader(BiopacHeader):
     The journal data starts at 560 bytes after the start of this header in
     4.1 files; in 4.2 it's at 594 bytes, and 4.4 it's at 598 bytes.
     """
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V4JournalHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):
@@ -547,10 +547,10 @@ class MainCompressionHeader(BiopacHeader):
     # In compressed files, the markers are stored where the data would be in
     # uncompressed files. There's also some padding, and I don't know
     # what's in it.
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         self.file_revision = file_revision
         super(MainCompressionHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def effective_len_bytes(self):
@@ -602,9 +602,9 @@ class MainCompressionHeader(BiopacHeader):
 
 class ChannelCompressionHeader(BiopacHeader):
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(ChannelCompressionHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def effective_len_bytes(self):
@@ -656,9 +656,9 @@ class V2MarkerHeader(BiopacHeader):
     Marker structure for files in Version 3, very likely down to version 2.
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V2MarkerHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     # NOTE: lLength does NOT include this header length -- only the length
     # of all the marker items. This is different than in the v4 header.
@@ -679,9 +679,9 @@ class V4MarkerHeader(BiopacHeader):
     Marker structure for files from Version 4 onwards
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V4MarkerHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     # NOTE: lLength INCLUDES this header length -- the markers end at
     # marker_start_offset + lLength. This is different than in the v2 header.
@@ -710,9 +710,9 @@ class V2MarkerItemHeader(BiopacHeader):
     Marker Items for files in Version 3, very likely down to version 2.
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V2MarkerItemHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):
@@ -751,9 +751,9 @@ class V4MarkerItemHeader(BiopacHeader):
     Marker Items for files in Version 4 ownards.
     """
 
-    def __init__(self, file_revision, byte_order_flag):
+    def __init__(self, file_revision, byte_order_char):
         super(V4MarkerItemHeader, self).__init__(
-            self.__h_elts, file_revision, byte_order_flag)
+            self.__h_elts, file_revision, byte_order_char)
 
     @property
     def __h_elts(self):

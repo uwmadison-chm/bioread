@@ -43,7 +43,7 @@ class AcqReader(object):
     def __init__(self, acq_file):
         self.acq_file = acq_file
         # This must be set by _set_order_and_version
-        self.byte_order_flag = None
+        self.byte_order_char = None
         self.file_revision = None
         self.samples_per_second = None
         self.graph_header = None
@@ -101,7 +101,7 @@ class AcqReader(object):
         return self.graph_header.compressed
 
     def read_headers(self):
-        if self.byte_order_flag is None:
+        if self.byte_order_char is None:
             self.__set_order_and_version()
 
         self.graph_header = self.__single_header(0, GraphHeader)
@@ -180,7 +180,7 @@ class AcqReader(object):
         journal_len = self.journal_length_header.journal_len
         self.journal = None
         jh = V4JournalHeader(
-            self.file_revision, self.byte_order_flag)
+            self.file_revision, self.byte_order_char)
         # If journal_length_header.journal_len is small, we don't have a
         # journal to read.
         if (jh.effective_len_bytes <= journal_len):
@@ -206,7 +206,7 @@ class AcqReader(object):
             h_offset += last_h_len
             logger.debug(
                 "Reading {0} at offset {1}".format(h_class, h_offset))
-            h = h_class(self.file_revision, self.byte_order_flag)
+            h = h_class(self.file_revision, self.byte_order_char)
             h.unpack_from_file(self.acq_file, h_offset)
             last_h_len = h.effective_len_bytes
             headers.append(h)
@@ -375,22 +375,72 @@ class AcqReader(object):
         ver_len = struct.calcsize('<'+ver_fmt_str)
         ver_data = self.acq_file.read(ver_len)
 
-        byte_order_flags = ['<', '>']
+        byte_order_chars = ['<', '>']
         # Try both ways.
         byte_order_versions = [
-            (struct.unpack(bof+ver_fmt_str, ver_data)[1], bof) for
-                bof in byte_order_flags]
+            (struct.unpack(boc+ver_fmt_str, ver_data)[1], boc)
+            for boc in byte_order_chars
+        ]
 
         # Limit to positive numbers, choose smallest.
         byte_order_versions = sorted([
             bp for bp in byte_order_versions if bp[0] > 0])
         bp = byte_order_versions[0]
 
-        self.byte_order_flag = bp[1]
+        self.byte_order_char = bp[1]
         self.file_revision = bp[0]
 
     def __repr__(self):
         return "AcqReader('{0}')".format(self.acq_file)
+
+
+def read_uncompressed(f, data_len, target_chunk_size, channels):
+    """
+    Read the uncompressed
+    """
+    # f must be open as binary, seeked to the start of the data.
+    # Some eleme
+    s_pat = sample_pattern([c.freq_divider for c in channels])
+    b_pat = byte_pattern(s_pat, [c.sample_size for c in channels])
+    chunk_size = actual_chunk_size(max_chunk_size, len(b_pat))
+    reps_in_chunk = chunk_pattern_reps(chunk_size, len(b_pat))
+    buf_lengths = channel_buffer_lengths(s_pat, reps_in_chunk)
+    buffers = channel_buffers([c.fmt_str for c in channels], buf_lengths)
+    channel_lengths = [c.point_count for c in channels]
+    channel_starts = [0 for c in channels]
+    bytes_to_read = sum([c.data_length for c in channels])
+    while bytes_to_read > 0:
+        read_size = min(bytes_to_read, chunk_size)
+        sample_data = f.read(read_size)
+        # This is a bunch of bytes, we need to split them into the buffers
+
+
+def read_chunks(f, buffers, data_len, chunk_size, byte_pattern):
+    """
+    Read data in chunks from f. For each chunk, yield a list of buffers with
+    information on how much of the buffer is filled and where the data should
+    go in the target array.
+    """
+    data_remaining = data_len
+    channel_samples_remaining = np.array([c.point_count for c in channels])
+
+    while data_remaining > 0:
+        chunk_bytes = min(data_remaining, chunk_size)
+        chunk_data = np.fromstring(f.read(chunk_bytes), dtype="b")
+
+        yield buffers
+        data_remaining -= chunk_bytes
+
+
+def update_buffers_with_data(data, buffers, byte_pattern):
+    """
+    Updates buffers with information from data. Returns nothing, modifies
+    buffers in-place.
+    """
+    trimmed_pattern = byte_pattern[0:len(data)]
+    for i, buf in enumerate(buffers):
+        buf.buffer = data[trimmed_pattern == i]
+        buf.buffer.dtype = buf.channel.fmt_str
 
 
 def sample_pattern(frequency_dividers):
