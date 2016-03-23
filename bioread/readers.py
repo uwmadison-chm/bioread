@@ -9,7 +9,7 @@
 # Project home: http://github.com/njvack/bioread
 # Extended by Alexander Schlemmer.
 
-from __future__ import with_statement
+from __future__ import with_statement, division
 from bioread.vendor import six
 import struct
 import zlib
@@ -216,28 +216,11 @@ class AcqReader(object):
 
     def __build_channels(self):
         # Build empty channels, ready to get data from the file.
-        channels = []
-        # For building raw data arrays
-        np_map = {
-            1: np.float64,
-            2: np.int16}
-        fmt_map = {
-            1: 'd',
-            2: 'h'}
-        for i in range(len(self.channel_headers)):
-            ch = self.channel_headers[i]
-            cdh = self.channel_dtype_headers[i]
-            data = np.empty(ch.point_count, np_map[cdh.type_code])
-            divider = ch.frequency_divider
-            chan_samp_per_sec = float(self.samples_per_second)/divider
-            chan = Channel(
-                freq_divider=divider, raw_scale_factor=ch.raw_scale,
-                raw_offset=ch.raw_offset, raw_data=data,
-                name=ch.name, units=ch.units,
-                fmt_str=self.byte_order_flag+fmt_map[cdh.type_code],
-                samples_per_second=chan_samp_per_sec)
-            channels.append(chan)
-        return channels
+        return [
+            Channel.from_headers(ch, cdh, self.samples_per_second)
+            for ch, cdh in
+            zip(self.channel_headers, self.channel_dtype_headers)
+        ]
 
     def _read_data(self):
         self.channels = self.__build_channels()
@@ -281,12 +264,12 @@ class AcqReader(object):
         for i in range(len(channels)):
             cch = self.channel_compression_headers[i]
             chan = channels[i]
-            # Data seems to be little-endian regardless of the rest of the file
-            fmt_str = '<'+chan.fmt_str[1]
+            # Data seems to always be little-endian
+            dt = chan.dtype.newbyteorder("<")
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            chan.raw_data = np.fromstring(decomp_data, fmt_str)
+            chan.raw_data = np.fromstring(decomp_data, dtype=dt)
 
     def __read_data_uncompressed(self, channels):
         # The data in the file are interleaved, so we'll potentially have
@@ -337,8 +320,12 @@ class AcqReader(object):
         return np.array(stream_sample_indexes, dtype=np.int32)
 
     def __copy_uncompressed_data(self, channel, d_map, channel_index, buf):
-        channel.raw_data = buf[d_map == channel_index]
-        channel.raw_data.dtype = channel.fmt_str
+        mask = d_map == channel_index
+        logger.debug(mask)
+        logger.debug(len(mask))
+        logger.debug(len(buf))
+        channel.raw_data = buf[mask]
+        channel.raw_data.dtype = channel.dtype
 
     def __to_byte_indexes(self, sample_indexes, channels):
         """
@@ -396,53 +383,120 @@ class AcqReader(object):
         return "AcqReader('{0}')".format(self.acq_file)
 
 
-def read_uncompressed(f, data_len, target_chunk_size, channels):
-    """
-    Read the uncompressed
-    """
-    # f must be open as binary, seeked to the start of the data.
-    # Some eleme
-    s_pat = sample_pattern([c.freq_divider for c in channels])
-    b_pat = byte_pattern(s_pat, [c.sample_size for c in channels])
-    chunk_size = actual_chunk_size(max_chunk_size, len(b_pat))
-    reps_in_chunk = chunk_pattern_reps(chunk_size, len(b_pat))
-    buf_lengths = channel_buffer_lengths(s_pat, reps_in_chunk)
-    buffers = channel_buffers([c.fmt_str for c in channels], buf_lengths)
-    channel_lengths = [c.point_count for c in channels]
-    channel_starts = [0 for c in channels]
-    bytes_to_read = sum([c.data_length for c in channels])
-    while bytes_to_read > 0:
-        read_size = min(bytes_to_read, chunk_size)
-        sample_data = f.read(read_size)
-        # This is a bunch of bytes, we need to split them into the buffers
+class ChunkBuffer(object):
+    def __init__(self, channel):
+        self.channel = channel
+        self.buffer = None
+        self.channel_slice = slice(0, 0)
 
 
-def read_chunks(f, buffers, data_len, chunk_size, byte_pattern):
+def read_uncompressed(
+        f,
+        target_chunk_size,
+        channels,
+        channel_indexes=None):
+    """
+    Read the uncompressed data.
+    """
+    channel_indexes = channel_indexes or np.arange(len(channels))
+    for i in channel_indexes:
+        channels[i]._allocate_raw_data()
+    byte_pattern = chunk_byte_pattern(channels, target_chunk_size)
+    logger.debug('Using chunk size: {0} bytes'.format(len(byte_pattern)))
+    buffers = [ChunkBuffer(c) for c in channels]
+
+    chunker = read_chunks(f, buffers, byte_pattern, channel_indexes)
+    for chunk_buffers in chunker:
+        for i in channel_indexes:
+            ch = channels[i]
+            buf = chunk_buffers[i]
+            logger.debug('Storing {0} samples to {1} of channel {2}'.format(
+                len(buf.buffer), buf.channel_slice, i))
+            ch.raw_data[buf.channel_slice] = buf.buffer[:]
+
+
+def read_chunks(f, buffers, byte_pattern, channel_indexes):
     """
     Read data in chunks from f. For each chunk, yield a list of buffers with
     information on how much of the buffer is filled and where the data should
     go in the target array.
     """
-    data_remaining = data_len
-    channel_samples_remaining = np.array([c.point_count for c in channels])
-
-    while data_remaining > 0:
-        chunk_bytes = min(data_remaining, chunk_size)
-        chunk_data = np.fromstring(f.read(chunk_bytes), dtype="b")
+    channel_bytes_remaining = np.array(
+        [b.channel.data_length for b in buffers])
+    chunk_number = 0
+    while np.sum(channel_bytes_remaining) > 0:
+        pat = chunk_pattern(byte_pattern, channel_bytes_remaining)
+        chunk_bytes = len(pat)
+        logger.debug('Chunk {0}: {1} bytes at {2}'.format(
+            chunk_number, chunk_bytes, f.tell()))
+        chunk_data = np.fromstring(
+            f.read(chunk_bytes), dtype="b", count=chunk_bytes)
+        update_buffers_with_data(
+            chunk_data, buffers, pat, channel_indexes)
 
         yield buffers
-        data_remaining -= chunk_bytes
+        channel_bytes_remaining -= np.bincount(pat)
+        logger.debug('Channel bytes remaining: {0}'.format(
+            channel_bytes_remaining))
+        chunk_number += 1
 
 
-def update_buffers_with_data(data, buffers, byte_pattern):
+def chunk_pattern(byte_pattern, channel_bytes_remaining):
+    """ Trim a byte pattern depending on how many bytes remain in each channel.
+
+    For some reason, the data at the end of the file doesn't work like you'd
+    expect. You can, for example, be missing an expected sample in a slow-
+    sampling channel.
+
+    The solution is to use the number of bytes in a channel to determine the
+    actual layout of the chunk.
+    """
+    # This is the normal case, we don't need to do anything.
+    if np.all(np.bincount(byte_pattern) <= channel_bytes_remaining):
+        return byte_pattern
+    # For each channel, compute a set of indexes where we expect data.
+    channel_byte_indexes = [
+        np.where(byte_pattern == i)[0][0:rem]
+        for i, rem in enumerate(channel_bytes_remaining)
+    ]
+    all_byte_indexes = np.concatenate(channel_byte_indexes)
+    pattern_mask = np.zeros(len(byte_pattern), dtype=np.bool)
+    pattern_mask[all_byte_indexes] = True
+    return byte_pattern[pattern_mask]
+
+
+def update_buffers_with_data(data, buffers, byte_pattern, channel_indexes):
     """
     Updates buffers with information from data. Returns nothing, modifies
     buffers in-place.
     """
     trimmed_pattern = byte_pattern[0:len(data)]
-    for i, buf in enumerate(buffers):
+    for i in channel_indexes:
+        buf = buffers[i]
         buf.buffer = data[trimmed_pattern == i]
-        buf.buffer.dtype = buf.channel.fmt_str
+        buf.buffer.dtype = buf.channel.dtype
+        old_slice = buf.channel_slice
+        buf.channel_slice = slice(
+            old_slice.stop, old_slice.stop + len(buf.buffer))
+
+
+def chunk_byte_pattern(channels, target_chunk_size):
+    """ Compute a byte layout for a chunk of data.
+
+    This pattern is the main thing we actually need -- from it, we can know
+    how to make individual buffers and how much data to read.
+
+    The actual chunk size will always be a multiple of the byte pattern
+    length, and will generally be very close to target_chunk_size. Usually, it
+    will be larger.
+    """
+    divs = np.array([c.frequency_divider for c in channels])
+    sizes = np.array([c.sample_size for c in channels])
+    spat = sample_pattern(divs)
+    byte_counts = sizes[spat]  # Returns array the length of spat
+    bpat = spat.repeat(byte_counts)
+    reps = chunk_pattern_reps(target_chunk_size, len(bpat))
+    return np.tile(bpat, reps)
 
 
 def sample_pattern(frequency_dividers):
@@ -473,9 +527,23 @@ def sample_pattern(frequency_dividers):
     return channel_slots[pattern_mask]
 
 
+def chunk_pattern_reps(target_chunk_size, pattern_byte_length):
+    """
+    The number of times we'll actually repeat the pattern in a chunk.
+    Must always be at least 1.
+    """
+    return max(1, target_chunk_size // pattern_byte_length)
+
+
 def least_common_multiple(*ar):
-    # Adapted from:
-    # http://stackoverflow.com/questions/147515/least-common-multiple-for-3-or-more-numbers
+    """ Compute least common multiple of n numbers.
+
+    Adapted from:
+    http://stackoverflow.com/questions/147515/least-common-multiple-for-3-or-more-numbers
+
+    Used in computing the repeating pattern of multichannel data that's
+    sampled at different rates in each channel.
+    """
 
     if len(ar) > 2:
         return least_common_multiple(ar[0], least_common_multiple(*ar[1:]))
@@ -486,6 +554,7 @@ def least_common_multiple(*ar):
 
 
 def greatest_common_denominator(a, b):
+    """ Iterative method to compute greatest common denominator. """
     while not b == 0:
         a, b = b, a % b
     return a
