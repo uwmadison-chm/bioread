@@ -11,6 +11,7 @@
 from __future__ import absolute_import
 from os import path
 from glob import glob
+import numpy as np
 
 import pytest
 
@@ -48,7 +49,7 @@ def test_least_common_multiple():
 
 
 def assert_pattern(dividers, pattern):
-    assert list(readers.sample_pattern(dividers)) == list(pattern)
+    assert np.array_equal(readers.sample_pattern(dividers), pattern)
 
 
 def test_sample_pattern():
@@ -58,10 +59,17 @@ def test_sample_pattern():
     assert_pattern([1, 4, 2], [0, 1, 2, 0, 0, 2, 0])
 
 
-def test_reads_files_without_error():
-    for filename in PHYSIO_FILES:
-        logger.debug(filename)
-        assert readers.AcqReader.read_file(filename)
+def test_byte_pattern():
+    sample_pattern = readers.sample_pattern([1, 2])
+    sample_lengths = np.array([1, 4])
+    bp = readers.byte_pattern(sample_pattern, sample_lengths)
+    assert np.array_equal(bp, np.array([0, 1, 1, 1, 1, 0]))
+
+
+# def test_reads_files_without_error():
+#     for filename in PHYSIO_FILES:
+#         logger.debug(filename)
+#         assert readers.AcqReader.read_file(filename)
 
 
 def test_reads_headers_without_error():
