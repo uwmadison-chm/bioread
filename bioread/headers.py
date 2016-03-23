@@ -426,7 +426,7 @@ class ChannelDTypeHeader(BiopacHeader):
 
         Examples: '<i2', '>f8'
         """
-        return self.byte_order_char + CODE_MAP[self.type_code]
+        return self.byte_order_char + self.CODE_MAP[self.type_code]
 
     @property
     def sample_size(self):
