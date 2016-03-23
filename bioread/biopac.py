@@ -8,6 +8,7 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
+from __future__ import division
 import numpy as np
 
 
@@ -61,37 +62,52 @@ class Channel(object):
 
     def __init__(
             self,
-            freq_divider=None, raw_scale_factor=None, raw_offset=None,
-            raw_data=None, name=None, units=None, fmt_str=None,
-            samples_per_second=None):
+            frequency_divider=None, raw_scale_factor=None, raw_offset=None,
+            name=None, units=None, fmt_str=None, samples_per_second=None,
+            point_count=None):
 
-        self.freq_divider = freq_divider
+        self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
         self.raw_offset = raw_offset
         self.name = name
         self.units = units
         self.fmt_str = fmt_str
         self.samples_per_second = samples_per_second
-        self.raw_data = raw_data
+        self.point_count = point_count
+        self.dtype = np.dtype(fmt_str)
+
+        # Don't allocate storage automatically -- this means we can read
+        # only some channels or stream the data without putting all the data
+        # in memory.
+        self.raw_data = None
         self.__data = None
         self.__upsampled_data = None
 
-    def should_sample_at(self, base_index):
-        """
-        Return true if the channel should be sampled in the graph file's
-        base_index-th sample. This is when we're base_index is exactly
-        divisible by freq_counter and we have room for it in our data.
-        """
-        return (
-            (base_index % self.freq_divider) == 0 and
-            (base_index // self.freq_divider) < self.point_count)
+    @classmethod
+    def from_headers(cls, chan_hdr, dtype_hdr, samples_per_second):
+        divider = chan_hdr.frequency_divider
+        chan_samp_per_sec = samples_per_second / divider
+
+        return cls(
+            frequency_divider=divider,
+            raw_scale_factor=chan_hdr.raw_scale,
+            raw_offset=chan_hdr.raw_offset,
+            name=chan_hdr.name,
+            units=chan_hdr.units,
+            fmt_str=dtype_hdr.numpy_dtype,
+            samples_per_second=chan_samp_per_sec,
+            point_count=chan_hdr.point_count
+        )
+
+    def _allocate_raw_data(self):
+        self.raw_data = np.zeros(self.point_count, dtype=self.dtype)
 
     @property
     def sample_size(self):
         """
         The size, in bytes, of one sample's worth of data.
         """
-        return self.raw_data.dtype.itemsize
+        return self.dtype.itemsize
 
     @property
     def data_length(self):
@@ -105,14 +121,7 @@ class Channel(object):
         """
         The sample size divided by the frequency divider.
         """
-        return float(self.sample_size)/self.freq_divider
-
-    @property
-    def point_count(self):
-        """
-        Shorthand for len(self.raw_data).
-        """
-        return self.raw_data.shape[0]
+        return float(self.sample_size)/self.frequency_divider
 
     @property
     def data(self):
@@ -139,14 +148,14 @@ class Channel(object):
         Nearest-neighbor sampling is used.
         """
         if self.__upsampled_data is None:
-            total_samples = self.data.shape[0]*self.freq_divider
+            total_samples = self.data.shape[0]*self.frequency_divider
             self.__upsampled_data = self.data[
-                np.arange(total_samples)//self.freq_divider]
+                np.arange(total_samples)//self.frequency_divider]
         return self.__upsampled_data
 
     def __str__(self):
         return("Channel %s: %s samples, %s samples/sec" % (
-            self.name, len(self.raw_data), self.samples_per_second))
+            self.name, self.point_count, self.samples_per_second))
 
     def __repr__(self):
         return str(self)

@@ -63,7 +63,7 @@ class MatlabWriter(object):
             chan_dict['data'] = c.data
             chan_dict['samples_per_second'] = c.samples_per_second
             chan_dict['name'] = c.name
-            chan_dict['frequency_divider'] = c.freq_divider
+            chan_dict['frequency_divider'] = c.frequency_divider
             chan_dict['units'] = c.units
             channels[i] = chan_dict
             channel_headers[i] = data.channel_headers[i].data

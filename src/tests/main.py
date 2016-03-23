@@ -21,7 +21,7 @@ class AcqReaderTestCase(unittest.TestCase):
 
     def producesSampleIndexes(self, frequencies, expected):
         a = AcqReader("no_file_needed.acq")
-        channels = [ Mock(freq_divider=f) for f in frequencies ]
+        channels = [ Mock(frequency_divider=f) for f in frequencies ]
         indexes = a._AcqReader__stream_sample_indexes(channels)
         self.assertEqual(list(indexes), expected)
 

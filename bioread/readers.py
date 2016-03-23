@@ -17,12 +17,14 @@ import zlib
 import numpy as np
 
 import logging
+# Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread")
 logger.setLevel(logging.DEBUG)
 log_handler = logging.StreamHandler()
 log_handler.setLevel(logging.DEBUG)
 log_handler.setFormatter(logging.Formatter("%(message)s"))
-logger.addHandler(log_handler)
+if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
+    logger.addHandler(log_handler)
 
 from bioread.file_revisions import *
 from bioread import headers as bh
@@ -322,10 +324,10 @@ class AcqReader(object):
     def __stream_sample_indexes(self, channels):
         """
         Returns the shortest repeating pattern of samples that'll appear in
-        our data stream. If our freq_dividers look like [1,2,4], we'll return
+        our data stream. If our frequency_dividers look like [1,2,4], we'll return
         [0,1,2,0,0,1,0]
         """
-        dividers = [c.freq_divider for c in channels]
+        dividers = [c.frequency_divider for c in channels]
         channel_lcm = least_common_multiple(*dividers)
         # Make a list like [0,1,2,0,0,1,0]
         stream_sample_indexes = [
