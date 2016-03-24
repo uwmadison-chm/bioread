@@ -37,7 +37,7 @@ class AcqReaderTestCase(unittest.TestCase):
 class IntegrationTestCase(unittest.TestCase):
     """
     These are integration-style tests that pass .acq files
-    to bioread's top level `read_file` function and test
+    to bioread's top level `read` function and test
     that the results pass certain standards.
     """
 

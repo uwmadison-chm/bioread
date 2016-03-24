@@ -30,7 +30,7 @@ import sys
 import csv
 
 from bioread.vendor.docopt import docopt
-from bioread import readers
+from bioread import reader
 from bioread import version
 
 
@@ -66,7 +66,7 @@ def acq_markers(input_filenames, output_stream):
     csv_out.writeheader()
     for fname in input_filenames:
         with open(fname, 'rb') as infile:
-            r = readers.AcqReader(infile)
+            r = reader.Reader(infile)
             r._read_markers()
             mf = marker_formatter(fname, r.graph_header.sample_time)
             for m in r.markers:

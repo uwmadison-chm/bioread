@@ -30,7 +30,7 @@ import sys
 from bioread.vendor.six import BytesIO
 from bioread.vendor.docopt import docopt
 
-from bioread.readers import AcqReader
+from bioread.reader import Reader
 from bioread import version
 
 
@@ -75,9 +75,9 @@ class AcqInfoRunner(object):
             sys.stderr.write("Error reading {0}\n".format(infile))
             sys.exit(1)
 
-        self.reader = AcqReader(df)
+        self.reader = Reader(df)
         try:
-            self.reader._read_headers()
+            Reader._read_headers(df)
         except:
             sys.stderr.write("Error reading headers!\n")
             # Don't exit here; it'll still print what it can.

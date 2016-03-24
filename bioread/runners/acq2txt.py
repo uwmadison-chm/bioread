@@ -46,7 +46,7 @@ def main(argv=None):
 
 
 class AcqToTxtRunner(object):
-    """The little wrapper class that converts acq files to mat files"""
+    """The little wrapper class that converts acq files to text files"""
 
     def __init__(self, argv, err=None):
         self.argv = argv
@@ -63,7 +63,7 @@ class AcqToTxtRunner(object):
             version=version.description)
         infile = pargs['<acq_file>']
         try:
-            data = bioread.read_file(infile)
+            data = bioread.read(infile)
         except:
             sys.stderr.write("Error reading %s\n" % infile)
             sys.exit(1)

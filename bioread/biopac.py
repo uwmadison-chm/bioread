@@ -15,7 +15,7 @@ import numpy as np
 class Datafile(object):
     """
     A data file for the AcqKnowledge system. Generally, gonna be created
-    from a file by readers.AcqReader.
+    from a file by reader.Reader.
     """
 
     def __init__(
@@ -29,10 +29,12 @@ class Datafile(object):
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
-        self.channels = []
+        self.channels = self.__build_channels()
         self.marker_header = marker_header
         self.marker_item_headers = marker_item_headers
         self.markers = None
+        self.journal_header = None
+        self.journal = None
         self.__named_channels = None
 
     @property
@@ -44,6 +46,16 @@ class Datafile(object):
 
         return self.__named_channels
 
+    @property
+    def is_compressed(self):
+        return self.graph_header.compressed
+
+    @property
+    def data_length(self):
+        if self.is_compressed:
+            return 0
+        return sum([c.data_length for c in self.channels])
+
     def __str__(self):
         return("Biopac file (rev %s): %s channels, %s samples/sec" % (
             self.graph_header.file_revision, self.graph_header.channel_count,
@@ -52,12 +64,19 @@ class Datafile(object):
     def __repr__(self):
         return str(self)
 
+    def __build_channels(self):
+        return [
+            Channel.from_headers(ch, cdh, self.samples_per_second)
+            for ch, cdh in zip(
+                self.channel_headers, self.channel_dtype_headers)
+        ]
+
 
 class Channel(object):
     """
     An individual channel of Biopac data. Has methods to access raw data from
     the file, as well as a scaled copy if the raw data is in integer format.
-    Also generally created by readers.AcqReader.
+    Also generally created by reader.Reader.
     """
 
     def __init__(
@@ -117,26 +136,22 @@ class Channel(object):
         return self.sample_size * self.point_count
 
     @property
-    def data_proportion(self):
-        """
-        The sample size divided by the frequency divider.
-        """
-        return float(self.sample_size)/self.frequency_divider
-
-    @property
     def data(self):
         """
         The channel's data, scaled by the raw_scale_factor and offset. These
         will be the values reported by AcqKnowledge. Note: only integer data
         types are scaled and offset.
         """
+        if self.__data is not None:
+            return self.__data
         scale_factor = self.raw_scale_factor
         raw_offset = self.raw_offset
-        if self.fmt_str.find("d") >= 0:  # test for float-ness
+        if self.dtype.kind == "i":
+            self.__data = (self.raw_data * scale_factor) + raw_offset
             scale_factor = 1.0
             raw_offset = 0.0
-        if self.__data is None:
-            self.__data = (self.raw_data*scale_factor)+raw_offset
+        else:
+            self.__data = self.raw_data
         return self.__data
 
     @property

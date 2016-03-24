@@ -13,37 +13,36 @@ from __future__ import with_statement, division
 from bioread.vendor import six
 import struct
 import zlib
+from contextlib import contextmanager
 
 import numpy as np
 
 import logging
 # Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 log_handler = logging.StreamHandler()
 log_handler.setLevel(logging.DEBUG)
 log_handler.setFormatter(logging.Formatter("%(message)s"))
 if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
 
-from bioread.file_revisions import *
+import bioread.file_revisions as rev
 from bioread import headers as bh
 from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
 from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
 from bioread.headers import V4JournalLengthHeader
-from bioread.biopac import Datafile, Channel, Marker
+from bioread.biopac import Datafile, Marker
+
+CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
 
-class AcqReader(object):
-    """
-    Main class for reading AcqKnowledge files. You'll probably call it like:
-    >>> data = AcqReader.read("some_file.acq")
-    """
-
-    def __init__(self, acq_file):
+class Reader(object):
+    def __init__(self, acq_file=None):
         self.acq_file = acq_file
+        self.datafile = None
         # This must be set by _set_order_and_version
         self.byte_order_char = None
         self.file_revision = None
@@ -61,48 +60,49 @@ class AcqReader(object):
         self.markers = None
 
     @classmethod
-    def read_file(cls, fo):
-        """
-        The main method to quickly read a biopac file into memory.
+    def read(cls, fo, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
+        """ Read a biopac file into memory.
 
         fo: The name of the file to read, or a file-like object
+        channel_indexes: The numbers of the channels you want to read
+        target_chunk_size: The amount of data to read in a chunk.
 
-        returns: biopac.Datafile
+        returns: reader.Reader.
         """
-        if isinstance(fo, six.string_types):
-            with open(fo, 'rb') as f:
-                reader = cls(f)
-                return reader.read()
-        else:
-            reader = cls(fo)
-            return reader.read()
+        with open_or_yield(fo, 'rb') as io:
+            reader = cls(io)
+            reader._read_headers()
+            reader._read_data(channel_indexes, target_chunk_size)
+        return reader
 
     @classmethod
-    def read_without_data(cls, fo):
-        if isinstance(fo, six.string_types):
-            with open(fo, 'rb') as f:
-                reader = cls(f)
-                return reader.read_headers()
-        else:
-            reader = cls(fo)
-            return reader.read_headers()
-
-    def read(self):
-        df = self.read_headers()
-
-        self._read_data()
-        df.channels = self.channels
-        df.marker_header = self.marker_header
-        df.marker_item_headers = self.marker_item_headers
-        df.markers = self.markers
-        self.data_file = df
-        return self.data_file
+    def read_headers(cls, fo):
+        """ Read only the headers -- no data -- of a biopac file.
+        """
+        with open_or_yield(fo, 'rb') as io:
+            reader = cls(io)
+            reader._read_headers()
+        return reader
 
     @property
     def is_compressed(self):
         return self.graph_header.compressed
 
-    def read_headers(self):
+    def stream(self, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
+        """ TODO: Implement this.
+        """
+        if self.datafile is None:
+            self._read_headers()
+        if self.is_compressed:
+            raise TypeError('Streaming is not supported for compressed files')
+        self.acq_file.seek(self.data_start_offset)
+        return make_chunk_reader(
+            self.acq_file,
+            self.datafile.channels,
+            channel_indexes,
+            target_chunk_size)
+
+    def _read_headers(self):
         if self.byte_order_char is None:
             self.__set_order_and_version()
 
@@ -123,25 +123,28 @@ class AcqReader(object):
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
-        data_length = sum(
-            [c.point_count * cd.sample_size for c, cd in
-                zip(self.channel_headers, self.channel_dtype_headers)])
-        self.marker_start_offset = self.data_start_offset + data_length
-        if self.is_compressed:
-            # In this case, the marker and journal come *before* the data
-            self.marker_start_offset = self.data_start_offset
-        self._read_markers()
-        self._read_journal()
-        if self.is_compressed:
-            self.__read_compression_headers()
 
         self.samples_per_second = 1000/self.graph_header.sample_time
-        return Datafile(
+
+        self.datafile = Datafile(
             graph_header=self.graph_header,
             channel_headers=self.channel_headers,
             foreign_header=self.foreign_header,
             channel_dtype_headers=self.channel_dtype_headers,
             samples_per_second=self.samples_per_second)
+
+        self.data_length = self.datafile.data_length
+
+        # In compressed files, markers come before compressed data. But
+        # data_length is 0 for compressed files.
+        self.marker_start_offset = (self.data_start_offset + self.data_length)
+        self._read_markers()
+        try:
+            self._read_journal()
+        except struct.error:
+            logger.info("No journal information found.")
+        if self.is_compressed:
+            self.__read_compression_headers()
 
     def __read_compression_headers(self):
         # We need to have read the markers and journal; this puts us
@@ -157,10 +160,12 @@ class AcqReader(object):
             ChannelCompressionHeader)
 
     def _read_journal(self):
-        if self.file_revision <= V_400B:
+        if self.file_revision <= rev.V_400B:
             self.__read_journal_v2()
         else:
             self.__read_journal_v4()
+        self.datafile.journal_header = self.journal_header
+        self.datafile.journal = self.journal
 
     def __read_journal_v2(self):
         self.post_marker_header = self.__single_header(
@@ -189,7 +194,7 @@ class AcqReader(object):
             self.journal_header = self.__single_header(
                 self.acq_file.tell(),
                 V4JournalHeader)
-            logger.debug("Reading {0} bytes of journal at {0}".format(
+            logger.debug("Reading {0} bytes of journal at {1}".format(
                 self.journal_header.journal_len,
                 self.acq_file.tell()))
             self.journal = self.acq_file.read(
@@ -214,152 +219,76 @@ class AcqReader(object):
             headers.append(h)
         return headers
 
-    def __build_channels(self):
-        # Build empty channels, ready to get data from the file.
-        return [
-            Channel.from_headers(ch, cdh, self.samples_per_second)
-            for ch, cdh in
-            zip(self.channel_headers, self.channel_dtype_headers)
-        ]
-
-    def _read_data(self):
-        self.channels = self.__build_channels()
+    def _read_data(self, channel_indexes, target_chunk_size):
         if self.is_compressed:
-            self.__read_data_compressed(self.channels)
+            self.__read_data_compressed(channel_indexes)
         else:
-            self.__read_data_uncompressed(self.channels)
+            self.__read_data_uncompressed(channel_indexes, target_chunk_size)
 
     def _read_markers(self):
         if self.marker_start_offset is None:
             self.read_headers()
         mh_class = bh.V2MarkerHeader
         mih_class = bh.V2MarkerItemHeader
-        if self.file_revision >= V_400B:
+        if self.file_revision >= rev.V_400B:
             mh_class = bh.V4MarkerHeader
             mih_class = bh.V4MarkerItemHeader
         self.marker_header = self.__single_header(
             self.marker_start_offset, mh_class)
+        self.datafile.marker_header = self.marker_header
         self.__read_marker_items(mih_class)
 
     def __read_marker_items(self, marker_item_header_class):
         """
         self.acq_file must be seek()ed to the start of the first item header
         """
-        self.markers = []
-        self.marker_item_headers = []
+        markers = []
+        marker_item_headers = []
         for i in range(self.marker_header.marker_count):
             mih = self.__single_header(
                 self.acq_file.tell(), marker_item_header_class)
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode('utf-8').strip('\0')
-            self.marker_item_headers.append(mih)
-            self.markers.append(Marker(
+            marker_item_headers.append(mih)
+            markers.append(Marker(
                 mih.sample_index, marker_text, mih.channel, mih.style))
+        self.marker_item_headers = marker_item_headers
+        self.datafile.marker_item_headers = marker_item_headers
+        self.datafile.markers = markers
 
-    def __read_data_compressed(self, channels):
+    def __read_data_compressed(self, channel_indexes):
         # At least in post-4.0 files, the compressed data isn't interleaved at
         # all. It's stored in uniform compressed blocks -- this probably
         # compresses far better than interleaved data.
         # Strangely, the compressed data seems to always be little-endian.
-        for i in range(len(channels)):
+        if channel_indexes is None:
+            channel_indexes = np.arange(len(self.datafile.channels))
+
+        for i in channel_indexes:
             cch = self.channel_compression_headers[i]
-            chan = channels[i]
+            channel = self.datafile.channels[i]
             # Data seems to always be little-endian
-            dt = chan.dtype.newbyteorder("<")
+            dt = channel.dtype.newbyteorder("<")
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            chan.raw_data = np.fromstring(decomp_data, dtype=dt)
+            channel.raw_data = np.fromstring(decomp_data, dtype=dt)
 
-    def __read_data_uncompressed(self, channels):
-        # The data in the file are interleaved, so we'll potentially have
-        # a different amount of data to read at each time slice.
-        # It's possible we won't have any data for some time slices, I think.
-        # The BIOPAC engineers tell you not to even try reading interleaved
-        # data. Wusses.
-
-        # Using adapted algorithm by Sven Marnarch from:
-        # http://stackoverflow.com/questions/4227990
-        self.stream_sample_indexes = self.__stream_sample_indexes(channels)
-        self.samples_per_block = len(self.stream_sample_indexes)
-        self.total_samples = sum([c.point_count for c in channels])
-        self.total_blocks = int(
-            np.ceil(float(self.total_samples)/self.samples_per_block))
-
-        self.all_sample_indexes = np.tile(self.stream_sample_indexes,
-            self.total_blocks)
-        self.channel_lengths = np.array([c.point_count for c in channels])
-        self.channel_sizes = np.array([c.sample_size for c in channels])
-        self.sample_counts = self.__sample_counts(
-            self.stream_sample_indexes, self.total_blocks)
-        self.sample_mask = (
-            self.sample_counts < self.channel_lengths[self.all_sample_indexes])
-        self.sample_map = self.all_sample_indexes[self.sample_mask]
-        # The mapping of actual bytes on disk to channels.
-        self.data_map = self.sample_map.repeat(
-            self.channel_sizes[self.sample_map])
-
+    def __read_data_uncompressed(self, channel_indexes, target_chunk_size):
         self.acq_file.seek(self.data_start_offset)
-        self.buf = np.fromfile(self.acq_file, np.ubyte, len(self.data_map))
-        for i, ch in enumerate(channels):
-            self.__copy_uncompressed_data(ch, i, self.data_map, self.buf)
-
-    def __stream_sample_indexes(self, channels):
-        """
-        Returns the shortest repeating pattern of samples that'll appear in
-        our data stream. If our frequency_dividers look like [1,2,4], we'll return
-        [0,1,2,0,0,1,0]
-        """
-        dividers = [c.frequency_divider for c in channels]
-        channel_lcm = least_common_multiple(*dividers)
-        # Make a list like [0,1,2,0,0,1,0]
-        stream_sample_indexes = [
-            ch_idx for pat_idx in range(channel_lcm)
-            for ch_idx, div in enumerate(dividers)
-            if pat_idx % div == 0]
-        return np.array(stream_sample_indexes, dtype=np.int32)
-
-    def __copy_uncompressed_data(self, channel, d_map, channel_index, buf):
-        mask = d_map == channel_index
-        logger.debug(mask)
-        logger.debug(len(mask))
-        logger.debug(len(buf))
-        channel.raw_data = buf[mask]
-        channel.raw_data.dtype = channel.dtype
-
-    def __to_byte_indexes(self, sample_indexes, channels):
-        """
-        Transform an array of sample_indexes (eg [0,1,2,0,0,1,0]) into an
-        array of byte indexes: eg [0,0,1,1,2,2,2,2,2,2,2,2,0,0,0,0,1,1,0,0]
-        if our channels' sample sizes are [2,2,8]
-        """
-        repeats = [channels[i].sample_size for i in sample_indexes]
-        return np.array(sample_indexes).repeat(repeats)
-
-    def __sample_counts(self, sample_indexes, reps):
-        tile_bins = np.histogram(sample_indexes, np.max(sample_indexes)+1)[0]
-        tile_mult = tile_bins[sample_indexes]
-        first_steps = self.__running_counts(sample_indexes)
-        tiled = np.tile(tile_mult, reps).reshape(reps, -1)
-        multiplier = np.reshape(np.arange(reps, dtype=np.int32), (reps, 1))
-        tiled *= multiplier
-        tiled += first_steps
-        return tiled.ravel()
-
-    def __running_counts(self, sample_indexes):
-        uniques = np.unique(sample_indexes)
-        my_range = np.arange(len(sample_indexes), dtype=np.int32)
-        counts = np.empty(sample_indexes.shape, dtype=np.int32)
-        for i in uniques:
-            counts[sample_indexes == i] = my_range[i]
-        return counts
+        # This will fill self.datafile.channels with data.
+        read_uncompressed(
+            self.acq_file,
+            self.datafile.channels,
+            channel_indexes,
+            target_chunk_size)
 
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
         # fashion. Version string should be a small, positive integer.
         self.acq_file.seek(0)
         # No byte order flag -- we're gonna figure it out.
-        gh = GraphHeader(V_ALL, '')
+        gh = GraphHeader(rev.V_ALL, '')
         ver_fmt_str = gh.format_string
         ver_len = struct.calcsize('<'+ver_fmt_str)
         ver_data = self.acq_file.read(ver_len)
@@ -380,7 +309,21 @@ class AcqReader(object):
         self.file_revision = bp[0]
 
     def __repr__(self):
-        return "AcqReader('{0}')".format(self.acq_file)
+        return "Reader('{0}')".format(self.acq_file)
+
+
+@contextmanager
+def open_or_yield(thing, mode):
+    """ If 'thing' is a string, open it and yield it. Otherwise, yield it.
+
+    This lets you use a filename, open file, other IO object. If 'thing' was
+    a filename, the file is guaranteed to be closed after yielding.
+    """
+    if isinstance(thing, six.string_types):
+        with open(thing, mode) as f:
+            yield(f)
+    else:
+        yield(thing)
 
 
 class ChunkBuffer(object):
@@ -392,20 +335,19 @@ class ChunkBuffer(object):
 
 def read_uncompressed(
         f,
-        target_chunk_size,
         channels,
-        channel_indexes=None):
+        channel_indexes=None,
+        target_chunk_size=CHUNK_SIZE):
     """
     Read the uncompressed data.
-    """
-    channel_indexes = channel_indexes or np.arange(len(channels))
-    for i in channel_indexes:
-        channels[i]._allocate_raw_data()
-    byte_pattern = chunk_byte_pattern(channels, target_chunk_size)
-    logger.debug('Using chunk size: {0} bytes'.format(len(byte_pattern)))
-    buffers = [ChunkBuffer(c) for c in channels]
 
-    chunker = read_chunks(f, buffers, byte_pattern, channel_indexes)
+    Uncompressed data are stored in .acq files as a
+    """
+    if channel_indexes is None:
+        channel_indexes = np.arange(len(channels))
+
+    chunker = make_chunk_reader(
+        f, channels, channel_indexes, target_chunk_size)
     for chunk_buffers in chunker:
         for i in channel_indexes:
             ch = channels[i]
@@ -413,6 +355,23 @@ def read_uncompressed(
             logger.debug('Storing {0} samples to {1} of channel {2}'.format(
                 len(buf.buffer), buf.channel_slice, i))
             ch.raw_data[buf.channel_slice] = buf.buffer[:]
+
+
+def make_chunk_reader(
+        f,
+        channels,
+        channel_indexes=None,
+        target_chunk_size=CHUNK_SIZE):
+
+    if channel_indexes is None:
+        channel_indexes = np.arange(len(channels))
+
+    for i in channel_indexes:
+        channels[i]._allocate_raw_data()
+    byte_pattern = chunk_byte_pattern(channels, target_chunk_size)
+    logger.debug('Using chunk size: {0} bytes'.format(len(byte_pattern)))
+    buffers = [ChunkBuffer(c) for c in channels]
+    return read_chunks(f, buffers, byte_pattern, channel_indexes)
 
 
 def read_chunks(f, buffers, byte_pattern, channel_indexes):

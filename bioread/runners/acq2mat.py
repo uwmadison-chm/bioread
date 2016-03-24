@@ -28,7 +28,7 @@ Note: scipy is required for this program.
 import sys
 from bioread.vendor.docopt import docopt
 
-from bioread.readers import AcqReader
+from bioread.reader import Reader
 from bioread.writers import MatlabWriter
 from bioread import version
 
@@ -66,7 +66,7 @@ class AcqToMatRunner(object):
         matfile = pargs['<mat_file>']
         compress = pargs['--compress']
         try:
-            data = AcqReader.read_file(infile)
+            data = Reader.read(infile)
         except:
             sys.stderr.write("Error reading %s\n" % infile)
             sys.exit(1)

@@ -4,7 +4,7 @@
 
 import bioread
 
-data = bioread.read_file('myfile.acq')
+data = bioread.read('myfile.acq')
 
 data.graph_header.file_revision
 
