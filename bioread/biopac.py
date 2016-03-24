@@ -136,12 +136,18 @@ class Channel(object):
         return self.sample_size * self.point_count
 
     @property
+    def loaded(self):
+        return self.raw_data is not None
+
+    @property
     def data(self):
         """
         The channel's data, scaled by the raw_scale_factor and offset. These
         will be the values reported by AcqKnowledge. Note: only integer data
         types are scaled and offset.
         """
+        if not self.loaded:
+            return None
         if self.__data is not None:
             return self.__data
         scale_factor = self.raw_scale_factor
@@ -169,8 +175,11 @@ class Channel(object):
         return self.__upsampled_data
 
     def __str__(self):
-        return("Channel %s: %s samples, %s samples/sec" % (
-            self.name, self.point_count, self.samples_per_second))
+        return("Channel %s: %s samples, %s samples/sec, loaded: %s" % (
+            self.name,
+            self.point_count,
+            self.samples_per_second,
+            self.loaded))
 
     def __repr__(self):
         return str(self)
