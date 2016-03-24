@@ -15,7 +15,7 @@ from bioread import reader
 from ._metadata import version as __version__, author as __author__  # noqa
 
 
-def read(filelike, channel_indexes=None, target_chunk_size=reader.CHUNK_SIZE):
+def read(filelike, channel_indexes=None):
     """
     Read a file (either an IO object or a filename) and return a Datafile.
 
@@ -23,8 +23,7 @@ def read(filelike, channel_indexes=None, target_chunk_size=reader.CHUNK_SIZE):
                         have empty data.
     target_chunk_size:  A guide for the number of bytes to read at a time.
     """
-    return reader.Reader.read(
-        filelike, channel_indexes, target_chunk_size).datafile
+    return reader.Reader.read(filelike, channel_indexes).datafile
 
 # Deprecated; provided for compatibility with previous versions.
 read_file = read
