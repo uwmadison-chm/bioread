@@ -46,6 +46,7 @@ def test_least_common_multiple():
     assert reader.least_common_multiple(2, 8) == 8
     assert reader.least_common_multiple(8, 2) == 8
     assert reader.least_common_multiple(2, 7) == 14
+    assert reader.least_common_multiple(2, 3, 8) == 24
 
 
 def assert_pattern(dividers, pattern):
