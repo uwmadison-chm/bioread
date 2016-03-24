@@ -23,7 +23,8 @@ def read(filelike, channel_indexes=None, target_chunk_size=reader.CHUNK_SIZE):
                         have empty data.
     target_chunk_size:  A guide for the number of bytes to read at a time.
     """
-    return reader.Reader.read(filelike).datafile
+    return reader.Reader.read(
+        filelike, channel_indexes, target_chunk_size).datafile
 
 # Deprecated; provided for compatibility with previous versions.
 read_file = read
