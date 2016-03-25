@@ -160,6 +160,8 @@ class Reader(object):
             ChannelCompressionHeader)
 
     def _read_journal(self):
+        self.journal = None
+        self.journal_header = None
         if self.file_revision <= rev.V_400B:
             self.__read_journal_v2()
         else:
