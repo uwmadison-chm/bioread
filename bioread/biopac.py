@@ -206,6 +206,14 @@ class Marker(object):
         self.style = style
         super(Marker, self).__init__()
 
+    def __eq__(self, other):
+        return all([
+            self.sample_index == other.sample_index,
+            self.text == other.text,
+            self.channel == other.channel,
+            self.style == other.style
+        ])
+
     def __str__(self):
         return("Marker {0}: sample index: {1} channel: {2} style: {3}".format(
             self.text, self.sample_index, self.channel, self.style))
