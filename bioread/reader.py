@@ -343,7 +343,33 @@ def read_uncompressed(
     """
     Read the uncompressed data.
 
-    Uncompressed data are stored in .acq files as a
+    This function will read the data from an open IO object f (which must be
+    seek()ed to the start of the data) into the raw_data attribute of
+    channels.
+
+    channel_indexes is a list of indexes of the channels we want to read
+    (if None, read all the channels). Other channels' raw_data will be set
+    to None.
+
+    target_chunk_size gives a general idea of how much data the program should
+    read into memory at a time. You can probably always leave this as at its
+    default.
+
+    This function returns nothing; it modifies channels in-place.
+
+    Uncompressed data are stored in .acq files in an interleaved format --
+    as the data streams off the amps, it's stored directly. So, with three
+    channels, your data might look like (spaces added for clarity):
+
+    012 012 012 012 012 ...
+
+    Each channel can also have a frequency divider, which tells us this
+    channel is recorded every nth occurence of the file's base sampling rate.
+
+    If our three channels have frequency dividers [1, 4, 2], the data pattern
+    would look like (again, with spaces between repetitions):
+    0120020 0120020 0120020 ...
+
     """
     if channel_indexes is None:
         channel_indexes = np.arange(len(channels))
