@@ -29,13 +29,15 @@ class Datafile(object):
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
-        self.channels = self.__build_channels()
         self.marker_header = marker_header
         self.marker_item_headers = marker_item_headers
         self.markers = None
         self.journal_header = None
         self.journal = None
         self.__named_channels = None
+        self.__time_index = None
+
+        self.channels = self.__build_channels()
 
     @property
     def named_channels(self):
@@ -64,12 +66,29 @@ class Datafile(object):
     def __repr__(self):
         return str(self)
 
+    @property
+    def time_index(self):
+        if self.__time_index is not None:
+            return self.__time_index
+
+        total_samples = max(
+            [ch.frequency_divider * ch.point_count
+                for ch in self.channel_headers])
+        total_seconds = total_samples / self.samples_per_second
+        self.__time_index = np.linspace(0, total_seconds, total_samples)
+        return self.__time_index
+
     def __build_channels(self):
         return [
-            Channel.from_headers(ch, cdh, self.samples_per_second)
+            Channel.from_headers(
+                ch, cdh, self.samples_per_second, self.time_index)
             for ch, cdh in zip(
                 self.channel_headers, self.channel_dtype_headers)
         ]
+
+    def __set_channel_time_indexes(self):
+        for c in self.channels:
+            c.time_index = self.time_index[::c.frequency_divider]
 
 
 class Channel(object):
@@ -83,7 +102,7 @@ class Channel(object):
             self,
             frequency_divider=None, raw_scale_factor=None, raw_offset=None,
             name=None, units=None, fmt_str=None, samples_per_second=None,
-            point_count=None):
+            point_count=None, time_index=None):
 
         self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
@@ -94,6 +113,7 @@ class Channel(object):
         self.samples_per_second = samples_per_second
         self.point_count = point_count
         self.dtype = np.dtype(fmt_str)
+        self.time_index = time_index
 
         # Don't allocate storage automatically -- this means we can read
         # only some channels or stream the data without putting all the data
@@ -103,9 +123,17 @@ class Channel(object):
         self.__upsampled_data = None
 
     @classmethod
-    def from_headers(cls, chan_hdr, dtype_hdr, samples_per_second):
+    def from_headers(
+            cls,
+            chan_hdr,
+            dtype_hdr,
+            samples_per_second,
+            base_time_index=None):
         divider = chan_hdr.frequency_divider
         chan_samp_per_sec = samples_per_second / divider
+        time_index = None
+        if base_time_index is not None:
+            time_index = base_time_index[::divider][0:chan_hdr.point_count]
 
         return cls(
             frequency_divider=divider,
@@ -115,7 +143,8 @@ class Channel(object):
             units=chan_hdr.units,
             fmt_str=dtype_hdr.numpy_dtype,
             samples_per_second=chan_samp_per_sec,
-            point_count=chan_hdr.point_count
+            point_count=chan_hdr.point_count,
+            time_index=time_index
         )
 
     def _allocate_raw_data(self):
