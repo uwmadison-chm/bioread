@@ -297,6 +297,10 @@ class ChannelHeader(BiopacHeader):
         return self.data['lBufLength']
 
     @property
+    def order_num(self):
+        return self.data['nChanOrder']
+
+    @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
 
