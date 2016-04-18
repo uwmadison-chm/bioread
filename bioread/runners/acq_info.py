@@ -27,6 +27,7 @@ Note: Using - for <acq_file> reads from stdin.
 """
 
 import sys
+
 from bioread.vendor.six import BytesIO
 from bioread.vendor.docopt import docopt
 
@@ -77,7 +78,7 @@ class AcqInfoRunner(object):
 
         self.reader = Reader(df)
         try:
-            Reader._read_headers(df)
+            self.reader._read_headers()
         except:
             sys.stderr.write("Error reading headers!\n")
             # Don't exit here; it'll still print what it can.
