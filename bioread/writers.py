@@ -23,7 +23,8 @@ class TxtWriter(object):
         writer.write()
 
     def write(self):
-        np.savetxt(self.out_stream, self.channel.data)
+        for d in self.channel.data:
+            self.out_stream.write(str(d) + "\n")
 
 
 class MatlabWriter(object):
