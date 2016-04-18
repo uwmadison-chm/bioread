@@ -55,8 +55,11 @@ COMPRESSION_OPTS = {
 }
 
 
-def main(args):
-    pargs = docopt(__doc__, args, version=version.description)
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+
+    pargs = docopt(__doc__, argv, version=version.description)
     if pargs['--verbose']:
         logger.setLevel(logging.DEBUG)
     logger.debug(pargs)
@@ -171,5 +174,5 @@ def save_markers(hdf5_file, datafile, dset_map):
 
 
 if __name__ == '__main__':
-    args = sys.argv[1:]
-    main(args)
+    argv = sys.argv[1:]
+    main(argv)
