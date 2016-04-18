@@ -102,7 +102,7 @@ class Channel(object):
             self,
             frequency_divider=None, raw_scale_factor=None, raw_offset=None,
             name=None, units=None, fmt_str=None, samples_per_second=None,
-            point_count=None, time_index=None):
+            point_count=None, time_index=None, order_num=None):
 
         self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
@@ -114,6 +114,7 @@ class Channel(object):
         self.point_count = point_count
         self.dtype = np.dtype(fmt_str)
         self.time_index = time_index
+        self.order_num = order_num
 
         # Don't allocate storage automatically -- this means we can read
         # only some channels or stream the data without putting all the data
@@ -144,7 +145,8 @@ class Channel(object):
             fmt_str=dtype_hdr.numpy_dtype,
             samples_per_second=chan_samp_per_sec,
             point_count=chan_hdr.point_count,
-            time_index=time_index
+            time_index=time_index,
+            order_num=chan_hdr.order_num
         )
 
     def _allocate_raw_data(self):
@@ -202,6 +204,11 @@ class Channel(object):
             self.__upsampled_data = self.data[
                 np.arange(total_samples)//self.frequency_divider]
         return self.__upsampled_data
+
+    def free_data(self):
+        self.raw_data = None
+        self.__data = None
+        self.__upsampled_data = None
 
     def __str__(self):
         return("Channel %s: %s samples, %s samples/sec, loaded: %s" % (
