@@ -221,7 +221,7 @@ class Reader(object):
             headers.append(h)
         return headers
 
-    def _read_data(self, channel_indexes, target_chunk_size):
+    def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):
         if self.is_compressed:
             self.__read_data_compressed(channel_indexes)
         else:
@@ -374,6 +374,9 @@ def read_uncompressed(
     if channel_indexes is None:
         channel_indexes = np.arange(len(channels))
 
+    for i in channel_indexes:
+        channels[i]._allocate_raw_data()
+
     chunker = make_chunk_reader(
         f, channels, channel_indexes, target_chunk_size)
     for chunk_buffers in chunker:
@@ -394,8 +397,6 @@ def make_chunk_reader(
     if channel_indexes is None:
         channel_indexes = np.arange(len(channels))
 
-    for i in channel_indexes:
-        channels[i]._allocate_raw_data()
     byte_pattern = chunk_byte_pattern(channels, target_chunk_size)
     logger.debug('Using chunk size: {0} bytes'.format(len(byte_pattern)))
     buffers = [ChunkBuffer(c) for c in channels]
