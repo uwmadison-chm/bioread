@@ -66,10 +66,9 @@ def acq_markers(input_filenames, output_stream):
     csv_out.writeheader()
     for fname in input_filenames:
         with open(fname, 'rb') as infile:
-            r = reader.Reader(infile)
-            r._read_markers()
+            r = reader.Reader.read_headers(infile)
             mf = marker_formatter(fname, r.graph_header.sample_time)
-            for m in r.markers:
+            for m in r.datafile.markers:
                 csv_out.writerow(mf(m))
 
 
