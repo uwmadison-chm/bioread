@@ -144,8 +144,10 @@ def test_compresed_uncompressed_channels_match(dataset, version):
     itertools.product(DATASETS, ALL_VERSIONS)
 )
 def test_compressed_uncompressed_markers_match(dataset, version):
-    um = bioread.read_headers(data_file_name(dataset, version, '')).markers
-    cm = bioread.read_headers(data_file_name(dataset, version, '-c')).markers
+    um = bioread.read_headers(
+        data_file_name(dataset, version, '')).event_markers
+    cm = bioread.read_headers(
+        data_file_name(dataset, version, '-c')).event_markers
     assert um == cm
 
 

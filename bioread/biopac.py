@@ -31,13 +31,16 @@ class Datafile(object):
         self.name = name
         self.marker_header = marker_header
         self.marker_item_headers = marker_item_headers
-        self.markers = None
+        self.event_markers = None
         self.journal_header = None
         self.journal = None
         self.__named_channels = None
         self.__time_index = None
 
         self.channels = self.__build_channels()
+        self.channel_order_map = dict(
+            [[c.order_num, c] for c in self.channels]
+        )
 
     @property
     def named_channels(self):
@@ -102,7 +105,7 @@ class Channel(object):
             self,
             frequency_divider=None, raw_scale_factor=None, raw_offset=None,
             name=None, units=None, fmt_str=None, samples_per_second=None,
-            point_count=None, time_index=None, order_num=None):
+            point_count=None, order_num=None, datafile=None):
 
         self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
@@ -113,8 +116,8 @@ class Channel(object):
         self.samples_per_second = samples_per_second
         self.point_count = point_count
         self.dtype = np.dtype(fmt_str)
-        self.time_index = time_index
         self.order_num = order_num
+        self.datafile = datafile
 
         # Don't allocate storage automatically -- this means we can read
         # only some channels or stream the data without putting all the data
@@ -129,12 +132,9 @@ class Channel(object):
             chan_hdr,
             dtype_hdr,
             samples_per_second,
-            base_time_index=None):
+            datafile=None):
         divider = chan_hdr.frequency_divider
         chan_samp_per_sec = samples_per_second / divider
-        time_index = None
-        if base_time_index is not None:
-            time_index = base_time_index[::divider][0:chan_hdr.point_count]
 
         return cls(
             frequency_divider=divider,
@@ -145,8 +145,8 @@ class Channel(object):
             fmt_str=dtype_hdr.numpy_dtype,
             samples_per_second=chan_samp_per_sec,
             point_count=chan_hdr.point_count,
-            time_index=time_index,
-            order_num=chan_hdr.order_num
+            order_num=chan_hdr.order_num,
+            datafile=datafile
         )
 
     def _allocate_raw_data(self):
@@ -169,6 +169,13 @@ class Channel(object):
     @property
     def loaded(self):
         return self.raw_data is not None
+
+    @property
+    def time_index(self):
+        if self.datafile is None:
+            return None
+        div = self.frequency_divider
+        return self.datafile.time_index[::div][0:self.point_count]
 
     @property
     def data(self):
@@ -233,26 +240,181 @@ class EventMarker(object):
             self,
             sample_index,
             text,
-            channel,
-            style=None):
+            channel_number,
+            channel=None,
+            type_code=None):
 
         self.sample_index = sample_index
         self.text = text
+        self.channel_number = channel_number
         self.channel = channel
-        self.style = style
+        self.type_code = type_code
         super(EventMarker, self).__init__()
 
     def __eq__(self, other):
         return all([
             self.sample_index == other.sample_index,
             self.text == other.text,
-            self.channel == other.channel,
-            self.style == other.style
+            self.channel_number == other.channel_number,
+            self.type_code == other.type_code
         ])
 
     def __str__(self):
-        return("EventMarker {0}: sample index: {1} channel: {2} style: {3}".format(
-            self.text, self.sample_index, self.channel, self.style))
+        return("EventMarker {}: idx: {} channel: {} type_code: {}".format(
+            self.text,
+            self.sample_index,
+            self.channel_number,
+            self.type_code))
 
     def __repr__(self):
         return str(self)
+
+    @property
+    def type(self):
+        if self.type_code is None:
+            return "None"
+        return MARKER_TYPE_MAP.get(self.type_code, "Unknown")
+
+    @property
+    def channel_sample_index(self):
+        if self.channel is None:
+            return None
+        return self.sample_index // self.channel.frequency_divider
+
+    @property
+    def channel_name(self):
+        if self.channel is None:
+            return None
+        return self.channel.name
+
+
+MARKER_TYPE_MAP = {
+    'defl': 'Default',
+    'wfon': 'Waveform Onset',
+    'wfof': 'Waveform End',
+    'nois': 'Change in Signal Quality',
+    'rhyt': 'Change in Rhythm',
+    'recv': 'Recovery',
+    'max ': 'Maximum',
+    'min ': 'Minimum',
+    'rset': 'Reset',
+    'cmlb': 'Communication Lost Begin',
+    'cmle': 'Communication Lost End',
+    'ansh': 'Short Arrow',
+    'anmd': 'Medium Arrow',
+    'anlg': 'Long Arrow',
+    'flag': 'Flag',
+    'star': 'Star',
+    'usr1': 'User Type 1',
+    'usr2': 'User Type 2',
+    'usr3': 'User Type 3',
+    'usr4': 'User Type 4',
+    'usr5': 'User Type 5',
+    'usr6': 'User Type 6',
+    'usr7': 'User Type 7',
+    'usr8': 'User Type 8',
+    'usr9': 'User Type 9',
+    'qrsb': 'QRS Onset',
+    'qrs ': 'QRS Peak',
+    'qrse': 'QRS End',
+    'tbeg': 'T-wave Onset',
+    't   ': 'T-wave Peak',
+    'tend': 'T-wave End',
+    'pbeg': 'P-wave Onset',
+    'p   ': 'P-wave Peak',
+    'pend': 'P-wave End',
+    'q   ': 'Q-wave Peak',
+    's   ': 'S-wave Peak',
+    'u   ': 'U-wave Peak',
+    'pq  ': 'PQ Junction',
+    'jpt ': 'J-point',
+    'stch': 'ST Segment Change',
+    'tch ': 'T-wave Change',
+    'nrml': 'Normal Beat',
+    'pace': 'Paced Beat',
+    'pfus': 'Fusion of Paced and Normal Beat',
+    'lbbb': 'Left Bundle Branch Block Beat',
+    'rbbb': 'Right Bundle Branch Block Beat',
+    'bbb ': 'Bundle Branch Block Beat',
+    'apc ': 'Atrial Premature Beat',
+    'aber': 'Aberrated Atrial Prematuire Beat',
+    'npc ': 'Nodal Premature Beat',
+    'svpb': 'Supraventricular Premature Beat',
+    'pvc ': 'Premature Ventricular Contraction',
+    'ront': 'R-on-T Premature Ventricular Contraction',
+    'fusi': 'Fusion of Ventricular and Normal Beat',
+    'aesc': 'Atrial Escape Beat',
+    'nesc': 'Nodal Escape Beat',
+    'sves': 'Supraventricular Escape Beat',
+    'vesc': 'Ventricular Escape Beat',
+    'syst': 'Systole',
+    'dias': 'Diastole',
+    'edp ': 'End Diastolic Pressure',
+    'aptz': 'A-point',
+    'bptz': 'B-point',
+    'cptz': 'C-point',
+    'xptz': 'X-point',
+    'yptz': 'Y-point',
+    'optz': 'O-point',
+    'plat': 'Plateau',
+    'upst': 'Upstroke',
+    'vfon': 'Start of Ventricular Flutter',
+    'flwa': 'Ventricular Flutter Wave',
+    'vfof': 'End of Ventricular Flutter',
+    'pesp': 'Pacemaker Artifact',
+    'arfc': 'Isolated QRS-like Artifact',
+    'napc': 'Non-conducted P-wave',
+    'base': 'Baseline',
+    'dose': 'Dose',
+    'wash': 'Wash',
+    'apon': 'Spike Episode Begin',
+    'apof': 'Spike Episode End',
+    'rein': 'Inspire Start',
+    'reot': 'Expire Start',
+    'reap': 'Apnea Start',
+    'stim': 'Stimulus Delivery',
+    'resp': 'Response',
+    'scr ': 'Skin Conductance Response',
+    'sscr': 'Specific SCR',
+    'ctr1': 'Cluster 1',
+    'ctr2': 'Cluster 2',
+    'ctr3': 'Cluster 3',
+    'ctr4': 'Cluster 4',
+    'ctr5': 'Cluster 5',
+    'ctr6': 'Cluster 6',
+    'ctr7': 'Cluster 7',
+    'ctr8': 'Cluster 8',
+    'ctr9': 'Cluster 9',
+    'ctrn': 'Cluster n',
+    'cend': 'End Cluster',
+    'outl': 'Outlier',
+    'tran': 'Training Set',
+    'cut ': 'Cut',
+    'vb  ': 'Paste Begin',
+    've  ': 'Paste End',
+    'selb': 'Selection Begin',
+    'sele': 'Selection End',
+    'steb': 'Start of Eye Blink Artifact',
+    'eneb': 'End of Eye Blink Artifact',
+    'sexc': 'Start of Excursion Artifact',
+    'eexc': 'End of Excursion Artifact',
+    'ssat': 'Start of Saturation Artifact',
+    'esat': 'End of Saturation Artifact',
+    'sspk': 'Start of Spike Artifact',
+    'espk': 'End of Spike Artifact',
+    'semg': 'Start of EMG Artifact',
+    'eemg': 'End of EMG Artifact',
+    'wles': 'Workload - EMG Start',
+    'wlee': 'Workload - EMG End',
+    'ipss': 'Workload - Invalid PSD Start',
+    'ipse': 'Workload - Invalid PSD End',
+    'ddst': 'Dummy Data Start',
+    'dded': 'Dummy Data End',
+    'idst': 'Misaligned Data',
+    'bprs': 'Button Pressed',
+    'leho': 'Left Eye Hit Object',
+    'reho': 'Right Eye Hit Object',
+    'smis': 'SMI Stimulus Image Has Been Presented to the Subject',
+    'mors': 'Start Out of Range',
+    'more': 'End Out of Range'
+}

@@ -57,7 +57,7 @@ class Reader(object):
         self.marker_start_offset = None
         self.marker_header = None
         self.marker_item_headers = None
-        self.markers = None
+        self.event_markers = None
 
     @classmethod
     def read(cls, fo, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
@@ -244,7 +244,7 @@ class Reader(object):
         """
         self.acq_file must be seek()ed to the start of the first item header
         """
-        markers = []
+        event_markers = []
         marker_item_headers = []
         for i in range(self.marker_header.marker_count):
             mih = self.__single_header(
@@ -252,11 +252,17 @@ class Reader(object):
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode('utf-8').strip('\0')
             marker_item_headers.append(mih)
-            markers.append(EventMarker(
-                mih.sample_index, marker_text, mih.channel, mih.style))
+            marker_channel = self.datafile.channel_order_map.get(
+                mih.channel_number)
+            event_markers.append(EventMarker(
+                sample_index=mih.sample_index,
+                text=marker_text,
+                channel_number=mih.channel_number,
+                channel=marker_channel,
+                type_code=mih.type_code))
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers
-        self.datafile.markers = markers
+        self.datafile.event_markers = event_markers
 
     def __read_data_compressed(self, channel_indexes):
         # At least in post-4.0 files, the compressed data isn't interleaved at

@@ -753,13 +753,13 @@ class V2MarkerItemHeader(BiopacHeader):
         return self.data['lSample']
 
     @property
-    def channel(self):
+    def channel_number(self):
         """ None means it's a global marker """
         return None
 
     @property
-    def style(self):
-        """ These markers don't get styles, but it's OK """
+    def type_code(self):
+        """ These markers don't get type_codes, but it's OK """
         return None
 
 
@@ -795,7 +795,7 @@ class V4MarkerItemHeader(BiopacHeader):
         return self.data['lSample']
 
     @property
-    def channel(self):
+    def channel_number(self):
         """ None means it's a global marker """
         chan = self.data['nChannel']
         if chan == -1:
@@ -803,5 +803,5 @@ class V4MarkerItemHeader(BiopacHeader):
         return chan
 
     @property
-    def style(self):
+    def type_code(self):
         return self.data['sMarkerStyle'].decode('utf-8')

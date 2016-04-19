@@ -12,7 +12,7 @@
 # This script pulls all the markers from an AcqKnowledge file and writes it
 # to a delimited format.
 
-"""Print the markers from an AcqKnowledge file.
+"""Print the event markers from an AcqKnowledge file.
 
 Usage:
   acq_markers [options] <file>...
@@ -39,7 +39,8 @@ FIELDS = [
     'time (s)',
     'label',
     'channel',
-    'style',
+    'type_code',
+    'type'
 ]
 
 
@@ -50,8 +51,9 @@ def marker_formatter(acq_filename, graph_sample_msec):
             'filename': acq_filename,
             'time (s)': (marker.sample_index * graph_sample_msec) / 1000,
             'label': marker.text,
-            'channel': marker.channel or 'Global',
-            'style': marker.style or 'None'
+            'channel': marker.channel_name or 'Global',
+            'type_code': marker.type_code or 'None',
+            'type': marker.type
         }
     return f
 
@@ -68,7 +70,7 @@ def acq_markers(input_filenames, output_stream):
         with open(fname, 'rb') as infile:
             r = reader.Reader.read_headers(infile)
             mf = marker_formatter(fname, r.graph_header.sample_time)
-            for m in r.datafile.markers:
+            for m in r.datafile.event_markers:
                 csv_out.writerow(mf(m))
 
 

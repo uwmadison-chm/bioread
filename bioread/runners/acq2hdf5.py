@@ -120,6 +120,7 @@ def create_channel_datasets(grp, channels, compression_opts):
         dset.attrs['frequency_divider'] = c.frequency_divider
         dset.attrs['units'] = c.units
         dset.attrs['samples_per_second'] = c.samples_per_second
+        dset.attrs['channel_number'] = c.order_num
         channel_dsets.append(dset)
     return channel_dsets
 
@@ -155,19 +156,20 @@ def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts):
 
 
 def save_markers(hdf5_file, datafile, dset_map):
-    markers = datafile.markers
+    markers = datafile.event_markers
     mcount = len(markers)
     marker_name_formatter = "marker_{{:0{0}d}}".format(len(str(mcount)))
     for i, m in enumerate(markers):
         mname = marker_name_formatter.format(i)
-        mg = hdf5_file.create_group("/markers/{0}".format(mname))
+        mg = hdf5_file.create_group("/event_markers/{0}".format(mname))
         mg.attrs['label'] = m.text
         mg.attrs['global_sample_index'] = m.sample_index
-        if m.style:
-            mg.attrs['style'] = m.style
+        if m.type_code:
+            mg.attrs['type_code'] = m.type_code
+            mg.attrs['type'] = m.type
         if m.channel:
-            mg.attrs['channel_index'] = m.channel
-            cdset = dset_map[m.channel]
+            mg.attrs['channel_number'] = m.channel_number
+            cdset = dset_map[m.channel_number]
             mg['channel'] = cdset
             mg.attrs['channel_sample_index'] = (
                 m.sample_index // cdset.attrs['frequency_divider'])
