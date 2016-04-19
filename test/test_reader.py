@@ -43,6 +43,7 @@ NORMAL_VERSIONS = [
     '3.9.1',
     '4.1.0',
     '4.2.0',
+    '4.3.0',
 ]
 
 ALL_VERSIONS = BADEND_VERSIONS + NORMAL_VERSIONS + ORIG_VERSION
@@ -55,6 +56,7 @@ TEXT_JOURNAL_VERSIONS = [
 
 HTML_JOURNAL_VERSIONS = [
     '4.2.0',
+    '4.3.0',
     '4.4.0'
 ]
 

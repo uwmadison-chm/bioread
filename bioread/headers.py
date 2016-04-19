@@ -549,7 +549,7 @@ class V4JournalHeader(BiopacHeader):
             ('lEarlyJournalLen', 'l', V_400B),
             ('bUnknown2', '290b', V_400B),
             ('bUnknown3', '26b', V_420),
-            ('bUnknown4', '4b', V_430),
+            ('bUnknown4', '4b', V_440),
             ('lLateJournalLenMinusOne', 'l', V_420),
             ('lLateJournalLen', 'l', V_420)
         )
