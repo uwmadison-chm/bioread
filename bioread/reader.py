@@ -34,7 +34,7 @@ from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
 from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
 from bioread.headers import V4JournalLengthHeader
-from bioread.biopac import Datafile, Marker
+from bioread.biopac import Datafile, EventMarker
 
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
@@ -252,7 +252,7 @@ class Reader(object):
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode('utf-8').strip('\0')
             marker_item_headers.append(mih)
-            markers.append(Marker(
+            markers.append(EventMarker(
                 mih.sample_index, marker_text, mih.channel, mih.style))
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers

@@ -221,7 +221,7 @@ class Channel(object):
         return str(self)
 
 
-class Marker(object):
+class EventMarker(object):
     """
     A marker -- some kind of annotation for an AcqKnowledge file. They all
     have a sample index and some text, and more modern ones can be one of
@@ -240,7 +240,7 @@ class Marker(object):
         self.text = text
         self.channel = channel
         self.style = style
-        super(Marker, self).__init__()
+        super(EventMarker, self).__init__()
 
     def __eq__(self, other):
         return all([
@@ -251,7 +251,7 @@ class Marker(object):
         ])
 
     def __str__(self):
-        return("Marker {0}: sample index: {1} channel: {2} style: {3}".format(
+        return("EventMarker {0}: sample index: {1} channel: {2} style: {3}".format(
             self.text, self.sample_index, self.channel, self.style))
 
     def __repr__(self):
