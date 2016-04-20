@@ -1,3 +1,5 @@
+1.0: Re-write reading uncompressed files -- new technique is much faster, does not require reading entire data into memory, and correctly handles the end of data with mixed sampling rates. Also adds acq2hdf5 -- finally, a good format for exporting .acq files. Add UTF-8 support. Add 'time_index' to datafile, channels. Change acq2txt to write multiple channels in a tab-delimited format.
+
 0.10.1: Use docopt everywhere.
 
 0.10.0: Add reading markers
