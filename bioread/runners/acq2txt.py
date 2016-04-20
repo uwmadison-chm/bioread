@@ -19,13 +19,17 @@ Usage:
   acq2txt --version
 
 Options:
-  --version          show program's version number and exit
-  -h, --help         show this help message and exit
-  --channel=CHANNEL  channel number to extract [default: 0]
+  --version                    Show program's version number and exit.
+  -h, --help                   Show this help message and exit.
+  --channel-indexes=<indexes>  The indexes of the channels to extract.
+                               Separate numbers with commas. Default is to
+                               extract all channels.
+  -o, --outfile=<file>         Write to a file instead of standard out.
+  --missing-as=<val>           What value to write where a channel is not
+                               sampled. [default: ]
 
-Writing more than one channel is not supported at the current time, because
-different channels can have different sampling rates, and it's hard to know
-what to do in those cases.
+The first column will always be time in seconds. Channel raw values are
+converted with scale and offset into native units.
 """
 
 import sys
@@ -33,7 +37,7 @@ import sys
 from bioread.vendor.docopt import docopt
 
 import bioread
-from bioread.writers import TxtWriter
+from bioread.writers import txtwriter
 from bioread import version
 
 
@@ -48,39 +52,26 @@ def main(argv=None):
 class AcqToTxtRunner(object):
     """The little wrapper class that converts acq files to text files"""
 
-    def __init__(self, argv, err=None):
+    def __init__(self, argv):
         self.argv = argv
-        if err is None:
-            err = sys.stderr
-        self.err = err
 
     def run(self):
-        old_err = sys.stderr
-        sys.stderr = self.err
         pargs = docopt(
             __doc__,
             self.argv,
             version=version.description)
         infile = pargs['<acq_file>']
-        try:
-            data = bioread.read(infile)
-        except:
-            sys.stderr.write("Error reading %s\n" % infile)
-            sys.exit(1)
-        try:
-            chan = data.channels[int(pargs['--channel'])]
-        except:
-            sys.stderr.write(
-                "Channel %s out of bounds -- max: %s\n" %
-                (pargs['--channel'], len(data.channels) - 1))
-            sys.exit(2)
-        try:
-            TxtWriter.write_file(chan, sys.stdout)
-        except:
-            sys.stderr.write("Notice: Not all data written\n")
-            sys.exit(-1)
-
-        sys.stderr = old_err
+        channel_indexes = None
+        if pargs['--channel-indexes']:
+            channel_indexes = [
+                int(i) for i in pargs['--channel-indexes'].split(',')]
+        data = bioread.read(infile, channel_indexes=channel_indexes)
+        mval = pargs['--missing-as']
+        if pargs['--outfile']:
+            with open(pargs['--outfile'], 'w') as f:
+                txtwriter.write_text(data, f, channel_indexes, mval)
+        else:
+            txtwriter.write_text(data, sys.stdout, channel_indexes, mval)
 
 
 if __name__ == '__main__':

@@ -11,22 +11,6 @@
 import numpy as np
 
 
-class TxtWriter(object):
-
-    def __init__(self, channel=None, out_stream=None):
-        self.channel = channel
-        self.out_stream = out_stream
-
-    @classmethod
-    def write_file(cls, channel, out_stream):
-        writer = cls(channel, out_stream)
-        writer.write()
-
-    def write(self):
-        for d in self.channel.data:
-            self.out_stream.write(str(d) + "\n")
-
-
 class MatlabWriter(object):
 
     def __init__(
