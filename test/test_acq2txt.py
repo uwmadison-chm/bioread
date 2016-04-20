@@ -19,8 +19,7 @@ from bioread.runners import acq2txt
 
 DATA_PATH = path.join(path.dirname(path.abspath(__file__)), "data")
 
-# TODO make a smaller file for testing; this is pretty slow
-DATA_FILE = path.join(DATA_PATH, 'physio', 'physio-4.4.0.acq')
+DATA_FILE = path.join(DATA_PATH, 'unicode', 'small-unicode-4.4.0.acq')
 
 
 def test_acq2txt_runs(capsys):
