@@ -16,7 +16,7 @@ We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simp
 pip install bioread
 ```
 
-Bioread requires the excellent [NumPy](http://numpy.scipy.org/) package, and writing Matlab files requires [SciPy](http://scipy.org/). Writing HDF5 files requires h5py.
+Bioread requires the excellent [NumPy](http://numpy.scipy.org/) package, and writing Matlab files requires [SciPy](http://scipy.org/). Writing HDF5 files requires [h5py](http://www.h5py.org/).
 
 ## API Usage:
 
