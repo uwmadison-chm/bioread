@@ -8,9 +8,11 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-version_parts = ('1', '0', '0dev')
+from __future__ import absolute_import
 
-version = ".".join(version_parts)
+from bioread import version as ver
+
+version = ver.version_str()
 author = "Nate Vack"
 author_email = "njvack@freshforever.net"
 license = "GPL 2.0"
