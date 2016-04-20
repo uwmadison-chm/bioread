@@ -286,11 +286,11 @@ class ChannelHeader(BiopacHeader):
 
     @property
     def units(self):
-        return self.data['szUnitsText'].decode('utf-8')
+        return self.data['szUnitsText'].decode('utf-8').strip('\0')
 
     @property
     def name(self):
-        return self.data['szCommentText'].decode('utf-8')
+        return self.data['szCommentText'].decode('utf-8').strip('\0')
 
     @property
     def point_count(self):
