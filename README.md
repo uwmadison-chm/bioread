@@ -16,75 +16,77 @@ We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simp
 pip install bioread
 ```
 
-Bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/).
+Bioread requires the excellent [NumPy][http://numpy.scipy.org/] package, and writing Matlab files requires [SciPy](http://scipy.org/). Writing HDF5 files requires h5py.
 
-## API usage:
+## API Usage:
 
-If you want to process the data as NumPy arrays, there's an easy API to work with it:
-
-```
->>> import bioread
->>> data = bioread.read_file("myfile.acq")
->>> data.graph_header.file_revision
-84
->>> len(data.channels)
-2
->>> data.channels[0].samples_per_second
-1000.0
->>> len(data.channels[0].data)
-10002
->>> data.channels[1].samples_per_second
-500.0
->>> len(data.channels[1].data) 
-5001
->>> len(data.channels[1].upsampled_data)
-10002
->>> data.channels[0].data[0]
-1.23
->>> data.channels[0].raw_data[0] # ints are not scaled
-13
->>> data.channels[0].name
-'CO2'
->>> data.named_channels['CO2'].data[0]
-1.23
->>> from bioread.writers import MatlabWriter
->>> MatlabWriter.write_file(data, "myfile.mat") # Creates a matlab file.
-```
-
-If you don't want to read the channel data, you can read just the headers:
-
-```
->>> data = bioread.read_headers("myfile.acq")
-```
-
-And you can also read only some of the channels:
-
-```
->>> [c.name for c in data.channels]
-['CO2', 'Pulse Ox']
->>> heartrate_data = bioread.read_file("myfile.acq", channel_indexes=[1])
->>> heartrate_data.channels[0].data
-None
->>> heartrate_data.channels[1].data
-array(...)
-```
-
-Finally, if the file is uncompressed, you can stream it:
-
-```
->>> for chunks in bioread.stream_file("myfile.acq"):
-        print([len(chunks[0].buffer, chunks[1].buffer])])
-
-[100000, 100000]
-...
-[500, 500]
-```
-
-Streaming of compressed files isn't supported -- the data isn't stored in a convenient way.
+* [jupyter notebook: Quick Demo](http://njvack.github.io/bioread/bioread_quick_demo.html)
 
 ## Command-line usage:
 
+### acq2hdf5
+
+If you want to convert files out of AcqKnowledge, this is probably what you want to use -- Matlab can read these out of the box and there are libraries for R and such. This converts the file, storing channels as datasets with names like `/channels/channel_0` and metadata in attributes. Event markers are stored in `/event_markers/marker_X`
+
+```
+Convert an AcqKnowledge file to an HDF5 file.
+
+Usage:
+  acq2hdf5 [options] <acq_file> <hdf5_file>
+  acq2hdf5 -h | --help
+  acq2hdf5 --version
+
+Options:
+  --values-as=<type>    Save raw measurement values, stored as integers in the
+                        base file, as either 'raw' or 'scaled'. If stored as
+                        raw, you can convert to scaled using the scale and
+                        offset attributes on the channel. If storing scaled
+                        values, scale and offset will be 1 and 0.
+                        [default: scaled]
+  --compress=<method>   How to compress data. Options are gzip, lzf, none.
+                        [default: gzip]
+  -v, --verbose         Print extra messages for debugging.
+```
+
+Note this does *not* need to read the entire dataset into memory, so if you have a 2G dataset, this will work great.
+
+To get the values you see in AcqKnowledge, leave the `--values-as` option to its default ('scaled'). For faster performance, less memory usage, and smaller files, you can use 'raw' and convert the channel later (if you care) with the scale and offset attributes.
+
+Generally, gzip compression seems to work very well, but if you're making something really big you might want to use lzf (worse compression, much faster).
+
+What you'll find in the file:
+
+#### Root-level attributes:
+
+* `file_revision` The internal AckKnowledge file version number
+* `samples_per_second` The base sampling rate of the file
+* `byte_order` The original file's byte ordering
+* `journal` The file's journal data.
+
+#### Channel-level attributes:
+
+* `scale` The scale factor of raw data (for float-type data, will be 1)
+* `offset` The offset of raw data (for float-type data, will be 0)
+* `frequency_divider` The sampling rate divider for this channel
+* `samples_per_second` The channel's sampling rate
+* `name` The name of the channel
+* `units` The units for the channel
+* `channel_number` The display number for the channel (used in markers)
+
+#### Markers
+
+* `label` A text label for the channel
+* `type` A description of this marker's type
+* `type_code` A short, 4-character code for type
+* `global_sample_index` The index, in units of the main sampling rate, of this marker
+* `channel` A hard link to the referred channel (only for non-global events)
+* `channel_number` The display number for the channel (only for non-global events)
+* `channel_sample_index` The in the channel's data where this marker belongs (only for non-global events)
+
+
 ### acq2mat
+
+**Note:** I recommend `acq2hdf5` for exporting to Matlab. This program is still around because hey: It works.
 
 This program creates a Matlab (version 5) file from an AcqKnowledge file. On the back-end, it uses [scipy.io.savemat](http://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html). Channels are stored in a cell array named 'channels'.
 
@@ -102,7 +104,7 @@ Options:
 Note: scipy is required for this program.
 ```
 
-Then, in Matlab:
+If you've saved a file as `myfile.mat`, you can, in Matlab:
 
 ```
 >> data = load('myfile.mat')
@@ -138,15 +140,10 @@ ans =
          channel: Global
 ```
 
-As noted in the usage instructions, acq2mat will read from stdin, so if your files are gzipped, you can say:
-
-```
-zcat myfile.acq.gz | acq2mat - myfile.mat
-```
-
 ### acq2txt
 
-acq2mat will take the data in an AcqKnowledge file and write it to a text file.
+acq2txt will take the data in an AcqKnowledge file and write it to a tab-delimited text file. By default, all channels (plus a time index) will be
+written.
 
 ```
 Write the data from an AcqKnowledge file channel to a text file.
@@ -157,13 +154,17 @@ Usage:
   acq2txt --version
 
 Options:
-  --version          show program's version number and exit
-  -h, --help         show this help message and exit
-  --channel=CHANNEL  channel number to extract [default: 0]
+  --version                    Show program's version number and exit.
+  -h, --help                   Show this help message and exit.
+  --channel-indexes=<indexes>  The indexes of the channels to extract.
+                               Separate numbers with commas. Default is to
+                               extract all channels.
+  -o, --outfile=<file>         Write to a file instead of standard out.
+  --missing-as=<val>           What value to write where a channel is not
+                               sampled. [default: ]
 
-Writing more than one channel is not supported at the current time, because
-different channels can have different sampling rates, and it's hard to know
-what to do in those cases.
+The first column will always be time in seconds. Channel raw values are
+converted with scale and offset into native units.
 ```
 
 ### acq_info
@@ -198,7 +199,7 @@ Prints all of the markers in an AcqKnowlege file to a tab-delimited format, eith
 
 
 ```
-Print the markers from an AcqKnowledge file.
+Print the event markers from an AcqKnowledge file.
 
 Usage:
   acq_markers [options] <file>...
@@ -219,7 +220,7 @@ Also, the channel order I read is not the one displayed in the AcqKnowledge inte
 
 ## Credits
 
-This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger, and some test code by Dan Fitch.
+This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger.
 
 Bioread packages a couple great libraries:
 
@@ -231,4 +232,4 @@ Bioread packages a couple great libraries:
 
 bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
 
-BIOPAC is a trademark of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company neither supports nor endorses this software package.
+BIOPAC and AcqKnowledge are trademarks of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company neither supports nor endorses this software package.
