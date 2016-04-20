@@ -20,11 +20,16 @@ Usage:
   acq2hdf5 --version
 
 Options:
+  --values-as=<type>    Save raw measurement values, stored as integers in the
+                        base file, as either 'raw' or 'scaled'. If stored as
+                        raw, you can convert to scaled using the scale and
+                        offset attributes on the channel. If storing scaled
+                        values, scale and offset will be 1 and 0.
+                        [default: scaled]
   --compress=<method>   How to compress data. Options are gzip, lzf, none.
                         [default: gzip]
   -v, --verbose         Print extra messages for debugging.
 
-Note that channels are saved in raw format, with scale and offset attrs.
 """
 
 import sys
@@ -54,6 +59,11 @@ COMPRESSION_OPTS = {
     'lzf': {'compression': 'lzf'}
 }
 
+SCALE_DATA = {
+    'scaled': True,
+    'raw': False
+}
+
 
 def main(argv=None):
     if argv is None:
@@ -68,10 +78,16 @@ def main(argv=None):
     except KeyError:
         logger.error("Unknown compression: {0}".format(pargs['--compress']))
         sys.exit(1)
-    make_hdf5(pargs['<acq_file>'], pargs['<hdf5_file>'], comp_opts)
+    scale = False
+    try:
+        scale = SCALE_DATA[pargs['--values-as']]
+    except KeyError:
+        logger.error("Unknown values-as option: {}".format(
+            pargs['--values-as']))
+    make_hdf5(pargs['<acq_file>'], pargs['<hdf5_file>'], comp_opts, scale)
 
 
-def make_hdf5(acq_filename, hdf5_filename, compression_opts):
+def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale):
     acq_file = open(acq_filename, 'rb')
     hdf5_file = h5py.File(hdf5_filename, 'w')
     r = br.Reader.read_headers(acq_file)
@@ -83,10 +99,10 @@ def make_hdf5(acq_filename, hdf5_filename, compression_opts):
     channel_datasets = None
     if r.is_compressed:
         channel_datasets = save_channels_compressed(
-            acq_file, r, hdf5_file, compression_opts)
+            acq_file, r, hdf5_file, compression_opts, scale)
     else:
         channel_datasets = save_channels_uncompressed(
-            acq_file, r, hdf5_file, compression_opts)
+            acq_file, r, hdf5_file, compression_opts, scale)
     channel_map = dict(
         [[ch.order_num, channel_datasets[i]]
             for i, ch in enumerate(df.channels)])
@@ -97,12 +113,16 @@ def cnum_formatter(channel_count):
     return "channel_{{:0{0}d}}".format(len(str(channel_count)))
 
 
-def create_channel_datasets(grp, channels, compression_opts):
+def create_channel_datasets(grp, channels, compression_opts, scale):
     cfstr = cnum_formatter(len(channels))
 
     channel_dsets = []
     for i, c in enumerate(channels):
-        dset_kwargs = {'dtype': c.dtype}
+        if scale:
+            dset_kwargs = {'dtype': 'f8'}
+        else:
+            dset_kwargs = {'dtype': c.dtype}
+
         dset_kwargs.update(compression_opts)
         cnum_name = cfstr.format(i)
         logger.debug("Creating dataset {0}".format(cnum_name))
@@ -110,7 +130,7 @@ def create_channel_datasets(grp, channels, compression_opts):
             cnum_name,
             (c.point_count,),
             **dset_kwargs)
-        if c.dtype.kind == 'i':
+        if c.dtype.kind == 'i' and not scale:
             dset.attrs['scale'] = c.raw_scale_factor
             dset.attrs['offset'] = c.raw_offset
         else:
@@ -125,31 +145,52 @@ def create_channel_datasets(grp, channels, compression_opts):
     return channel_dsets
 
 
-def save_channels_uncompressed(acq_file, reader, hdf5_file, compression_opts):
+def save_channels_uncompressed(
+        acq_file,
+        reader,
+        hdf5_file,
+        compression_opts,
+        scale):
     logger.debug("Saving uncompressed data to hdf5")
     cg = hdf5_file.create_group('/channels')
     df = reader.datafile
-    channel_dsets = create_channel_datasets(cg, df.channels, compression_opts)
+    channel_dsets = create_channel_datasets(
+        cg, df.channels, compression_opts, scale)
     acq_file.seek(reader.data_start_offset)
 
     chunker = br.make_chunk_reader(acq_file, df.channels)
     for chunk_num, chunk_buffers in enumerate(chunker):
         logger.debug("Got chunk {0}".format(chunk_num))
         for buf, dset in zip(chunk_buffers, channel_dsets):
-            dset[buf.channel_slice] = buf.buffer[:]
+            if scale:
+                chan = buf.channel
+                dset[buf.channel_slice] = (
+                    (buf.buffer[:] * chan.raw_scale_factor) +
+                    chan.raw_offset)
+            else:
+                dset[buf.channel_slice] = buf.buffer[:]
     return channel_dsets
 
 
-def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts):
+def save_channels_compressed(
+        acq_file,
+        reader,
+        hdf5_file,
+        compression_opts,
+        scale):
     logger.debug("Saving compressed data to hdf5")
     cg = hdf5_file.create_group('/channels')
     df = reader.datafile
-    channel_dsets = create_channel_datasets(cg, df.channels, compression_opts)
+    channel_dsets = create_channel_datasets(
+        cg, df.channels, compression_opts, scale)
     for i, (c, dset) in enumerate(zip(df.channels, channel_dsets)):
         logger.debug("Saving channel {0}".format(i))
         # This magically populates c.raw_data; I know this is kind of bad
         reader._read_data(channel_indexes=[i])
-        dset[:] = c.raw_data[:]
+        if scale:
+            dset[:] = c.data[:]
+        else:
+            dset[:] = c.raw_data[:]
         # Release the channel's memory
         c.free_data()
     return channel_dsets
