@@ -16,15 +16,15 @@ from __future__ import absolute_import
 import os
 from os import path
 
-from bioread.runners import acq2mat
+from bioread.runners import acq2hdf5
 
 DATA_PATH = path.join(path.dirname(path.abspath(__file__)), "data")
 
 DATA_FILE = path.join(DATA_PATH, 'physio', 'physio-4.4.0.acq')
 
 
-def test_acq2mat_runs(tmpdir):
-    out_file = tmpdir.join("test.mat")
+def test_acq2hdf5_runs(tmpdir):
+    out_file = tmpdir.join("test.hdf5")
     fname = str(out_file)
-    acq2mat.main([DATA_FILE, fname])
+    acq2hdf5.main([DATA_FILE, fname])
     assert os.stat(fname).st_size > 0
