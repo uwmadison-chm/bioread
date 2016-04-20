@@ -292,6 +292,7 @@ class EventMarker(object):
 
 
 MARKER_TYPE_MAP = {
+    'apnd': 'Append',
     'defl': 'Default',
     'wfon': 'Waveform Onset',
     'wfof': 'Waveform End',
