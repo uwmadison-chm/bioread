@@ -180,7 +180,7 @@ class Reader(object):
             self.acq_file.tell(), V2JournalHeader)
         self.journal = self.acq_file.read(
             self.journal_header.data['lJournalLen']).decode(
-            'utf-8').strip('\x00')
+            'utf-8').strip('\0')
 
     def __read_journal_v4(self):
         self.journal_length_header = self.__single_header(
@@ -200,7 +200,7 @@ class Reader(object):
                 self.journal_header.journal_len,
                 self.acq_file.tell()))
             self.journal = self.acq_file.read(
-                self.journal_header.journal_len).decode('utf-8').strip('\x00')
+                self.journal_header.journal_len).decode('utf-8').strip('\0')
         # Either way, we should seek to this point.
         self.acq_file.seek(self.journal_length_header.data_end)
 
