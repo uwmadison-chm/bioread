@@ -84,7 +84,10 @@ class Datafile(object):
     def __build_channels(self):
         return [
             Channel.from_headers(
-                ch, cdh, self.samples_per_second, self.time_index)
+                chan_hdr=ch,
+                dtype_hdr=cdh,
+                samples_per_second=self.samples_per_second,
+                datafile=self)
             for ch, cdh in zip(
                 self.channel_headers, self.channel_dtype_headers)
         ]
