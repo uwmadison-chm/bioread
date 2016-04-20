@@ -62,7 +62,7 @@ class Datafile(object):
         return sum([c.data_length for c in self.channels])
 
     def __str__(self):
-        return("Biopac file (rev %s): %s channels, %s samples/sec" % (
+        return("AcqKnowledge file (rev %s): %s channels, %s samples/sec" % (
             self.graph_header.file_revision, self.graph_header.channel_count,
             self.samples_per_second))
 
