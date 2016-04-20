@@ -29,7 +29,6 @@ Options:
   --compress=<method>   How to compress data. Options are gzip, lzf, none.
                         [default: gzip]
   -v, --verbose         Print extra messages for debugging.
-
 """
 
 import sys
