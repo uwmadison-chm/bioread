@@ -119,6 +119,10 @@ class Channel(object):
         self.samples_per_second = samples_per_second
         self.point_count = point_count
         self.dtype = np.dtype(fmt_str)
+        # For some reason, scale and offset lie for float files
+        if self.dtype.kind == 'f':
+            self.raw_scale_factor = 1
+            self.raw_offset = 0
         self.order_num = order_num
         self.datafile = datafile
 
@@ -191,14 +195,11 @@ class Channel(object):
             return None
         if self.__data is not None:
             return self.__data
-        scale_factor = self.raw_scale_factor
-        raw_offset = self.raw_offset
-        if self.dtype.kind == "i":
-            self.__data = (self.raw_data * scale_factor) + raw_offset
-            scale_factor = 1.0
-            raw_offset = 0.0
-        else:
+        if self.dtype.kind == 'f':
             self.__data = self.raw_data
+        else:
+            self.__data = (
+                (self.raw_data * self.raw_scale_factor) + self.raw_offset)
         return self.__data
 
     @property
