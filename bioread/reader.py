@@ -84,12 +84,8 @@ class Reader(object):
             reader._read_headers()
         return reader
 
-    @property
-    def is_compressed(self):
-        return self.graph_header.compressed
-
     def stream(self, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
-        """ TODO: Implement this.
+        """ Set up and retun an iterator for streaming data.
         """
         if self.datafile is None:
             self._read_headers()
@@ -101,6 +97,10 @@ class Reader(object):
             self.datafile.channels,
             channel_indexes,
             target_chunk_size)
+
+    @property
+    def is_compressed(self):
+        return self.graph_header.compressed
 
     def _read_headers(self):
         if self.byte_order_char is None:

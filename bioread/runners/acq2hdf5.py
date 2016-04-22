@@ -47,7 +47,6 @@ except ImportError:
     sys.exit(1)
 
 
-import bioread
 from bioread import version
 from bioread import reader as br
 from bioread.vendor.docopt import docopt
@@ -153,11 +152,10 @@ def save_channels_uncompressed(
     logger.debug("Saving uncompressed data to hdf5")
     cg = hdf5_file.create_group('/channels')
     df = reader.datafile
+    chunker = reader.stream()
     channel_dsets = create_channel_datasets(
         cg, df.channels, compression_opts, scale)
-    acq_file.seek(reader.data_start_offset)
 
-    chunker = br.make_chunk_reader(acq_file, df.channels)
     for chunk_num, chunk_buffers in enumerate(chunker):
         logger.debug("Got chunk {0}".format(chunk_num))
         for buf, dset in zip(chunk_buffers, channel_dsets):
