@@ -218,6 +218,10 @@ I've tested all the various vintages of files I can think of and find, except ve
 
 Also, the channel order I read is not the one displayed in the AcqKnowledge interface. Neither the order of the data nor any channel header value I can find seems to entirely control that. I'm gonna just assume it's not a very big deal.
 
+## File Format Documentation
+
+While there's no substite for code diving to see how things really work, I've written some [quick documentation of the file format.](https://github.com/njvack/bioread/blob/master/notes/file_format.md)
+
 ## Credits
 
 This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger.
