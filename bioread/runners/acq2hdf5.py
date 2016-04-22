@@ -185,7 +185,7 @@ def save_channels_compressed(
         # This magically populates c.raw_data; I know this is kind of bad
         reader._read_data(channel_indexes=[i])
         if scale:
-            dset[:] = c.data[:]
+            dset[:] = (c.raw_data[:] * c.raw_scale_factor) + c.raw_offset
         else:
             dset[:] = c.raw_data[:]
         # Release the channel's memory
