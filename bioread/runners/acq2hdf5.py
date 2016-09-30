@@ -70,6 +70,7 @@ def main(argv=None):
     pargs = docopt(__doc__, argv, version=version.description)
     if pargs['--verbose']:
         logger.setLevel(logging.DEBUG)
+    br.logger.setLevel(logger.level)
     logger.debug(pargs)
     try:
         comp_opts = COMPRESSION_OPTS[pargs['--compress']]
