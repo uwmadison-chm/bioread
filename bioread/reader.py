@@ -429,7 +429,8 @@ def read_chunks(f, buffers, byte_pattern, channel_indexes):
             chunk_data, buffers, pat, channel_indexes)
 
         yield buffers
-        channel_bytes_remaining -= np.bincount(pat)
+        channel_bytes_remaining -= np.bincount(
+            pat, minlength=len(channel_bytes_remaining))
         logger.debug('Channel bytes remaining: {0}'.format(
             channel_bytes_remaining))
         chunk_number += 1
