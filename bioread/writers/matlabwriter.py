@@ -45,7 +45,7 @@ class MatlabWriter(object):
         for i in range(nc):
             c = data.channels[i]
             chan_dict = {}
-            chan_dict['data'] = c.data
+            chan_dict['data'] = c.data.astype("=f8")
             chan_dict['samples_per_second'] = c.samples_per_second
             chan_dict['name'] = c.name
             chan_dict['frequency_divider'] = c.frequency_divider
