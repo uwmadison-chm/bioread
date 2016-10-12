@@ -1,3 +1,5 @@
+1.0.3: Bug fix -- Always write Matlab files in native byte ordering.
+
 1.0.2: Bug fix -- Fix crash when reading a mixed sampling rate file where the last channel has no bytes to read in a chunk.
 
 1.0.1: Bug fixes -- HDF5 files with scaled data were being created improperly from compressed .acq files.
