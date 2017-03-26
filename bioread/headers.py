@@ -712,7 +712,7 @@ class V4MarkerHeader(BiopacHeader):
         ('Unknown'              ,'6B'   ,V_400B),
         ('szDefl'               ,'5s'   ,V_400B),
         ('Unknown2'             ,'h'    ,V_400B),
-        ('Unknown3'             ,'8B'   ,V_430),
+        ('Unknown3'             ,'8B'   ,V_42x),
         ('Unknown4'             ,'8B'   ,V_440)
         )
 
@@ -780,7 +780,7 @@ class V4MarkerItemHeader(BiopacHeader):
         ('Unknown'              ,'4B'   ,V_400B),
         ('nChannel'             ,'h'    ,V_400B),
         ('sMarkerStyle'         ,'4s'   ,V_400B),
-        ('Uknnown2'             ,'8B'   ,V_430),
+        ('Uknnown2'             ,'8B'   ,V_42x),
         ('Uknnown3'             ,'8B'   ,V_440),
         ('nTextLength'          ,'h'    ,V_400B),
         )
