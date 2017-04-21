@@ -44,16 +44,24 @@ FIELDS = [
 ]
 
 
+def u8fx():
+    if isinstance('x', str):
+        return lambda s: s
+    else:
+        return lambda s: s.encode('utf-8')
+
+uf = u8fx()
+
 def marker_formatter(acq_filename, graph_sample_msec):
     """ Return a function that turns a marker into a dict. """
     def f(marker):
         return {
-            'filename': acq_filename.encode('utf-8'),
+            'filename': uf(acq_filename),
             'time (s)': (marker.sample_index * graph_sample_msec) / 1000,
-            'label': marker.text.encode('utf-8'),
-            'channel': (marker.channel_name or 'Global').encode('utf-8'),
-            'type_code': (marker.type_code or 'None').encode('utf-8'),
-            'type': (marker.type).encode('utf-8')
+            'label': uf(marker.text),
+            'channel': uf(marker.channel_name or 'Global'),
+            'type_code': uf(marker.type_code or 'None'),
+            'type': uf(marker.type)
         }
     return f
 
