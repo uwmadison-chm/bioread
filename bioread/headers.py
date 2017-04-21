@@ -712,7 +712,7 @@ class V4MarkerHeader(BiopacHeader):
         ('Unknown'              ,'6B'   ,V_400B),
         ('szDefl'               ,'5s'   ,V_400B),
         ('Unknown2'             ,'h'    ,V_400B),
-        ('Unknown3'             ,'8B'   ,V_430),
+        ('Unknown3'             ,'8B'   ,V_42x),
         ('Unknown4'             ,'8B'   ,V_440)
         )
 
@@ -736,7 +736,7 @@ class V2MarkerItemHeader(BiopacHeader):
     def __h_elts(self):
         return VersionedHeaderStructure(
         ('lSample'              ,'l'    ,V_20a),
-        ('fSelected'            ,'h'    ,V_20a),
+        ('fSelected'            ,'h'    ,V_35x),
         ('fTextLocked'          ,'h'    ,V_20a),
         ('fPositionLocked'      ,'h'    ,V_20a),
         ('nTextLength'          ,'h'    ,V_20a),
@@ -744,9 +744,13 @@ class V2MarkerItemHeader(BiopacHeader):
 
     # Note: The spec says nTextLength includes the trailing null, but it
     # seems to not...?
+    # It seems that it does include it in V_303 so haha
     @property
     def text_length(self):
-        return self.data['nTextLength'] + 1
+        if self.file_revision < V_35x:
+            return self.data['nTextLength']
+        else:
+            return self.data['nTextLength'] + 1
 
     @property
     def sample_index(self):
