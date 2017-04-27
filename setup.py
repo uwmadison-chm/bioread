@@ -34,8 +34,8 @@ setup(
     license="GPL 2.0",
     keywords="science research physiological biopac convert library",
     url="http://github.com/njvack/bioread",
-    classifiers=(
-        "Development Status :: 4 - Beta",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
@@ -44,5 +44,5 @@ setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Topic :: Scientific/Engineering :: Information Analysis"
-    ),
+    ],
 )
