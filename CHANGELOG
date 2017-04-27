@@ -1,3 +1,5 @@
+1.0.4: Add support for files from Acqknowledge 3.0.3 and 4.2.something. Also fix string formatting for acq_markers in python 3.
+
 1.0.3: Bug fix -- Always write Matlab files in native byte ordering.
 
 1.0.2: Bug fix -- Fix crash when reading a mixed sampling rate file where the last channel has no bytes to read in a chunk.
