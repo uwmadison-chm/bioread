@@ -381,11 +381,17 @@ class ForeignHeader(BiopacHeader):
 
     @property
     def __effective_len_byte_versions(self):
+        def version_5_length():
+            # I'm basing this off one weird example file
+            # It may not be right in general (probably it isn't)
+            if self.data['lLength'] <= 8:
+                return 8
+            return self.data['lLength'] + 40
         # Make a hash of functions so we don't evaluate all code paths
         return {
             "PRE_4"     : lambda: self.data['nLength'],
             "EARLY_4"   : lambda: self.data['lLengthExtended'] + 8,
-            "LATE_4"    : lambda: self.data['nLength'] + 8  # always correct?
+            "LATE_4"    : version_5_length
         }
 
     @property
@@ -402,7 +408,7 @@ class ForeignHeader(BiopacHeader):
                 ('lLengthExtended'          ,'l'    ,V_400B),
             ),
             "LATE_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_400B),
+                ('lLength'                  ,'l'    ,V_400B),
                 ('nType'                    ,'h'    ,V_400B),
                 ('lReserved'                ,'l'    ,V_400B),
             )}
