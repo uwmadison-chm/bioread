@@ -20,7 +20,7 @@ Bioread requires the excellent [NumPy](http://numpy.scipy.org/) package, and wri
 
 ## API Usage:
 
-* [jupyter notebook: Quick Demo](http://njvack.github.io/bioread/bioread_quick_demo.html)
+* [jupyter notebook: Quick Demo](http://uwmadison-chm.github.io/bioread/bioread_quick_demo.html)
 
 ## Command-line usage:
 
