@@ -1,5 +1,7 @@
 # Libraries for reading BIOPAC files
 
+[![DOI](https://zenodo.org/badge/970625.svg)](https://zenodo.org/badge/latestdoi/970625)
+
 These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on [Application Note 156](http://www.biopac.com/Manuals/app_pdf/app156.pdf) from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger and Nate Vack.
 
 This library is mostly concerned with getting you the data, and less so with interpreting UI-related header values.
