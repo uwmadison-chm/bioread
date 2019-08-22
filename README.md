@@ -224,6 +224,8 @@ Also, the channel order I read is not the one displayed in the AcqKnowledge inte
 
 While there's no substite for code diving to see how things really work, I've written some [quick documentation of the file format.](https://github.com/njvack/bioread/blob/master/notes/file_format.md)
 
+In addition, developer Mike Davison did a great job figuring out additional .acq file format information (far more than is implemented in bioread!); his contribuions are in notes/acqknowledge_file_structure.pdf
+
 ## Credits
 
 This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger.
