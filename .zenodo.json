@@ -1,0 +1,38 @@
+{
+    "description": "Utilities to work with files from BIOPAC's AcqKnowlege software",
+    "title": "uwmadison-chm/bioread: 1.0.4",
+    "version": "1.0.4",
+    "upload_type": "software",
+    "publication_date": "2019-08-21",
+    "creators": [
+        {
+            "affiliation": "Center for Healthy Minds, University of Wisconsin-Madison",
+            "name": "Vack, Nate"
+        },
+        {
+            "affiliation": "Waisman Laboratory for Brain Imaging and Behavior, University of Wisconsin-Madison",
+            "name": "Ollinger, John"
+        },
+        {
+            "affiliation": "Center for Healthy Minds, University of Wisconsin-Madison",
+            "name": "Fitch, Dan"
+        }
+    ],
+    "grants": [
+        {"id": "10.13039/100009633::5P30HD003352"}
+    ],
+    "access_right": "open",
+    "license": "GPL-2.0",
+    "related_identifiers": [
+        {
+            "scheme": "url",
+            "identifier": "https://github.com/uwmadison-chm/bioread/tree/1.0.4",
+            "relation": "isSupplementTo"
+        },
+        {
+            "scheme": "doi",
+            "identifier": "10.5281/zenodo.3374011",
+            "relation": "isVersionOf"
+        }
+    ]
+}
