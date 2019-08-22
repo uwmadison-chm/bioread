@@ -18,9 +18,7 @@
             "name": "Fitch, Dan"
         }
     ],
-    "grants": [
-        {"id": "10.13039/100009633::5P30HD003352"}
-    ],
+    "notes":"Supported by NICHD grant 5P30HD003352",
     "access_right": "open",
     "license": "GPL-2.0",
     "related_identifiers": [
