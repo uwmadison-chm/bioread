@@ -20,17 +20,5 @@
     ],
     "notes":"Supported by NICHD grant 5P30HD003352",
     "access_right": "open",
-    "license": "GPL-2.0",
-    "related_identifiers": [
-        {
-            "scheme": "url",
-            "identifier": "https://github.com/uwmadison-chm/bioread/tree/1.0.4",
-            "relation": "isSupplementTo"
-        },
-        {
-            "scheme": "doi",
-            "identifier": "10.5281/zenodo.3374011",
-            "relation": "isVersionOf"
-        }
-    ]
+    "license": "GPL-2.0"
 }
