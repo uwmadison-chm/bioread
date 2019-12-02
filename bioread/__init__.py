@@ -12,10 +12,11 @@ from __future__ import absolute_import
 
 from bioread import reader
 
-from ._metadata import version as __version__, author as __author__  # noqa
+from ._metadata import author as __author__
+from ._metadata import version as __version__  # noqa
 
 
-def read(filelike, channel_indexes=None):
+def read(filelike, channel_indexes=None, encoding='utf-8'):
     """
     Read a file (either an IO object or a filename) and return a Datafile.
 
@@ -23,7 +24,9 @@ def read(filelike, channel_indexes=None):
                         have empty data.
     target_chunk_size:  A guide for the number of bytes to read at a time.
     """
-    return reader.Reader.read(filelike, channel_indexes).datafile
+    return reader.Reader.read(filelike, channel_indexes,
+                              encoding=encoding).datafile
+
 
 # Deprecated; provided for compatibility with previous versions.
 read_file = read
