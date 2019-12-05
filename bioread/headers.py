@@ -8,8 +8,8 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-from bioread.file_revisions import *
 from bioread.struct_dict import StructDict
+from bioread.file_revisions import *
 
 
 class Header(object):
@@ -55,6 +55,7 @@ class Header(object):
 
 
 class VersionedHeaderStructure(object):
+
     def __init__(self, *structure_elements):
         self.structure_elements = structure_elements
 
@@ -135,110 +136,107 @@ class GraphHeader(BiopacHeader):
     @property
     def __h_elt_versions(self):
         return {
-            'PRE_4':
-            VersionedHeaderStructure(
-                ('nItemHeaderLen', 'h', V_ALL),
-                ('lVersion', 'l', V_ALL),
-                ('lExtItemHeaderLen', 'l', V_20a),
-                ('nChannels', 'h', V_20a),
-                ('nHorizAxisType', 'h', V_20a),
-                ('nCurChannel', 'h', V_20a),
-                ('dSampleTime', 'd', V_20a),
-                ('dTimeOffset', 'd', V_20a),
-                ('dTimeScale', 'd', V_20a),
-                ('dTimeCursor1', 'd', V_20a),
-                ('dTimeCursor2', 'd', V_20a),
-                ('rcWindow', '4h', V_20a),
-                ('nMeasurement', '6h', V_20a),
-                ('fHilite', 'h', V_20a),
-                ('dFirstTimeOffset', 'd', V_20a),
-                ('nRescale', 'h', V_20a),
-                ('szHorizUnits1', '40s', V_20a),
-                ('szHorizUnits2', '10s', V_20a),
-                ('nInMemory', 'h', V_20a),
-                ('fGrid', 'h', V_20a),
-                ('fMarkers', 'h', V_20a),
-                ('nPlotDraft', 'h', V_20a),
-                ('nDispMode', 'h', V_20a),
-                ('rRReserved', 'h', V_20a),
-                ('BShowToolBar', 'h', V_30r),
-                ('BShowChannelButtons', 'h', V_30r),
-                ('BShowMeasurements', 'h', V_30r),
-                ('BShowMarkers', 'h', V_30r),
-                ('BShowJournal', 'h', V_30r),
-                ('CurXChannel', 'h', V_30r),
-                ('MmtPrecision', 'h', V_30r),
-                ('NMeasurementRows', 'h', V_303),
-                ('mmt40', '40h', V_303),
-                ('mmtChan40', '40h', V_303),
-                ('MmtCalcOpnd1', '40h', V_35x),
-                ('MmtCalcOpnd2', '40h', V_35x),
-                ('MmtCalcOp', '40h', V_35x),
-                ('MmtCalcConstant', '40d', V_35x),
-                ('bNewGridWithMinor', 'l', V_370),
-                ('colorMajorGrid', '4B', V_370),
-                ('colorMinorGrid', '4B', V_370),
-                ('wMajorGridStyle', 'h', V_370),
-                ('wMinorGridStyle', 'h', V_370),
-                ('wMajorGridWidth', 'h', V_370),
-                ('wMinorGridWidth', 'h', V_370),
-                ('bFixedUnitsDiv', 'l', V_370),
-                ('bMid_Range_Show', 'l', V_370),
-                ('dStart_Middle_Point', 'd', V_370),
-                ('dOffset_Point', '60d', V_370),
-                ('hGrid', 'd', V_370),
-                ('vGrid', '60d', V_370),
-                ('bEnableWaveTools', 'l', V_370),
-                ('hozizPrecision', 'h', V_373),
-                ('Reserved', '20b', V_381),
-                ('bOverlapMode', 'l', V_381),
-                ('bShowHardware', 'l', V_381),
-                ('bXAutoPlot', 'l', V_381),
-                ('bXAutoScroll', 'l', V_381),
-                ('bStartButtonVisible', 'l', V_381),
-                ('bCompressed', 'l', V_381),
-                ('bAlwaysStartButtonVisible', 'l', V_381),
-                ('pathVideo', '260s', V_382),
-                ('optSyncDelay', 'l', V_382),
-                ('syncDelay', 'd', V_382),
-                ('bHRP_PasteMeasurements', 'l', V_382),
-                ('graphType', 'l', V_390),
-                ('mmtCalcExpr', '10240s', V_390),
-                ('mmtMomentOrder', '40l', V_390),
-                ('mmtTimeDelay', '40l', V_390),
-                ('mmtEmbedDim', '40l', V_390),
-                ('mmtMIDelay', '40l', V_390),
+            'PRE_4' : VersionedHeaderStructure(
+                ('nItemHeaderLen'           ,'h'    ,V_ALL),
+                ('lVersion'                 ,'l'    ,V_ALL),
+                ('lExtItemHeaderLen'        ,'l'    ,V_20a),
+                ('nChannels'                ,'h'    ,V_20a),
+                ('nHorizAxisType'           ,'h'    ,V_20a),
+                ('nCurChannel'              ,'h'    ,V_20a),
+                ('dSampleTime'              ,'d'    ,V_20a),
+                ('dTimeOffset'              ,'d'    ,V_20a),
+                ('dTimeScale'               ,'d'    ,V_20a),
+                ('dTimeCursor1'             ,'d'    ,V_20a),
+                ('dTimeCursor2'             ,'d'    ,V_20a),
+                ('rcWindow'                 ,'4h'   ,V_20a),
+                ('nMeasurement'             ,'6h'   ,V_20a),
+                ('fHilite'                  ,'h'    ,V_20a),
+                ('dFirstTimeOffset'         ,'d'    ,V_20a),
+                ('nRescale'                 ,'h'    ,V_20a),
+                ('szHorizUnits1'            ,'40s'  ,V_20a),
+                ('szHorizUnits2'            ,'10s'  ,V_20a),
+                ('nInMemory'                ,'h'    ,V_20a),
+                ('fGrid'                    ,'h'    ,V_20a),
+                ('fMarkers'                 ,'h'    ,V_20a),
+                ('nPlotDraft'               ,'h'    ,V_20a),
+                ('nDispMode'                ,'h'    ,V_20a),
+                ('rRReserved'               ,'h'    ,V_20a),
+                ('BShowToolBar'             ,'h'    ,V_30r),
+                ('BShowChannelButtons'      ,'h'    ,V_30r),
+                ('BShowMeasurements'        ,'h'    ,V_30r),
+                ('BShowMarkers'             ,'h'    ,V_30r),
+                ('BShowJournal'             ,'h'    ,V_30r),
+                ('CurXChannel'              ,'h'    ,V_30r),
+                ('MmtPrecision'             ,'h'    ,V_30r),
+                ('NMeasurementRows'         ,'h'    ,V_303),
+                ('mmt40'                    ,'40h'  ,V_303),
+                ('mmtChan40'                ,'40h'  ,V_303),
+                ('MmtCalcOpnd1'             ,'40h'  ,V_35x),
+                ('MmtCalcOpnd2'             ,'40h'  ,V_35x),
+                ('MmtCalcOp'                ,'40h'  ,V_35x),
+                ('MmtCalcConstant'          ,'40d'  ,V_35x),
+                ('bNewGridWithMinor'        ,'l'    ,V_370),
+                ('colorMajorGrid'           ,'4B'   ,V_370),
+                ('colorMinorGrid'           ,'4B'   ,V_370),
+                ('wMajorGridStyle'          ,'h'    ,V_370),
+                ('wMinorGridStyle'          ,'h'    ,V_370),
+                ('wMajorGridWidth'          ,'h'    ,V_370),
+                ('wMinorGridWidth'          ,'h'    ,V_370),
+                ('bFixedUnitsDiv'           ,'l'    ,V_370),
+                ('bMid_Range_Show'          ,'l'    ,V_370),
+                ('dStart_Middle_Point'      ,'d'    ,V_370),
+                ('dOffset_Point'            ,'60d'  ,V_370),
+                ('hGrid'                    ,'d'    ,V_370),
+                ('vGrid'                    ,'60d'  ,V_370),
+                ('bEnableWaveTools'         ,'l'    ,V_370),
+                ('hozizPrecision'           ,'h'    ,V_373),
+                ('Reserved'                 ,'20b'  ,V_381),
+                ('bOverlapMode'             ,'l'    ,V_381),
+                ('bShowHardware'            ,'l'    ,V_381),
+                ('bXAutoPlot'               ,'l'    ,V_381),
+                ('bXAutoScroll'             ,'l'    ,V_381),
+                ('bStartButtonVisible'      ,'l'    ,V_381),
+                ('bCompressed'              ,'l'    ,V_381),
+                ('bAlwaysStartButtonVisible','l'    ,V_381),
+                ('pathVideo'                ,'260s' ,V_382),
+                ('optSyncDelay'             ,'l'    ,V_382),
+                ('syncDelay'                ,'d'    ,V_382),
+                ('bHRP_PasteMeasurements'   ,'l'    ,V_382),
+                ('graphType'                ,'l'    ,V_390),
+                ('mmtCalcExpr'              ,'10240s',V_390),
+                ('mmtMomentOrder'           ,'40l'  ,V_390),
+                ('mmtTimeDelay'             ,'40l'  ,V_390),
+                ('mmtEmbedDim'              ,'40l'  ,V_390),
+                ('mmtMIDelay'               ,'40l'  ,V_390),
             ),
-            'POST_4':
-            VersionedHeaderStructure(
-                ('nItemHeaderLen', 'h', V_ALL),
-                ('lVersion', 'l', V_ALL),
-                ('lExtItemHeaderLen', 'l', V_20a),
-                ('nChannels', 'h', V_20a),
-                ('nHorizAxisType', 'h', V_20a),
-                ('nCurChannel', 'h', V_20a),
-                ('dSampleTime', 'd', V_20a),
-                ('dTimeOffset', 'd', V_20a),
-                ('dTimeScale', 'd', V_20a),
-                ('dTimeCursor1', 'd', V_20a),
-                ('dTimeCursor2', 'd', V_20a),
-                ('rcWindow', '4h', V_20a),
-                ('nMeasurement', '6h', V_20a),
-                ('fHilite', 'h', V_20a),
-                ('dFirstTimeOffset', 'd', V_20a),
-                ('nRescale', 'h', V_20a),
-                ('szHorizUnits1', '40s', V_20a),
-                ('szHorizUnits2', '10s', V_20a),
-                ('nInMemory', 'h', V_20a),
-                ('fGrid', 'h', V_20a),
-                ('fMarkers', 'h', V_20a),
-                ('nPlotDraft', 'h', V_20a),
-                ('nDispMode', 'h', V_20a),
-                ('rRReserved', 'h', V_20a),
-                ('Unknown', '822B', V_400B),
-                ('bCompressed', 'l', V_400B),
-            )
-        }
+            'POST_4' : VersionedHeaderStructure(
+                ('nItemHeaderLen'           ,'h'    ,V_ALL),
+                ('lVersion'                 ,'l'    ,V_ALL),
+                ('lExtItemHeaderLen'        ,'l'    ,V_20a),
+                ('nChannels'                ,'h'    ,V_20a),
+                ('nHorizAxisType'           ,'h'    ,V_20a),
+                ('nCurChannel'              ,'h'    ,V_20a),
+                ('dSampleTime'              ,'d'    ,V_20a),
+                ('dTimeOffset'              ,'d'    ,V_20a),
+                ('dTimeScale'               ,'d'    ,V_20a),
+                ('dTimeCursor1'             ,'d'    ,V_20a),
+                ('dTimeCursor2'             ,'d'    ,V_20a),
+                ('rcWindow'                 ,'4h'   ,V_20a),
+                ('nMeasurement'             ,'6h'   ,V_20a),
+                ('fHilite'                  ,'h'    ,V_20a),
+                ('dFirstTimeOffset'         ,'d'    ,V_20a),
+                ('nRescale'                 ,'h'    ,V_20a),
+                ('szHorizUnits1'            ,'40s'  ,V_20a),
+                ('szHorizUnits2'            ,'10s'  ,V_20a),
+                ('nInMemory'                ,'h'    ,V_20a),
+                ('fGrid'                    ,'h'    ,V_20a),
+                ('fMarkers'                 ,'h'    ,V_20a),
+                ('nPlotDraft'               ,'h'    ,V_20a),
+                ('nDispMode'                ,'h'    ,V_20a),
+                ('rRReserved'               ,'h'    ,V_20a),
+                ('Unknown'                  ,'822B' ,V_400B),
+                ('bCompressed'              ,'l'    ,V_400B),
+            )}
 
     @property
     def __h_elts(self):
@@ -311,48 +309,45 @@ class ChannelHeader(BiopacHeader):
     @property
     def __h_elt_versions(self):
         return {
-            'PRE_4':
-            VersionedHeaderStructure(
-                ('lChanHeaderLen', 'l', V_20a),
-                ('nNum', 'h', V_20a),
-                ('szCommentText', '40s', V_20a),
-                ('rgbColor', '4B', V_20a),
-                ('nDispChan', 'h', V_20a),
-                ('dVoltOffset', 'd', V_20a),
-                ('dVoltScale', 'd', V_20a),
-                ('szUnitsText', '20s', V_20a),
-                ('lBufLength', 'l', V_20a),
-                ('dAmplScale', 'd', V_20a),
-                ('dAmplOffset', 'd', V_20a),
-                ('nChanOrder', 'h', V_20a),
-                ('nDispSize', 'h', V_20a),
-                ('plotMode', 'h', V_30r),
-                ('vMid', 'd', V_30r),
-                ('szDescription', '128s', V_370),
-                ('nVarSampleDivider', 'h', V_370),
-                ('vertPrecision', 'h', V_373),
-                ('activeSegmentColor', '4b', V_382),
-                ('activeSegmentStyle', 'l', V_382),
+            'PRE_4' : VersionedHeaderStructure(
+                ('lChanHeaderLen'           ,'l'    ,V_20a),
+                ('nNum'                     ,'h'    ,V_20a),
+                ('szCommentText'            ,'40s'  ,V_20a),
+                ('rgbColor'                 ,'4B'   ,V_20a),
+                ('nDispChan'                ,'h'    ,V_20a),
+                ('dVoltOffset'              ,'d'    ,V_20a),
+                ('dVoltScale'               ,'d'    ,V_20a),
+                ('szUnitsText'              ,'20s'  ,V_20a),
+                ('lBufLength'               ,'l'    ,V_20a),
+                ('dAmplScale'               ,'d'    ,V_20a),
+                ('dAmplOffset'              ,'d'    ,V_20a),
+                ('nChanOrder'               ,'h'    ,V_20a),
+                ('nDispSize'                ,'h'    ,V_20a),
+                ('plotMode'                 ,'h'    ,V_30r),
+                ('vMid'                     ,'d'    ,V_30r),
+                ('szDescription'            ,'128s' ,V_370),
+                ('nVarSampleDivider'        ,'h'    ,V_370),
+                ('vertPrecision'            ,'h'    ,V_373),
+                ('activeSegmentColor'       ,'4b'   ,V_382),
+                ('activeSegmentStyle'       ,'l'    ,V_382),
             ),
-            'POST_4':
-            VersionedHeaderStructure(
-                ('lChanHeaderLen', 'l', V_20a),
-                ('nNum', 'h', V_20a),
-                ('szCommentText', '40s', V_20a),
-                ('notColor', '4B', V_20a),
-                ('nDispChan', 'h', V_20a),
-                ('dVoltOffset', 'd', V_20a),
-                ('dVoltScale', 'd', V_20a),
-                ('szUnitsText', '20s', V_20a),
-                ('lBufLength', 'l', V_20a),
-                ('dAmplScale', 'd', V_20a),
-                ('dAmplOffset', 'd', V_20a),
-                ('nChanOrder', 'h', V_20a),
-                ('nDispSize', 'h', V_20a),
-                ('unknown', '40s', V_400B),
-                ('nVarSampleDivider', 'h', V_400B),
-            )
-        }
+            'POST_4' : VersionedHeaderStructure(
+                ('lChanHeaderLen'           ,'l'    ,V_20a),
+                ('nNum'                     ,'h'    ,V_20a),
+                ('szCommentText'            ,'40s'  ,V_20a),
+                ('notColor'                 ,'4B'   ,V_20a),
+                ('nDispChan'                ,'h'    ,V_20a),
+                ('dVoltOffset'              ,'d'    ,V_20a),
+                ('dVoltScale'               ,'d'    ,V_20a),
+                ('szUnitsText'              ,'20s'  ,V_20a),
+                ('lBufLength'               ,'l'    ,V_20a),
+                ('dAmplScale'               ,'d'    ,V_20a),
+                ('dAmplOffset'              ,'d'    ,V_20a),
+                ('nChanOrder'               ,'h'    ,V_20a),
+                ('nDispSize'                ,'h'    ,V_20a),
+                ('unknown'                  ,'40s'  ,V_400B),
+                ('nVarSampleDivider'        ,'h'    ,V_400B),
+            )}
 
 
 class ForeignHeader(BiopacHeader):
@@ -390,33 +385,29 @@ class ForeignHeader(BiopacHeader):
     def __effective_len_byte_versions(self):
         # Make a hash of functions so we don't evaluate all code paths
         return {
-            "PRE_4": lambda: self.data['nLength'],
-            "EARLY_4": lambda: self.data['lLengthExtended'] + 8,
-            "LATE_4": lambda: self.data['nLength'] + 8  # always correct?
+            "PRE_4"     : lambda: self.data['nLength'],
+            "EARLY_4"   : lambda: self.data['lLengthExtended'] + 8,
+            "LATE_4"    : lambda: self.data['nLength'] + 8  # always correct?
         }
 
     @property
     def __h_elt_versions(self):
         return {
-            "PRE_4":
-            VersionedHeaderStructure(
-                ('nLength', 'h', V_20a),
-                ('nType', 'h', V_20a),
+            "PRE_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_20a),
+                ('nType'                    ,'h'    ,V_20a),
             ),
-            "EARLY_4":
-            VersionedHeaderStructure(
-                ('nLength', 'h', V_400B),
-                ('nType', 'h', V_400B),
-                ('lReserved', 'l', V_400B),
-                ('lLengthExtended', 'l', V_400B),
+            "EARLY_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_400B),
+                ('nType'                    ,'h'    ,V_400B),
+                ('lReserved'                ,'l'    ,V_400B),
+                ('lLengthExtended'          ,'l'    ,V_400B),
             ),
-            "LATE_4":
-            VersionedHeaderStructure(
-                ('nLength', 'h', V_400B),
-                ('nType', 'h', V_400B),
-                ('lReserved', 'l', V_400B),
-            )
-        }
+            "LATE_4" : VersionedHeaderStructure(
+                ('nLength'                  ,'h'    ,V_400B),
+                ('nType'                    ,'h'    ,V_400B),
+                ('lReserved'                ,'l'    ,V_400B),
+            )}
 
 
 class ChannelDTypeHeader(BiopacHeader):
@@ -428,7 +419,10 @@ class ChannelDTypeHeader(BiopacHeader):
     def type_code(self):
         return self.data['nType']
 
-    CODE_MAP = {1: 'f8', 2: 'i2'}
+    CODE_MAP = {
+        1: 'f8',
+        2: 'i2'
+    }
 
     @property
     def numpy_dtype(self):
@@ -447,8 +441,8 @@ class ChannelDTypeHeader(BiopacHeader):
     def __h_elts(self):
         # This lets the standard effective_len_bytes work fine, I think.
         return VersionedHeaderStructure(
-            ('nSize', 'h', V_20a),
-            ('nType', 'h', V_20a),
+        ('nSize'                    ,'h'    ,V_20a),
+        ('nType'                    ,'h'    ,V_20a),
         )
 
 
@@ -460,8 +454,11 @@ class PostMarkerHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('hUnknown1', 'h', V_20a), ('hUknnown2', 'h', V_20a),
-            ('lReps', 'l', V_20a), ('Unknown3', '80B', V_20a))
+            ('hUnknown1', 'h', V_20a),
+            ('hUknnown2', 'h', V_20a),
+            ('lReps', 'l', V_20a),
+            ('Unknown3', '80B', V_20a)
+        )
 
     @property
     def effective_len_bytes(self):
@@ -493,8 +490,10 @@ class V2JournalHeader(BiopacHeader):
 
     @property
     def __h_elts(self):
-        return VersionedHeaderStructure(('hUnknown', 'h', V_20a),
-                                        ('lJournalLen', 'l', V_20a))
+        return VersionedHeaderStructure(
+            ('hUnknown', 'h', V_20a),
+            ('lJournalLen', 'l', V_20a)
+        )
 
 
 class V4JournalLengthHeader(BiopacHeader):
@@ -514,7 +513,9 @@ class V4JournalLengthHeader(BiopacHeader):
 
     @property
     def __h_elts(self):
-        return VersionedHeaderStructure(('lJournalDataLen', 'l', V_400B))
+        return VersionedHeaderStructure(
+            ('lJournalDataLen', 'l', V_400B)
+        )
 
     @property
     def journal_len(self):
@@ -523,6 +524,7 @@ class V4JournalLengthHeader(BiopacHeader):
     @property
     def data_end(self):
         return self.offset + self.journal_len
+
 
 
 class V4JournalHeader(BiopacHeader):
@@ -547,11 +549,14 @@ class V4JournalHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('bUnknown1', '262b', V_400B), ('lEarlyJournalLen', 'l', V_400B),
-            ('bUnknown2', '290b', V_400B), ('bUnknown3', '26b', V_420),
+            ('bUnknown1', '262b', V_400B),
+            ('lEarlyJournalLen', 'l', V_400B),
+            ('bUnknown2', '290b', V_400B),
+            ('bUnknown3', '26b', V_420),
             ('bUnknown4', '4b', V_440),
             ('lLateJournalLenMinusOne', 'l', V_420),
-            ('lLateJournalLen', 'l', V_420))
+            ('lLateJournalLen', 'l', V_420)
+        )
 
     @property
     def journal_len(self):
@@ -578,12 +583,13 @@ class MainCompressionHeader(BiopacHeader):
         # Determined through experimentation, may not be correct for some
         # revisions. Or files, for that matter. We'll see.
         return {
-            'PRE_4':
-            lambda: (self.struct_dict.len_bytes + self.data['lTextLen']),
-            'POST_4':
-            lambda: (  # This is incorrect for data with journals
-                self.struct_dict.len_bytes + self.data['lStrLen1'] + self.data[
-                    'lStrLen2'])
+            'PRE_4': lambda: (
+                self.struct_dict.len_bytes + self.data['lTextLen']),
+            'POST_4': lambda: (  # This is incorrect for data with journals
+                self.struct_dict.len_bytes +
+                self.data['lStrLen1'] +
+                self.data['lStrLen2']
+                )
         }
 
     @property
@@ -602,11 +608,11 @@ class MainCompressionHeader(BiopacHeader):
     @property
     def __h_elts_versions(self):
         return {
-            'PRE_4':
-            VersionedHeaderStructure(('Unknown', '34B', V_20a),
-                                     ('lTextLen', 'l', V_20a)),
-            'POST_4':
-            VersionedHeaderStructure(
+            'PRE_4': VersionedHeaderStructure(
+                ('Unknown', '34B', V_20a),
+                ('lTextLen', 'l', V_20a)
+            ),
+            'POST_4': VersionedHeaderStructure(
                 ('Unknown1', '24B', V_400B),  # Should probably be 24.
                 ('lStrLen1', 'l', V_400B),
                 ('lStrLen2', 'l', V_400B),
@@ -639,8 +645,9 @@ class ChannelCompressionHeader(BiopacHeader):
         Immediately after this header, the compressed data starts -- it will
         be after the units text, and starts with 'x'.
         """
-        return (self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
-                self.data['lUnitLabelLen'])
+        return (
+            self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
+            self.data['lUnitLabelLen'])
 
     @property
     def compressed_data_offset(self):
@@ -657,11 +664,11 @@ class ChannelCompressionHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('Unknown', '44B', V_381),
-            ('lChannelLabelLen', 'l', V_381),
-            ('lUnitLabelLen', 'l', V_381),
-            ('lUncompressedLen', 'l', V_381),
-            ('lCompressedLen', 'l', V_381),
+        ('Unknown'                  ,'44B'  ,V_381),
+        ('lChannelLabelLen'         ,'l'    ,V_381),
+        ('lUnitLabelLen'            ,'l'    ,V_381),
+        ('lUncompressedLen'         ,'l'    ,V_381),
+        ('lCompressedLen'           ,'l'    ,V_381),
         )
 
 
@@ -679,8 +686,8 @@ class V2MarkerHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('lLength', 'l', V_20a),
-            ('lMarkers', 'l', V_20a),
+        ('lLength'              ,'l'    ,V_20a),
+        ('lMarkers'             ,'l'    ,V_20a),
         )
 
     @property
@@ -702,10 +709,15 @@ class V4MarkerHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('lLength', 'l', V_400B), ('lMarkersExtra', 'l', V_400B),
-            ('lMarkers', 'l', V_400B), ('Unknown', '6B', V_400B),
-            ('szDefl', '5s', V_400B), ('Unknown2', 'h', V_400B),
-            ('Unknown3', '8B', V_42x), ('Unknown4', '8B', V_440))
+        ('lLength'              ,'l'    ,V_400B),
+        ('lMarkersExtra'        ,'l'    ,V_400B),
+        ('lMarkers'             ,'l'    ,V_400B),
+        ('Unknown'              ,'6B'   ,V_400B),
+        ('szDefl'               ,'5s'   ,V_400B),
+        ('Unknown2'             ,'h'    ,V_400B),
+        ('Unknown3'             ,'8B'   ,V_42x),
+        ('Unknown4'             ,'8B'   ,V_440)
+        )
 
     # I'm not quite sure about these two marker count headers; they seem to
     # both be wrong.
@@ -726,11 +738,11 @@ class V2MarkerItemHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('lSample', 'l', V_20a),
-            ('fSelected', 'h', V_35x),
-            ('fTextLocked', 'h', V_20a),
-            ('fPositionLocked', 'h', V_20a),
-            ('nTextLength', 'h', V_20a),
+        ('lSample'              ,'l'    ,V_20a),
+        ('fSelected'            ,'h'    ,V_35x),
+        ('fTextLocked'          ,'h'    ,V_20a),
+        ('fPositionLocked'      ,'h'    ,V_20a),
+        ('nTextLength'          ,'h'    ,V_20a),
         )
 
     # Note: The spec says nTextLength includes the trailing null, but it
@@ -758,6 +770,7 @@ class V2MarkerItemHeader(BiopacHeader):
         return None
 
 
+
 class V4MarkerItemHeader(BiopacHeader):
     """
     Marker Items for files in Version 4 ownards.
@@ -770,13 +783,13 @@ class V4MarkerItemHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('lSample', 'l', V_400B),
-            ('Unknown', '4B', V_400B),
-            ('nChannel', 'h', V_400B),
-            ('sMarkerStyle', '4s', V_400B),
-            ('Uknnown2', '8B', V_42x),
-            ('Uknnown3', '8B', V_440),
-            ('nTextLength', 'h', V_400B),
+        ('lSample'              ,'l'    ,V_400B),
+        ('Unknown'              ,'4B'   ,V_400B),
+        ('nChannel'             ,'h'    ,V_400B),
+        ('sMarkerStyle'         ,'4s'   ,V_400B),
+        ('Uknnown2'             ,'8B'   ,V_42x),
+        ('Uknnown3'             ,'8B'   ,V_440),
+        ('nTextLength'          ,'h'    ,V_400B),
         )
 
     # Unlike in older versions, nTextLength does include the trailing null.

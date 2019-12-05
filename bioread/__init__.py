@@ -12,8 +12,7 @@ from __future__ import absolute_import
 
 from bioread import reader
 
-from ._metadata import author as __author__
-from ._metadata import version as __version__  # noqa
+from ._metadata import version as __version__, author as __author__  # noqa
 
 
 def read(filelike, channel_indexes=None, encoding='utf-8'):

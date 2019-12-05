@@ -9,25 +9,15 @@
 # Project home: http://github.com/njvack/bioread
 # Extended by Alexander Schlemmer.
 
-from __future__ import division, with_statement
-
-import logging
+from __future__ import with_statement, division
+from bioread.vendor import six
 import struct
 import zlib
 from contextlib import contextmanager
 
 import numpy as np
 
-import bioread.file_revisions as rev
-from bioread import headers as bh
-from bioread.biopac import Datafile, EventMarker
-from bioread.headers import (ChannelCompressionHeader, ChannelDTypeHeader,
-                             ChannelHeader, ForeignHeader, GraphHeader,
-                             MainCompressionHeader, PostMarkerHeader,
-                             V2JournalHeader, V4JournalHeader,
-                             V4JournalLengthHeader)
-from bioread.vendor import six
-
+import logging
 # Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread")
 logger.setLevel(logging.WARNING)
@@ -36,6 +26,15 @@ log_handler.setLevel(logging.DEBUG)
 log_handler.setFormatter(logging.Formatter("%(message)s"))
 if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
+
+import bioread.file_revisions as rev
+from bioread import headers as bh
+from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
+from bioread.headers import ForeignHeader, MainCompressionHeader
+from bioread.headers import ChannelCompressionHeader
+from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
+from bioread.headers import V4JournalLengthHeader
+from bioread.biopac import Datafile, EventMarker
 
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
@@ -98,8 +97,11 @@ class Reader(object):
         if self.is_compressed:
             raise TypeError('Streaming is not supported for compressed files')
         self.acq_file.seek(self.data_start_offset)
-        return make_chunk_reader(self.acq_file, self.datafile.channels,
-                                 channel_indexes, target_chunk_size)
+        return make_chunk_reader(
+            self.acq_file,
+            self.datafile.channels,
+            channel_indexes,
+            target_chunk_size)
 
     @property
     def is_compressed(self):
@@ -113,11 +115,11 @@ class Reader(object):
         channel_count = self.graph_header.channel_count
 
         ch_start = self.graph_header.effective_len_bytes
-        self.channel_headers = self.__multi_headers(channel_count, ch_start,
-                                                    ChannelHeader)
+        self.channel_headers = self.__multi_headers(channel_count,
+                                                    ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
 
-        fh_start = ch_start + len(self.channel_headers) * ch_len
+        fh_start = ch_start + len(self.channel_headers)*ch_len
         self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
@@ -127,7 +129,7 @@ class Reader(object):
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
 
-        self.samples_per_second = 1000 / self.graph_header.sample_time
+        self.samples_per_second = 1000/self.graph_header.sample_time
 
         self.datafile = Datafile(
             graph_header=self.graph_header,
@@ -173,31 +175,35 @@ class Reader(object):
         self.datafile.journal = self.journal
 
     def __read_journal_v2(self):
-        self.post_marker_header = self.__single_header(self.acq_file.tell(),
-                                                       PostMarkerHeader)
+        self.post_marker_header = self.__single_header(
+            self.acq_file.tell(), PostMarkerHeader)
         logger.debug(self.acq_file.tell())
         logger.debug(self.post_marker_header.rep_bytes)
         self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
         logger.debug(self.acq_file.tell())
-        self.journal_header = self.__single_header(self.acq_file.tell(),
-                                                   V2JournalHeader)
+        self.journal_header = self.__single_header(
+            self.acq_file.tell(), V2JournalHeader)
         self.journal = self.acq_file.read(
             self.journal_header.data['lJournalLen']).decode(
                 self.encoding).strip('\0')
 
     def __read_journal_v4(self):
         self.journal_length_header = self.__single_header(
-            self.acq_file.tell(), V4JournalLengthHeader)
+            self.acq_file.tell(),
+            V4JournalLengthHeader)
         journal_len = self.journal_length_header.journal_len
         self.journal = None
-        jh = V4JournalHeader(self.file_revision, self.byte_order_char)
+        jh = V4JournalHeader(
+            self.file_revision, self.byte_order_char)
         # If journal_length_header.journal_len is small, we don't have a
         # journal to read.
         if (jh.effective_len_bytes <= journal_len):
-            self.journal_header = self.__single_header(self.acq_file.tell(),
-                                                       V4JournalHeader)
+            self.journal_header = self.__single_header(
+                self.acq_file.tell(),
+                V4JournalHeader)
             logger.debug("Reading {0} bytes of journal at {1}".format(
-                self.journal_header.journal_len, self.acq_file.tell()))
+                self.journal_header.journal_len,
+                self.acq_file.tell()))
             self.journal = self.acq_file.read(
                 self.journal_header.journal_len).decode(
                     self.encoding).strip('\0')
@@ -236,8 +242,8 @@ class Reader(object):
         if self.file_revision >= rev.V_400B:
             mh_class = bh.V4MarkerHeader
             mih_class = bh.V4MarkerItemHeader
-        self.marker_header = self.__single_header(self.marker_start_offset,
-                                                  mh_class)
+        self.marker_header = self.__single_header(
+            self.marker_start_offset, mh_class)
         self.datafile.marker_header = self.marker_header
         self.__read_marker_items(mih_class)
 
@@ -248,19 +254,19 @@ class Reader(object):
         event_markers = []
         marker_item_headers = []
         for i in range(self.marker_header.marker_count):
-            mih = self.__single_header(self.acq_file.tell(),
-                                       marker_item_header_class)
+            mih = self.__single_header(
+                self.acq_file.tell(), marker_item_header_class)
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode(self.encoding).strip('\0')
             marker_item_headers.append(mih)
             marker_channel = self.datafile.channel_order_map.get(
                 mih.channel_number)
-            event_markers.append(
-                EventMarker(sample_index=mih.sample_index,
-                            text=marker_text,
-                            channel_number=mih.channel_number,
-                            channel=marker_channel,
-                            type_code=mih.type_code))
+            event_markers.append(EventMarker(
+                sample_index=mih.sample_index,
+                text=marker_text,
+                channel_number=mih.channel_number,
+                channel=marker_channel,
+                type_code=mih.type_code))
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers
         self.datafile.event_markers = event_markers
@@ -286,8 +292,11 @@ class Reader(object):
     def __read_data_uncompressed(self, channel_indexes, target_chunk_size):
         self.acq_file.seek(self.data_start_offset)
         # This will fill self.datafile.channels with data.
-        read_uncompressed(self.acq_file, self.datafile.channels,
-                          channel_indexes, target_chunk_size)
+        read_uncompressed(
+            self.acq_file,
+            self.datafile.channels,
+            channel_indexes,
+            target_chunk_size)
 
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
@@ -296,18 +305,19 @@ class Reader(object):
         # No byte order flag -- we're gonna figure it out.
         gh = GraphHeader(rev.V_ALL, '')
         ver_fmt_str = gh.format_string
-        ver_len = struct.calcsize('<' + ver_fmt_str)
+        ver_len = struct.calcsize('<'+ver_fmt_str)
         ver_data = self.acq_file.read(ver_len)
 
         byte_order_chars = ['<', '>']
         # Try both ways.
-        byte_order_versions = [(struct.unpack(boc + ver_fmt_str,
-                                              ver_data)[1], boc)
-                               for boc in byte_order_chars]
+        byte_order_versions = [
+            (struct.unpack(boc+ver_fmt_str, ver_data)[1], boc)
+            for boc in byte_order_chars
+        ]
 
         # Limit to positive numbers, choose smallest.
-        byte_order_versions = sorted(
-            [bp for bp in byte_order_versions if bp[0] > 0])
+        byte_order_versions = sorted([
+            bp for bp in byte_order_versions if bp[0] > 0])
         bp = byte_order_versions[0]
 
         self.byte_order_char = bp[1]
@@ -326,9 +336,9 @@ def open_or_yield(thing, mode):
     """
     if isinstance(thing, six.string_types):
         with open(thing, mode) as f:
-            yield (f)
+            yield(f)
     else:
-        yield (thing)
+        yield(thing)
 
 
 class ChunkBuffer(object):
@@ -338,10 +348,11 @@ class ChunkBuffer(object):
         self.channel_slice = slice(0, 0)
 
 
-def read_uncompressed(f,
-                      channels,
-                      channel_indexes=None,
-                      target_chunk_size=CHUNK_SIZE):
+def read_uncompressed(
+        f,
+        channels,
+        channel_indexes=None,
+        target_chunk_size=CHUNK_SIZE):
     """
     Read the uncompressed data.
 
@@ -379,8 +390,8 @@ def read_uncompressed(f,
     for i in channel_indexes:
         channels[i]._allocate_raw_data()
 
-    chunker = make_chunk_reader(f, channels, channel_indexes,
-                                target_chunk_size)
+    chunker = make_chunk_reader(
+        f, channels, channel_indexes, target_chunk_size)
     for chunk_buffers in chunker:
         for i in channel_indexes:
             ch = channels[i]
@@ -390,10 +401,11 @@ def read_uncompressed(f,
             ch.raw_data[buf.channel_slice] = buf.buffer[:]
 
 
-def make_chunk_reader(f,
-                      channels,
-                      channel_indexes=None,
-                      target_chunk_size=CHUNK_SIZE):
+def make_chunk_reader(
+        f,
+        channels,
+        channel_indexes=None,
+        target_chunk_size=CHUNK_SIZE):
 
     if channel_indexes is None:
         channel_indexes = np.arange(len(channels))
@@ -418,16 +430,16 @@ def read_chunks(f, buffers, byte_pattern, channel_indexes):
         chunk_bytes = len(pat)
         logger.debug('Chunk {0}: {1} bytes at {2}'.format(
             chunk_number, chunk_bytes, f.tell()))
-        chunk_data = np.fromstring(f.read(chunk_bytes),
-                                   dtype="b",
-                                   count=chunk_bytes)
-        update_buffers_with_data(chunk_data, buffers, pat, channel_indexes)
+        chunk_data = np.fromstring(
+            f.read(chunk_bytes), dtype="b", count=chunk_bytes)
+        update_buffers_with_data(
+            chunk_data, buffers, pat, channel_indexes)
 
         yield buffers
         channel_bytes_remaining -= np.bincount(
             pat, minlength=len(channel_bytes_remaining))
-        logger.debug(
-            'Channel bytes remaining: {0}'.format(channel_bytes_remaining))
+        logger.debug('Channel bytes remaining: {0}'.format(
+            channel_bytes_remaining))
         chunk_number += 1
 
 
@@ -466,8 +478,8 @@ def update_buffers_with_data(data, buffers, byte_pattern, channel_indexes):
         buf.buffer = data[trimmed_pattern == i]
         buf.buffer.dtype = buf.channel.dtype
         old_slice = buf.channel_slice
-        buf.channel_slice = slice(old_slice.stop,
-                                  old_slice.stop + len(buf.buffer))
+        buf.channel_slice = slice(
+            old_slice.stop, old_slice.stop + len(buf.buffer))
 
 
 def chunk_byte_pattern(channels, target_chunk_size):
@@ -508,7 +520,9 @@ def sample_pattern(frequency_dividers):
     dividers = np.array(frequency_dividers)
     channel_count = len(dividers)
     base_len = least_common_multiple(*dividers)
-    pattern_slots = np.arange(base_len).repeat(channel_count).reshape(
+    pattern_slots = np.arange(
+        base_len).repeat(
+        channel_count).reshape(
         (base_len, channel_count))
     pattern_mask = ((pattern_slots % dividers) == 0)
     channel_slots = np.tile(np.arange(channel_count), (base_len, 1))
