@@ -184,11 +184,17 @@ def test_text_journals_match(test_file, canon_data):
 
     assert test_journal == canon_journal
 
-
 def test_reading_r35_file():
     filename = path.join(DATA_PATH, "misc", "r35_test.acq")
     test_data = bioread.read(filename)  # This will raise an exception on fail
     assert len(test_data.channels) == 2
+
+def test_read_iso_8859_1():
+    filename = path.join(DATA_PATH, "misc", "iso_8859_1.acq")
+    test_data = bioread.read(filename, encoding='iso_8859_1')  # This will raise an exception on fail
+
+    assert len(test_data.channels)==4
+
 
 
 # This is kind of intense for something used by tests -- but the deal is:

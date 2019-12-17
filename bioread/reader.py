@@ -40,8 +40,9 @@ CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
 
 class Reader(object):
-    def __init__(self, acq_file=None):
+    def __init__(self, acq_file=None, encoding='utf-8'):
         self.acq_file = acq_file
+        self.encoding = encoding
         self.datafile = None
         # This must be set by _set_order_and_version
         self.byte_order_char = None
@@ -60,7 +61,11 @@ class Reader(object):
         self.event_markers = None
 
     @classmethod
-    def read(cls, fo, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
+    def read(cls,
+             fo,
+             channel_indexes=None,
+             target_chunk_size=CHUNK_SIZE,
+             encoding='utf-8'):
         """ Read a biopac file into memory.
 
         fo: The name of the file to read, or a file-like object
@@ -70,7 +75,7 @@ class Reader(object):
         returns: reader.Reader.
         """
         with open_or_yield(fo, 'rb') as io:
-            reader = cls(io)
+            reader = cls(io, encoding=encoding)
             reader._read_headers()
             reader._read_data(channel_indexes, target_chunk_size)
         return reader
@@ -180,7 +185,7 @@ class Reader(object):
             self.acq_file.tell(), V2JournalHeader)
         self.journal = self.acq_file.read(
             self.journal_header.data['lJournalLen']).decode(
-            'utf-8').strip('\0')
+                self.encoding).strip('\0')
 
     def __read_journal_v4(self):
         self.journal_length_header = self.__single_header(
@@ -200,7 +205,8 @@ class Reader(object):
                 self.journal_header.journal_len,
                 self.acq_file.tell()))
             self.journal = self.acq_file.read(
-                self.journal_header.journal_len).decode('utf-8').strip('\0')
+                self.journal_header.journal_len).decode(
+                    self.encoding).strip('\0')
         # Either way, we should seek to this point.
         self.acq_file.seek(self.journal_length_header.data_end)
 
@@ -213,9 +219,10 @@ class Reader(object):
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
-            logger.debug(
-                "Reading {0} at offset {1}".format(h_class, h_offset))
-            h = h_class(self.file_revision, self.byte_order_char)
+            logger.debug("Reading {0} at offset {1}".format(h_class, h_offset))
+            h = h_class(self.file_revision,
+                        self.byte_order_char,
+                        encoding=self.encoding)
             h.unpack_from_file(self.acq_file, h_offset)
             last_h_len = h.effective_len_bytes
             headers.append(h)
@@ -250,7 +257,7 @@ class Reader(object):
             mih = self.__single_header(
                 self.acq_file.tell(), marker_item_header_class)
             marker_text_bytes = self.acq_file.read(mih.text_length)
-            marker_text = marker_text_bytes.decode('utf-8').strip('\0')
+            marker_text = marker_text_bytes.decode(self.encoding).strip('\0')
             marker_item_headers.append(mih)
             marker_channel = self.datafile.channel_order_map.get(
                 mih.channel_number)
