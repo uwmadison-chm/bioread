@@ -455,7 +455,7 @@ class PostMarkerHeader(BiopacHeader):
     def __h_elts(self):
         return VersionedHeaderStructure(
             ('hUnknown1', 'h', V_20a),
-            ('hUknnown2', 'h', V_20a),
+            ('hUnknown2', 'h', V_20a),
             ('lReps', 'l', V_20a),
             ('Unknown3', '80B', V_20a)
         )
@@ -765,6 +765,11 @@ class V2MarkerItemHeader(BiopacHeader):
         return None
 
     @property
+    def date_created_ms(self):
+        """ markers don't get "Date created" until v. 4.4.0 """
+        return None
+
+    @property
     def type_code(self):
         """ These markers don't get type_codes, but it's OK """
         return None
@@ -777,7 +782,7 @@ class V4MarkerItemHeader(BiopacHeader):
     """
 
     def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_chari,
+        super().__init__(self.__h_elts, file_revision, byte_order_char,
                          **kwargs)
 
     @property
@@ -787,8 +792,8 @@ class V4MarkerItemHeader(BiopacHeader):
         ('Unknown'              ,'4B'   ,V_400B),
         ('nChannel'             ,'h'    ,V_400B),
         ('sMarkerStyle'         ,'4s'   ,V_400B),
-        ('Uknnown2'             ,'8B'   ,V_42x),
-        ('Uknnown3'             ,'8B'   ,V_440),
+        ('llDateCreated'        ,'Q'    ,V_440),
+        ('Unknown3'             ,'8B'   ,V_42x),
         ('nTextLength'          ,'h'    ,V_400B),
         )
 
@@ -808,6 +813,14 @@ class V4MarkerItemHeader(BiopacHeader):
         if chan == -1:
             chan = None
         return chan
+
+    @property
+    def date_created_ms(self):
+        """ Date when marker was created (in ms since 1970-01-01) """
+        if self.file_revision < V_440:
+            return None
+        else:
+            return self.data['llDateCreated']
 
     @property
     def type_code(self):

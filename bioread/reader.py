@@ -266,6 +266,7 @@ class Reader(object):
                 text=marker_text,
                 channel_number=mih.channel_number,
                 channel=marker_channel,
+                date_created_ms=mih.date_created_ms,
                 type_code=mih.type_code))
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers

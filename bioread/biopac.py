@@ -10,6 +10,9 @@
 
 from __future__ import division
 import numpy as np
+from datetime import datetime, timezone, timedelta
+
+REF_DATE = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class Datafile(object):
@@ -246,12 +249,14 @@ class EventMarker(object):
             text,
             channel_number,
             channel=None,
+            date_created_ms=None,
             type_code=None):
 
         self.sample_index = sample_index
         self.text = text
         self.channel_number = channel_number
         self.channel = channel
+        self.date_created_utc = (REF_DATE + timedelta(milliseconds=date_created_ms)).ctime() if date_created_ms else  None
         self.type_code = type_code
         super(EventMarker, self).__init__()
 
@@ -260,14 +265,16 @@ class EventMarker(object):
             self.sample_index == other.sample_index,
             self.text == other.text,
             self.channel_number == other.channel_number,
+            self.date_created_utc == other.date_created_utc,
             self.type_code == other.type_code
         ])
 
     def __str__(self):
-        return("EventMarker {}: idx: {} channel: {} type_code: {}".format(
+        return("EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(
             self.text,
             self.sample_index,
             self.channel_number,
+            self.date_created_utc,
             self.type_code))
 
     def __repr__(self):
