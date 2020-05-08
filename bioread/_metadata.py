@@ -8,13 +8,14 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
-from __future__ import absolute_import
+# NOTE: This file must not import anything, or it will break installation.
 
-from bioread import version as ver
+version_tuple = (1, 0, 4)
+version = ".".join([str(p) for p in version_tuple])
+version_description = "bioread {0}".format(version)
 
-version = ver.version_str()
 author = "Nate Vack"
-author_email = "njvack@freshforever.net"
+author_email = "njvack@wisc.edu"
 license = "GPL 2.0"
 copyright = "Copyright 2016 Boards of Regent of the University of Wisconsin System"  # noqa
 url = "https://github.com/njvack/bioread"

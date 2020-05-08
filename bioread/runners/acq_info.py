@@ -32,7 +32,7 @@ from bioread.vendor.six import BytesIO
 from bioread.vendor.docopt import docopt
 
 from bioread.reader import Reader
-from bioread import version
+from bioread import _metadata as meta
 
 
 def main(argv=None):
@@ -63,7 +63,7 @@ class AcqInfoRunner(object):
         pargs = docopt(
             __doc__,
             self.argv,
-            version=version.description)
+            version=meta.version_description)
 
         df = None
         infile = pargs['<acq_file>']

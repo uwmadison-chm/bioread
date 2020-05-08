@@ -47,7 +47,7 @@ except ImportError:
     sys.exit(1)
 
 
-from bioread import version
+from bioread import _metadata as meta
 from bioread import reader as br
 from bioread.vendor.docopt import docopt
 
@@ -67,7 +67,7 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    pargs = docopt(__doc__, argv, version=version.description)
+    pargs = docopt(__doc__, argv, version=meta.version_description)
     if pargs['--verbose']:
         logger.setLevel(logging.DEBUG)
     br.logger.setLevel(logger.level)

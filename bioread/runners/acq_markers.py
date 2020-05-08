@@ -31,7 +31,7 @@ import csv
 
 from bioread.vendor.docopt import docopt
 from bioread import reader
-from bioread import version
+from bioread import _metadata as meta
 
 
 FIELDS = [
@@ -90,7 +90,7 @@ def main(args=None):
     pargs = docopt(
         __doc__,
         args,
-        version=version.description)
+        version=meta.version_description)
 
     if pargs['-o']:
         return acq_markers_output_file(pargs['<file>'], pargs['-o'])

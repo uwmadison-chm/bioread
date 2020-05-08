@@ -32,7 +32,7 @@ from bioread.vendor.docopt import docopt
 
 from bioread.reader import Reader
 from bioread.writers.matlabwriter import MatlabWriter
-from bioread import version
+from bioread import _metadata as meta
 
 
 def main(argv=None):
@@ -58,7 +58,7 @@ class AcqToMatRunner(object):
         pargs = docopt(
             __doc__,
             self.argv,
-            version=version.description)
+            version=meta.version_description)
         try:
             import scipy  # noqa -- catch this error before matlabwriter
         except:

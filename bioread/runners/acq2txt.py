@@ -38,7 +38,7 @@ from bioread.vendor.docopt import docopt
 
 import bioread
 from bioread.writers import txtwriter
-from bioread import version
+from bioread import _metadata as meta
 
 
 def main(argv=None):
@@ -59,7 +59,7 @@ class AcqToTxtRunner(object):
         pargs = docopt(
             __doc__,
             self.argv,
-            version=version.description)
+            version=meta.version_description)
         infile = pargs['<acq_file>']
         channel_indexes = None
         if pargs['--channel-indexes']:
