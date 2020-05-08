@@ -1,7 +1,7 @@
 {
     "description": "Utilities to work with files from BIOPAC's AcqKnowlege software",
-    "title": "uwmadison-chm/bioread: 1.0.4",
-    "version": "1.0.4",
+    "title": "uwmadison-chm/bioread: 1.0.5",
+    "version": "1.0.5",
     "upload_type": "software",
     "publication_date": "2019-08-21",
     "creators": [
