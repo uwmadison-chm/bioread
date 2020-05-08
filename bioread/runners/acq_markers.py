@@ -39,6 +39,7 @@ FIELDS = [
     'time (s)',
     'label',
     'channel',
+    'date_created',
     'type_code',
     'type'
 ]
@@ -60,6 +61,7 @@ def marker_formatter(acq_filename, graph_sample_msec):
             'time (s)': (marker.sample_index * graph_sample_msec) / 1000,
             'label': uf(marker.text),
             'channel': uf(marker.channel_name or 'Global'),
+            'date_created': uf(marker.date_created_utc.ctime() or 'Unknown'),
             'type_code': uf(marker.type_code or 'None'),
             'type': uf(marker.type)
         }

@@ -266,6 +266,7 @@ class Reader(object):
                 text=marker_text,
                 channel_number=mih.channel_number,
                 channel=marker_channel,
+                date_created_ms=mih.date_created_ms,
                 type_code=mih.type_code))
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers
@@ -287,7 +288,7 @@ class Reader(object):
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            channel.raw_data = np.fromstring(decomp_data, dtype=dt)
+            channel.raw_data = np.frombuffer(decomp_data, dtype=dt)
 
     def __read_data_uncompressed(self, channel_indexes, target_chunk_size):
         self.acq_file.seek(self.data_start_offset)
@@ -430,7 +431,7 @@ def read_chunks(f, buffers, byte_pattern, channel_indexes):
         chunk_bytes = len(pat)
         logger.debug('Chunk {0}: {1} bytes at {2}'.format(
             chunk_number, chunk_bytes, f.tell()))
-        chunk_data = np.fromstring(
+        chunk_data = np.frombuffer(
             f.read(chunk_bytes), dtype="b", count=chunk_bytes)
         update_buffers_with_data(
             chunk_data, buffers, pat, channel_indexes)

@@ -26,3 +26,4 @@ def test_acq_info_runs(capsys):
     acq_info.main([DATA_FILE])
     out, err = capsys.readouterr()
     assert len(out) > 0
+    assert 'Tue Feb  2 16:30:56 2016' in out

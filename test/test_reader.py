@@ -88,7 +88,7 @@ def test_reading(pathname):
     assert Reader.read(pathname), 'Error reading {0}'.format(pathname)
 
 
-@pytest.fixture(scope='module')
+#@pytest.fixture(scope='module')
 def canonical_files():
     versions = ['3.8.1', '4.1.0', '4.4.0']
     return dict(

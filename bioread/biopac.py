@@ -10,6 +10,9 @@
 
 from __future__ import division
 import numpy as np
+from datetime import datetime, timezone, timedelta
+
+REF_DATE = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 class Datafile(object):
@@ -80,6 +83,28 @@ class Datafile(object):
         total_seconds = total_samples / self.samples_per_second
         self.__time_index = np.linspace(0, total_seconds, total_samples)
         return self.__time_index
+
+    @property
+    def created_at(self):
+        """
+        Guess date at which the file was created by finding the
+        minimum date_created_utc from the event markers, or return
+        None if there are no markers our markers don't
+        have date_created_utc
+        """
+        if (
+            self.event_markers is None
+            or all([m.date_created_utc is None for m in self.event_markers])
+        ):
+            return None
+        min_event_time, min_event_idx = min(
+            (m.date_created_utc, idx) for (idx, m) in enumerate(self.event_markers))
+        # The time in ms from the beginning of the recording to the
+        # event with min_event_time:
+        delta_time_first_event = timedelta(milliseconds=
+            self.event_markers[min_event_idx].sample_index
+            * self.graph_header.sample_time)
+        return (min_event_time - delta_time_first_event).ctime()
 
     def __build_channels(self):
         return [
@@ -246,12 +271,14 @@ class EventMarker(object):
             text,
             channel_number,
             channel=None,
+            date_created_ms=None,
             type_code=None):
 
         self.sample_index = sample_index
         self.text = text
         self.channel_number = channel_number
         self.channel = channel
+        self.date_created_utc = REF_DATE + timedelta(milliseconds=date_created_ms) if date_created_ms else  None
         self.type_code = type_code
         super(EventMarker, self).__init__()
 
@@ -260,14 +287,16 @@ class EventMarker(object):
             self.sample_index == other.sample_index,
             self.text == other.text,
             self.channel_number == other.channel_number,
+            self.date_created_utc == other.date_created_utc,
             self.type_code == other.type_code
         ])
 
     def __str__(self):
-        return("EventMarker {}: idx: {} channel: {} type_code: {}".format(
+        return("EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(
             self.text,
             self.sample_index,
             self.channel_number,
+            self.date_created_utc.ctime(),
             self.type_code))
 
     def __repr__(self):
