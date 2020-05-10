@@ -10,7 +10,7 @@
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement, division
-from bioread.vendor import six
+import six
 import struct
 import zlib
 from contextlib import contextmanager

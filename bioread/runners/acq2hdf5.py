@@ -49,7 +49,7 @@ except ImportError:
 
 from bioread import _metadata as meta
 from bioread import reader as br
-from bioread.vendor.docopt import docopt
+from docopt import docopt
 
 COMPRESSION_OPTS = {
     'none': {},

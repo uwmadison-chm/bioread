@@ -34,7 +34,7 @@ converted with scale and offset into native units.
 
 import sys
 
-from bioread.vendor.docopt import docopt
+from docopt import docopt
 
 import bioread
 from bioread.writers import txtwriter

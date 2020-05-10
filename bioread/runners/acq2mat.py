@@ -28,7 +28,7 @@ Note: scipy is required for this program.
 from __future__ import absolute_import
 
 import sys
-from bioread.vendor.docopt import docopt
+from docopt import docopt
 
 from bioread.reader import Reader
 from bioread.writers.matlabwriter import MatlabWriter

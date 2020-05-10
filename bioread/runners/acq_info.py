@@ -28,8 +28,8 @@ Note: Using - for <acq_file> reads from stdin.
 
 import sys
 
-from bioread.vendor.six import BytesIO
-from bioread.vendor.docopt import docopt
+from six import BytesIO
+from docopt import docopt
 
 from bioread.reader import Reader
 from bioread import _metadata as meta
