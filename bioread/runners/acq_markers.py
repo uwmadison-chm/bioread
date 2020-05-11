@@ -29,7 +29,7 @@ from __future__ import (
 import sys
 import csv
 
-from bioread.vendor.docopt import docopt
+from docopt import docopt
 from bioread import reader
 from bioread import _metadata as meta
 
