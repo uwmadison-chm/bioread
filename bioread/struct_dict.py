@@ -12,8 +12,6 @@
 
 from __future__ import absolute_import
 
-from bioread.vendor.ordereddict import OrderedDict
-
 import struct
 
 
@@ -54,7 +52,7 @@ class StructDict(object):
         """
         self.__setup()
         unpacked = struct.unpack(self.format_string, data)
-        output = OrderedDict()
+        output = {}
         for name, fs, start_index, end_index in self.full_struct_info:
             l = end_index-start_index
             if l == 1:
