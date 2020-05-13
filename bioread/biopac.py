@@ -85,26 +85,22 @@ class Datafile(object):
         return self.__time_index
 
     @property
-    def created_at(self):
+    def earliest_event_created_at(self):
         """
         Guess date at which the file was created by finding the
         minimum date_created_utc from the event markers, or return
         None if there are no markers our markers don't
         have date_created_utc
         """
-        if (
-            self.event_markers is None
-            or all([m.date_created_utc is None for m in self.event_markers])
-        ):
+        if self.event_markers is None:
             return None
-        min_event_time, min_event_idx = min(
-            (m.date_created_utc, idx) for (idx, m) in enumerate(self.event_markers))
-        # The time in ms from the beginning of the recording to the
-        # event with min_event_time:
-        delta_time_first_event = timedelta(milliseconds=
-            self.event_markers[min_event_idx].sample_index
-            * self.graph_header.sample_time)
-        return (min_event_time - delta_time_first_event).ctime()
+        created_times = [
+            m.date_created_utc for m in self.event_markers
+            if m.date_created_utc]
+        try:
+            return min(created_times)
+        except (ValueError, TypeError):
+            return None
 
     def __build_channels(self):
         return [
