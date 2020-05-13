@@ -97,7 +97,10 @@ class AcqInfoRunner(object):
         cdhs = self.reader.channel_dtype_headers
         print("File revision: %s" % gh.file_revision)
         if self.reader.datafile is not None:
-            print("Created: %s" % self.reader.datafile.created_at)
+            print(
+                "Earliest event marker created at: %s" %
+                self.reader.datafile.earliest_marker_created_at.isoformat()
+            )
         print("Sample time: %s" % gh.sample_time)
         print("Compressed: %s" % gh.compressed)
         print("Number of channels: %s" % gh.channel_count)

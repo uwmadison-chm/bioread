@@ -207,7 +207,7 @@ def save_markers(hdf5_file, datafile, dset_map):
             mg.attrs['type_code'] = m.type_code
             mg.attrs['type'] = m.type
         if m.date_created_utc:
-            mg.attrs['date_created'] = m.date_created_utc.ctime()
+            mg.attrs['date_created'] = m.date_created_utc.isoformat()
         if m.channel:
             mg.attrs['channel_number'] = m.channel_number
             cdset = dset_map[m.channel_number]

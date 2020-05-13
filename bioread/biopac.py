@@ -292,7 +292,7 @@ class EventMarker(object):
             self.text,
             self.sample_index,
             self.channel_number,
-            self.date_created_utc.ctime(),
+            self.date_created_utc.isoformat(),
             self.type_code))
 
     def __repr__(self):
