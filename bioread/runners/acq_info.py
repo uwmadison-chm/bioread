@@ -28,7 +28,7 @@ Note: Using - for <acq_file> reads from stdin.
 
 import sys
 
-from six import BytesIO
+from io import BytesIO
 from docopt import docopt
 
 from bioread.reader import Reader

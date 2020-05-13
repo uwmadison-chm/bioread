@@ -20,6 +20,8 @@ pip install bioread
 
 Bioread requires the excellent [NumPy](http://numpy.scipy.org/) package, and writing Matlab files requires [SciPy](http://scipy.org/). Writing HDF5 files requires [h5py](http://www.h5py.org/).
 
+As of May 2020 (version 2), we now require Python 3.6 or later. Versions 1.0.4 and below should work with Python 2.7 and up.
+
 ## API Usage:
 
 * [jupyter notebook: Quick Demo](http://uwmadison-chm.github.io/bioread/bioread_quick_demo.html)
@@ -229,12 +231,6 @@ In addition, developer Mike Davison did a great job figuring out additional .acq
 ## Credits
 
 This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot of initial research done by John Ollinger.
-
-Bioread packages a couple great libraries:
-
-[six](http://pythonhosted.org/six/) is copyright (c) 2010-2015 Benjamin Peterson.
-
-[docopt](https://github.com/docopt/docopt) is copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>.
 
 ## Copyright & Disclaimers
 

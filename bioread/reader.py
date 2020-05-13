@@ -10,7 +10,6 @@
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement, division
-import six
 import struct
 import zlib
 from contextlib import contextmanager
@@ -336,7 +335,7 @@ def open_or_yield(thing, mode):
     This lets you use a filename, open file, other IO object. If 'thing' was
     a filename, the file is guaranteed to be closed after yielding.
     """
-    if isinstance(thing, six.string_types):
+    if isinstance(thing, str):
         with open(thing, mode) as f:
             yield(f)
     else:
