@@ -85,7 +85,7 @@ class Datafile(object):
         return self.__time_index
 
     @property
-    def earliest_event_created_at(self):
+    def earliest_marker_created_at(self):
         """
         Guess date at which the file was created by finding the
         minimum date_created_utc from the event markers, or return
