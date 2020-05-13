@@ -72,14 +72,14 @@ class AcqInfoRunner(object):
                 df = BytesIO(sys.stdin.read())
             else:
                 df = open(infile, 'rb')
-        except:
+        except Exception:
             sys.stderr.write("Error reading {0}\n".format(infile))
             sys.exit(1)
 
         self.reader = Reader(df)
         try:
             self.reader._read_headers()
-        except:
+        except Exception:
             sys.stderr.write("Error reading headers!\n")
             # Don't exit here; it'll still print what it can.
 

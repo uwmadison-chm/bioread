@@ -17,6 +17,15 @@ from contextlib import contextmanager
 
 import numpy as np
 
+import bioread.file_revisions as rev
+from bioread import headers as bh
+from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
+from bioread.headers import ForeignHeader, MainCompressionHeader
+from bioread.headers import ChannelCompressionHeader
+from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
+from bioread.headers import V4JournalLengthHeader
+from bioread.biopac import Datafile, EventMarker
+
 import logging
 # Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread")
@@ -27,14 +36,6 @@ log_handler.setFormatter(logging.Formatter("%(message)s"))
 if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
 
-import bioread.file_revisions as rev
-from bioread import headers as bh
-from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
-from bioread.headers import ForeignHeader, MainCompressionHeader
-from bioread.headers import ChannelCompressionHeader
-from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
-from bioread.headers import V4JournalLengthHeader
-from bioread.biopac import Datafile, EventMarker
 
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 

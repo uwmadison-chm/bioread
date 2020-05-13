@@ -274,7 +274,11 @@ class EventMarker(object):
         self.text = text
         self.channel_number = channel_number
         self.channel = channel
-        self.date_created_utc = REF_DATE + timedelta(milliseconds=date_created_ms) if date_created_ms else  None
+        self.date_created_utc = None
+        if date_created_ms is not None:
+            self.date_created_utc = (
+                REF_DATE + timedelta(milliseconds=date_created_ms)
+            )
         self.type_code = type_code
         super(EventMarker, self).__init__()
 
@@ -288,7 +292,7 @@ class EventMarker(object):
         ])
 
     def __str__(self):
-        return("EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(
+        return("EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(  # noqa: E501
             self.text,
             self.sample_index,
             self.channel_number,

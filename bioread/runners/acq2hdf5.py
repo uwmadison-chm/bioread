@@ -33,6 +33,11 @@ Options:
 
 import sys
 import logging
+
+from bioread import _metadata as meta
+from bioread import reader as br
+from docopt import docopt
+
 # Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread.runners.acq2hdf5")
 logger.setLevel(logging.INFO)
@@ -46,10 +51,6 @@ except ImportError:
     logger.error("acq2hdf5 requires h5py")
     sys.exit(1)
 
-
-from bioread import _metadata as meta
-from bioread import reader as br
-from docopt import docopt
 
 COMPRESSION_OPTS = {
     'none': {},

@@ -8,6 +8,8 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
+# flake8: noqa: E741
+
 from __future__ import absolute_import
 
 from bioread.vendor.ordereddict import OrderedDict
@@ -122,7 +124,7 @@ class StructDict(object):
         f_len = struct.calcsize(f_str)
         dummy = struct.pack('%ss' % f_len, b'')
         unpacked = struct.unpack(f_str, dummy)
-        return len(unpacked) # The number of elements in the tuple
+        return len(unpacked)  # The number of elements in the tuple
 
     def __full_struct_info(self):
         full_struct_info = []

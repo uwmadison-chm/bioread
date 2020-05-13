@@ -8,6 +8,8 @@
 # Wisconsin-Madison
 # Project home: http://github.com/njvack/bioread
 
+# flake8: noqa: E203, E231, E741, E405, E403
+
 from bioread.struct_dict import StructDict
 from bioread.file_revisions import *
 

@@ -61,7 +61,7 @@ class AcqToMatRunner(object):
             version=meta.version_description)
         try:
             import scipy  # noqa -- catch this error before matlabwriter
-        except:
+        except Exception:
             sys.stderr.write("scipy is required for writing matlab files\n")
             sys.exit(1)
         infile = pargs['<acq_file>']
