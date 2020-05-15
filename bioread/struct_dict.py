@@ -10,6 +10,10 @@
 
 # flake8: noqa: E741
 
+# Note that the concept of this is fundamentally silly, I'd use ctypes if I were
+# going ot build something like this again. But I didn't know about ctypes when
+# I started.
+
 from __future__ import absolute_import
 
 import struct

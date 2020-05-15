@@ -10,6 +10,15 @@
 
 # flake8: noqa: E203, E231, E741, E405, E403
 
+# If I were to do this over again, I'd probably design it differently, without
+# the somewhat weird versioning structure, as well as using ctypes instead
+# of the weird StructDict thing we have.
+# But, you know what? It's not worth changing this now, unless there turns out
+# to be a compelling reason in the future.
+# But if you're ever looking to do something similar, probably don't use this as
+# a template of good code.
+
+
 from bioread.struct_dict import StructDict
 from bioread.file_revisions import *
 
