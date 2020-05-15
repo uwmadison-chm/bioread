@@ -18,7 +18,16 @@ We're up in [pypi](http://pypi.python.org/pypi), so installing should be as simp
 pip install bioread
 ```
 
-Bioread requires the excellent [NumPy](http://numpy.scipy.org/) package, and writing Matlab files requires [SciPy](http://scipy.org/). Writing HDF5 files requires [h5py](http://www.h5py.org/).
+Some of the optional parts of bioread depend on external libraries. `acq2hdf5` depends on [h5py](https://www.h5py.org/) and `acq2mat` depends on [scipy](https://www.scipy.org/), but as neither of those are core parts of bioread (and can be hairy to get working on some systems), they aren't installed by default. To get them, do:
+
+```
+# Just h5py
+pip install bioread[hdf5]
+# Just scipy
+pip install bioread[mat]
+# The whole shebang
+pip install bioread[all]
+```
 
 As of May 2020 (version 2), we now require Python 3.6 or later. Versions 1.0.4 and below should work with Python 2.7 and up.
 
