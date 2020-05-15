@@ -7,6 +7,7 @@ import bioread
 data = bioread.read('myfile.acq')
 
 data.graph_header.file_revision
+data.earliest_marker_created_at
 
 len(data.channels)
 
