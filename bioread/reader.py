@@ -40,9 +40,9 @@ CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
 
 class Reader(object):
-    def __init__(self, acq_file=None, encoding='utf-8'):
+    def __init__(self, acq_file=None):
         self.acq_file = acq_file
-        self.encoding = encoding
+        self.encoding = None  # We're gonna guess from _set_order_and_version
         self.datafile = None
         # This must be set by _set_order_and_version
         self.byte_order_char = None
@@ -55,6 +55,7 @@ class Reader(object):
         self.main_compression_header = None
         self.channel_compression_headers = []
         self.data_start_offset = None
+        self.data_length = None
         self.marker_start_offset = None
         self.marker_header = None
         self.marker_item_headers = None
@@ -64,8 +65,7 @@ class Reader(object):
     def read(cls,
              fo,
              channel_indexes=None,
-             target_chunk_size=CHUNK_SIZE,
-             encoding='utf-8'):
+             target_chunk_size=CHUNK_SIZE):
         """ Read a biopac file into memory.
 
         fo: The name of the file to read, or a file-like object
@@ -75,7 +75,7 @@ class Reader(object):
         returns: reader.Reader.
         """
         with open_or_yield(fo, 'rb') as io:
-            reader = cls(io, encoding=encoding)
+            reader = cls(io)
             reader._read_headers()
             reader._read_data(channel_indexes, target_chunk_size)
         return reader
@@ -108,6 +108,7 @@ class Reader(object):
         return self.graph_header.compressed
 
     def _read_headers(self):
+        logger.debug("I am in _read_headers")
         if self.byte_order_char is None:
             self.__set_order_and_version()
 
@@ -128,9 +129,11 @@ class Reader(object):
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
+        logger.debug("Computed data start offset: %s" % self.data_start_offset)
 
         self.samples_per_second = 1000/self.graph_header.sample_time
 
+        logger.debug("About to allocate a Datafile")
         self.datafile = Datafile(
             graph_header=self.graph_header,
             channel_headers=self.channel_headers,
@@ -138,7 +141,10 @@ class Reader(object):
             channel_dtype_headers=self.channel_dtype_headers,
             samples_per_second=self.samples_per_second)
 
+        logger.debug("Allocated a datafile!")
+
         self.data_length = self.datafile.data_length
+        logger.debug("Computed data length: %s" % self.data_length)
 
         # In compressed files, markers come before compressed data. But
         # data_length is 0 for compressed files.
@@ -177,7 +183,7 @@ class Reader(object):
     def __read_journal_v2(self):
         self.post_marker_header = self.__single_header(
             self.acq_file.tell(), PostMarkerHeader)
-        logger.debug(self.acq_file.tell())
+        logger.debug("Reading journal starting at %s" % self.acq_file.tell())
         logger.debug(self.post_marker_header.rep_bytes)
         self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
         logger.debug(self.acq_file.tell())
@@ -185,7 +191,7 @@ class Reader(object):
             self.acq_file.tell(), V2JournalHeader)
         self.journal = self.acq_file.read(
             self.journal_header.data['lJournalLen']).decode(
-                self.encoding).strip('\0')
+                self.encoding, errors='ignore').strip('\0')
 
     def __read_journal_v4(self):
         self.journal_length_header = self.__single_header(
@@ -206,7 +212,7 @@ class Reader(object):
                 self.acq_file.tell()))
             self.journal = self.acq_file.read(
                 self.journal_header.journal_len).decode(
-                    self.encoding).strip('\0')
+                    self.encoding, errors='ignore').strip('\0')
         # Either way, we should seek to this point.
         self.acq_file.seek(self.journal_length_header.data_end)
 
@@ -237,6 +243,8 @@ class Reader(object):
     def _read_markers(self):
         if self.marker_start_offset is None:
             self.read_headers()
+        logger.debug("Reading markers starting at %s" %
+            self.marker_start_offset)
         mh_class = bh.V2MarkerHeader
         mih_class = bh.V2MarkerItemHeader
         if self.file_revision >= rev.V_400B:
@@ -257,7 +265,8 @@ class Reader(object):
             mih = self.__single_header(
                 self.acq_file.tell(), marker_item_header_class)
             marker_text_bytes = self.acq_file.read(mih.text_length)
-            marker_text = marker_text_bytes.decode(self.encoding).strip('\0')
+            marker_text = marker_text_bytes.decode(
+                self.encoding, errors='ignore').strip('\0')
             marker_item_headers.append(mih)
             marker_channel = self.datafile.channel_order_map.get(
                 mih.channel_number)
@@ -323,6 +332,12 @@ class Reader(object):
 
         self.byte_order_char = bp[1]
         self.file_revision = bp[0]
+        # Guess at file encoding -- I think that everything before acq4 is
+        # in latin1 and everything newer is utf-8
+        if self.file_revision < rev.V_400B:
+            self.encoding = 'latin1'
+        else:
+            self.encoding = 'utf-8'
 
     def __repr__(self):
         return "Reader('{0}')".format(self.acq_file)

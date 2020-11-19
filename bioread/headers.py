@@ -299,11 +299,13 @@ class ChannelHeader(BiopacHeader):
 
     @property
     def units(self):
-        return self.data['szUnitsText'].decode(self.encoding).strip('\0')
+        return self.data['szUnitsText'].decode(
+            self.encoding, errors='ignore').strip('\0')
 
     @property
     def name(self):
-        return self.data['szCommentText'].decode(self.encoding).strip('\0')
+        return self.data['szCommentText'].decode(
+            self.encoding, errors='ignore').strip('\0')
 
     @property
     def point_count(self):
@@ -835,4 +837,4 @@ class V4MarkerItemHeader(BiopacHeader):
 
     @property
     def type_code(self):
-        return self.data['sMarkerStyle'].decode(self.encoding)
+        return self.data['sMarkerStyle'].decode(self.encoding, errors='ignore')
