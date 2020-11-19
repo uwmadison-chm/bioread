@@ -27,9 +27,12 @@ Note: Using - for <acq_file> reads from stdin.
 """
 
 import sys
+import logging
 
 from io import BytesIO
 from docopt import docopt
+
+from bioread import reader
 
 from bioread.reader import Reader
 from bioread import _metadata as meta
@@ -64,6 +67,8 @@ class AcqInfoRunner(object):
             __doc__,
             self.argv,
             version=meta.version_description)
+        if pargs['--debug']:
+          reader.logger.level = logging.DEBUG
 
         df = None
         infile = pargs['<acq_file>']
@@ -77,10 +82,13 @@ class AcqInfoRunner(object):
             sys.exit(1)
 
         self.reader = Reader(df)
+        self.reader._read_headers()
         try:
-            self.reader._read_headers()
-        except Exception:
+            pass
+        except Exception as e:
             sys.stderr.write("Error reading headers!\n")
+            sys.stderr.write("File position: %s\n" % self.reader.acq_file.tell())
+            sys.stderr.write(str(e))
             # Don't exit here; it'll still print what it can.
 
         if pargs['--debug']:
@@ -96,7 +104,7 @@ class AcqInfoRunner(object):
         chs = self.reader.channel_headers
         cdhs = self.reader.channel_dtype_headers
         print("File revision: %s" % gh.file_revision)
-        if self.reader.datafile is not None:
+        if self.reader.datafile.earliest_marker_created_at is not None:
             print(
                 "Earliest event marker created at: %s" %
                 self.reader.datafile.earliest_marker_created_at.isoformat()
@@ -134,7 +142,10 @@ class AcqInfoRunner(object):
             print("\n")
 
         if not gh.compressed:
-            print("Data starts at offset %s" % self.reader.data_start_offset)
+            print("Data starts at offset %s, length %s" % (
+              self.reader.data_start_offset,
+              self.reader.data_length
+            ))
         else:
             mch = self.reader.main_compression_header
             cchs = self.reader.channel_compression_headers
@@ -149,6 +160,8 @@ class AcqInfoRunner(object):
                     "Compressed data starts at offset %s" %
                     cch.compressed_data_offset)
                 print("\n")
+        print("\n")
+        print("Markers start at offset %s" % self.reader.marker_start_offset)
 
 
 if __name__ == '__main__':
