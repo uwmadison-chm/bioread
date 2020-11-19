@@ -58,8 +58,10 @@ Options:
                         [default: scaled]
   --compress=<method>   How to compress data. Options are gzip, lzf, none.
                         [default: gzip]
+  --data-only           Only save data and required headers -- do not save
+                        journal or marker information.
   -v, --verbose         Print extra messages for debugging.
-```
+  ```
 
 Note this does *not* need to read the entire dataset into memory, so if you have a 2G dataset, this will work great.
 
@@ -112,7 +114,9 @@ Usage:
   acq2mat --version
 
 Options:
-  -c, --compress  save compressed Matlab file
+  -c, --compress  Save compressed Matlab file
+  --data-only     Only save data and required header information -- do not
+                  save event markers.
 
 Note: scipy is required for this program.
 ```

@@ -1,3 +1,5 @@
+2.1.0: Add --data-only option to acq2hdf5 and acq2mat. Improve marker date handling. Guess at file encodings.
+
 2.0.0: Drop support for Python < 3.6.0. Thanks to @pvelasco, add Marker.created_at and Datafile.earliest_marker_created_at, which will give a good guess for when modern files were created.
 
 1.0.4: Add support for files from Acqknowledge 3.0.3 and 4.2.something. Also fix string formatting for acq_markers in python 3.
