@@ -320,6 +320,12 @@ class EventMarker(object):
             return None
         return self.channel.name
 
+    @property
+    def date_created_str(self):
+        if hasattr(self.date_created_utc, 'isoformat'):
+            return self.date_created_utc.isoformat()
+        return 'Unknown'
+
 
 MARKER_TYPE_MAP = {
     'apnd': 'Append',

@@ -64,7 +64,7 @@ class MatlabWriter(object):
                 'sample_index': marker.sample_index,
                 'type_code': marker.type_code or 'None',
                 'type': marker.type or 'None',
-                'date_created': marker.date_created_utc.isoformat() or 'None',
+                'date_created': marker.date_created_str,
                 'channel_number': marker.channel_number or -1,
                 'channel': marker.channel_name or 'Global'
             }
