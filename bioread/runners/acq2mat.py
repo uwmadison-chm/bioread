@@ -20,7 +20,9 @@ Usage:
   acq2mat --version
 
 Options:
-  -c, --compress  save compressed Matlab file
+  -c, --compress  Save compressed Matlab file
+  --data-only     Only save data and required header information -- do not
+                  save event markers.
 
 Note: scipy is required for this program.
 """
@@ -69,7 +71,11 @@ class AcqToMatRunner(object):
         compress = pargs['--compress']
 
         data = Reader.read(infile).datafile
-        MatlabWriter.write_file(data, matfile, compress=compress)
+        MatlabWriter.write_file(
+            data,
+            matfile,
+            compress=compress,
+            data_only=pargs['--data-only'])
 
         sys.stderr = old_err
 

@@ -15,16 +15,21 @@ class MatlabWriter(object):
 
     def __init__(
             self,
-            data=None, filename=None, compress=False, oned_as='row'):
+            data=None,
+            filename=None,
+            compress=False,
+            oned_as='row',
+            data_only=False):
         self.data = data
         self.filename = filename
         self.compress = compress
         self.oned_as = oned_as
+        self.data_only = data_only
 
     @classmethod
     def write_file(
-            cls, data, filename, compress=False, oned_as='row'):
-        writer = cls(data, filename, compress, oned_as)
+            cls, data, filename, compress=False, oned_as='row', data_only=False):
+        writer = cls(data, filename, compress, oned_as, data_only)
         writer.write()
 
     def write(self):
@@ -56,8 +61,19 @@ class MatlabWriter(object):
 
         d['channels'] = channels
 
-        d['event_markers'] = np.zeros(
-            len(data.event_markers), dtype=np.object)
+        if not self.data_only:
+            d['event_markers'] = self.__build_markers(data)
+
+        d['headers'] = {
+            'graph': data.graph_header.data,
+            'foreign': data.foreign_header.data,
+            'channel': channel_headers,
+            'channel_dtype': channel_dtype_headers}
+
+        return d
+
+    def __build_markers(self, data):
+        markers = np.zeros(len(data.event_markers), dtype=np.object)
         for i, marker in enumerate(data.event_markers):
             md = {
                 'label': marker.text,
@@ -68,12 +84,5 @@ class MatlabWriter(object):
                 'channel_number': marker.channel_number or -1,
                 'channel': marker.channel_name or 'Global'
             }
-            d['event_markers'][i] = md
-
-        d['headers'] = {
-            'graph': data.graph_header.data,
-            'foreign': data.foreign_header.data,
-            'channel': channel_headers,
-            'channel_dtype': channel_dtype_headers}
-
-        return d
+            markers[i] = md
+        return markers

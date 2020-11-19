@@ -28,6 +28,8 @@ Options:
                         [default: scaled]
   --compress=<method>   How to compress data. Options are gzip, lzf, none.
                         [default: gzip]
+  --data-only           Only save data and required headers -- do not save
+                        journal or marker information.
   -v, --verbose         Print extra messages for debugging.
 """
 
@@ -84,10 +86,21 @@ def main(argv=None):
     except KeyError:
         logger.error("Unknown values-as option: {}".format(
             pargs['--values-as']))
-    make_hdf5(pargs['<acq_file>'], pargs['<hdf5_file>'], comp_opts, scale)
+    make_hdf5(
+        pargs['<acq_file>'],
+        pargs['<hdf5_file>'],
+        comp_opts,
+        scale,
+        pargs['--data-only']
+    )
 
 
-def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale):
+def make_hdf5(
+        acq_filename,
+        hdf5_filename,
+        compression_opts,
+        scale,
+        data_only):
     acq_file = open(acq_filename, 'rb')
     hdf5_file = h5py.File(hdf5_filename, 'w')
     r = br.Reader.read_headers(acq_file)
@@ -95,7 +108,8 @@ def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale):
     hdf5_file.attrs['acq_revision'] = r.file_revision
     hdf5_file.attrs['samples_per_second'] = r.samples_per_second
     hdf5_file.attrs['byte_order'] = r.byte_order_char
-    hdf5_file.attrs['journal'] = df.journal or ''
+    if not data_only:
+        hdf5_file.attrs['journal'] = df.journal or ''
     channel_datasets = None
     if r.is_compressed:
         channel_datasets = save_channels_compressed(
@@ -106,7 +120,8 @@ def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale):
     channel_map = dict(
         [[ch.order_num, channel_datasets[i]]
             for i, ch in enumerate(df.channels)])
-    save_markers(hdf5_file, df, channel_map)
+    if not data_only:
+        save_markers(hdf5_file, df, channel_map)
 
 
 def cnum_formatter(channel_count):
