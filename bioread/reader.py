@@ -120,6 +120,9 @@ class Reader(object):
                                                     ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
 
+        for i, ch in enumerate(self.channel_headers):
+            logger.debug("Channel header %s: %s" % (i, ch.data))
+
         fh_start = ch_start + len(self.channel_headers)*ch_len
         self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
@@ -127,6 +130,10 @@ class Reader(object):
         self.channel_dtype_headers = self.__multi_headers(
             channel_count, cdh_start, ChannelDTypeHeader)
         cdh_len = self.channel_dtype_headers[0].effective_len_bytes
+        for i, cdt in enumerate(self.channel_dtype_headers):
+            logger.debug("Channel %s: type_code: %s, offset: %s" % (
+                i, cdt.type_code, cdt.offset
+            ))
 
         self.data_start_offset = (cdh_start + (cdh_len * channel_count))
         logger.debug("Computed data start offset: %s" % self.data_start_offset)
@@ -334,6 +341,8 @@ class Reader(object):
         self.file_revision = bp[0]
         # Guess at file encoding -- I think that everything before acq4 is
         # in latin1 and everything newer is utf-8
+        logger.debug("File revision: %s" % self.file_revision)
+        logger.debug("Byte order: %s" % self.byte_order_char)
         if self.file_revision < rev.V_400B:
             self.encoding = 'latin1'
         else:
