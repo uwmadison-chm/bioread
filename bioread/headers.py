@@ -112,8 +112,8 @@ class GraphHeader(BiopacHeader):
         l = self.data['lExtItemHeaderLen']
         # We're going to skip an extra 40 bytes. This is kind of an ugly hack;
         # there seems to be a whole other 40-byte header in there.
-        if self.file_revision >= V_430:
-            l += 40
+        # if self.file_revision >= V_430:
+        #     l += 40
         return l
 
     @property
@@ -143,6 +143,12 @@ class GraphHeader(BiopacHeader):
         else:
             bin = 'POST_4'
         return bin
+
+    @property
+    def expected_padding_headers(self):
+        if self.file_revision >= V_430:
+            return self.data['hExpectedPaddings']
+        return 0
 
     @property
     def __h_elt_versions(self):
@@ -247,11 +253,36 @@ class GraphHeader(BiopacHeader):
                 ('rRReserved'               ,'h'    ,V_20a),
                 ('Unknown'                  ,'822B' ,V_400B),
                 ('bCompressed'              ,'l'    ,V_400B),
+                ('Unknown2'                 ,'1422B',V_400B),
+                ('hExpectedPaddings'        ,'h'    ,V_430)
             )}
 
     @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
+
+
+class UnknownPaddingHeader(BiopacHeader):
+    """
+    I don't know what this is for, but it's 40-bytes long and right before some
+    modern files
+    """
+    def __init__(self, file_revision, byte_order_char, **kwargs):
+        self.file_revision = file_revision
+        super().__init__(
+            self.__h_elts, file_revision, byte_order_char, **kwargs)
+
+    @property
+    def effective_len_bytes(self):
+        return self.data['lChannelLen']
+
+    @property
+    def __h_elts(self):
+        elts = VersionedHeaderStructure(
+            ('lChannelLen', 'l', V_ALL),
+            ('Uknown', '36B', V_ALL)
+        )
+        return elts
 
 
 class ChannelHeader(BiopacHeader):

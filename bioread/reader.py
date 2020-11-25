@@ -19,6 +19,7 @@ import numpy as np
 import bioread.file_revisions as rev
 from bioread import headers as bh
 from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
+from bioread.headers import UnknownPaddingHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
 from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
@@ -115,7 +116,16 @@ class Reader(object):
         self.graph_header = self.__single_header(0, GraphHeader)
         channel_count = self.graph_header.channel_count
 
-        ch_start = self.graph_header.effective_len_bytes
+        pad_start = self.graph_header.effective_len_bytes
+        pad_headers = self.__multi_headers(
+            self.graph_header.expected_padding_headers,
+            pad_start,
+            UnknownPaddingHeader)
+        ch_start = pad_start + sum(
+            [ph.effective_len_bytes for ph in pad_headers])
+        pad_header = self.__single_header(ch_start, UnknownPaddingHeader)
+        # if pad_header.effective_len_bytes == 40:
+        #     ch_start = 0
         self.channel_headers = self.__multi_headers(channel_count,
                                                     ch_start, ChannelHeader)
         ch_len = self.channel_headers[0].effective_len_bytes
