@@ -411,28 +411,33 @@ class ForeignHeader(BiopacHeader):
         bin = 'Unknown'
         if self.file_revision <= V_390:
             bin = "PRE_4"
-        elif self.file_revision < V_41a:
-            bin = "EARLY_4"
-        else:
-            bin = "LATE_4"
+        elif self.file_revision >= V_400B:
+            bin = "POST_4"
         return bin
 
     @property
     def effective_len_bytes(self):
-        return self.__effective_len_byte_versions[self.__version_bin]()
+        if self.__version_bin == "PRE_4":
+            return self.data['nLength']
+        elif self.data['lLength'] > 8:
+            # HORRIBLE HACK WARNING:
+            # This is a horrible hack. I only have one file where the foreign
+            # data header isn't empty, and the channel type headers don't seem
+            # to start until 80 bytes after the foreign data header. I don't see
+            # anything to suggest that this 80 bytes is indicated anywhere.
+            # For now, I'm going to just say "well I guess it's 80" as this
+            # passes all the test files in addition to the broken submitted
+            # files.
+            # TODO: Figure out what the foreign data header is for, make this
+            # be right.
+            return self.data['lLength'] + 80
+        return self.data['lLength']
+
 
     @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
 
-    @property
-    def __effective_len_byte_versions(self):
-        # Make a hash of functions so we don't evaluate all code paths
-        return {
-            "PRE_4"     : lambda: self.data['nLength'],
-            "EARLY_4"   : lambda: self.data['lLengthExtended'] + 8,
-            "LATE_4"    : lambda: self.data['nLength'] + 8  # always correct?
-        }
 
     @property
     def __h_elt_versions(self):
@@ -441,16 +446,8 @@ class ForeignHeader(BiopacHeader):
                 ('nLength'                  ,'h'    ,V_20a),
                 ('nType'                    ,'h'    ,V_20a),
             ),
-            "EARLY_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_400B),
-                ('nType'                    ,'h'    ,V_400B),
-                ('lReserved'                ,'l'    ,V_400B),
-                ('lLengthExtended'          ,'l'    ,V_400B),
-            ),
-            "LATE_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_400B),
-                ('nType'                    ,'h'    ,V_400B),
-                ('lReserved'                ,'l'    ,V_400B),
+            "POST_4" : VersionedHeaderStructure(
+                ('lLength'                  ,'l'    ,V_400B),
             )}
 
 
