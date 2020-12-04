@@ -37,7 +37,12 @@ if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
 
 
+# This is how much interleaved uncompressed data we'll read at a time.
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
+
+# How far past the foreign data header we're willing to go looking for the
+# channel dtype headers
+MAX_DTYPE_SCANS = 4096
 
 
 class Reader(object):
@@ -137,15 +142,16 @@ class Reader(object):
         self.foreign_header = self.__single_header(fh_start, ForeignHeader)
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
-        self.channel_dtype_headers = self.__multi_headers(
-            channel_count, cdh_start, ChannelDTypeHeader)
-        cdh_len = self.channel_dtype_headers[0].effective_len_bytes
+        self.channel_dtype_headers = self.__scan_for_dtype_headers(
+            cdh_start, channel_count)
+        if self.channel_dtype_headers is None:
+            raise ValueError("Can't find valid channel data type headers")
+
         for i, cdt in enumerate(self.channel_dtype_headers):
             logger.debug("Channel %s: type_code: %s, offset: %s" % (
                 i, cdt.type_code, cdt.offset
             ))
 
-        self.data_start_offset = (cdh_start + (cdh_len * channel_count))
         logger.debug("Computed data start offset: %s" % self.data_start_offset)
 
         self.samples_per_second = 1000/self.graph_header.sample_time
@@ -173,6 +179,29 @@ class Reader(object):
             logger.info("No journal information found.")
         if self.is_compressed:
             self.__read_compression_headers()
+
+    def __scan_for_dtype_headers(self, start_index, channel_count):
+        # Sometimes the channel dtype headers don't seem to be right after the
+        # foreign data header, and I can't find anything that directs me to the
+        # proper location.
+        # As a gross hack, we can scan forward until we find something
+        # potentially valid.
+        # Return a set of channel dtype headers when we find something valid,
+        # self.data_start_offset will be set to the start of the data, and
+        # and self.acq_file will be seek()ed to that location.
+        logger.debug('Scanning for start of channel dtype headers')
+        for i in range(MAX_DTYPE_SCANS):
+            dtype_headers = self.__multi_headers(
+                channel_count, start_index + i, ChannelDTypeHeader)
+            if all([h.possibly_valid for h in dtype_headers]):
+                logger.debug("Found at %s" % (start_index + i))
+                self.data_start_offset = self.acq_file.tell()
+                return dtype_headers
+        logger.warn(
+            "Couldn't find valid dtype headers, tried %s times" %
+            MAX_DTYPE_SCANS
+        )
+        return None
 
     def __read_compression_headers(self):
         # We need to have read the markers and journal; this puts us
@@ -247,6 +276,8 @@ class Reader(object):
                         self.byte_order_char,
                         encoding=self.encoding)
             h.unpack_from_file(self.acq_file, h_offset)
+            logger.debug("Read %s bytes: %s" % (
+                h.struct_dict.len_bytes, h.data))
             last_h_len = h.effective_len_bytes
             headers.append(h)
         return headers

@@ -396,9 +396,8 @@ class ChannelHeader(BiopacHeader):
 
 class ForeignHeader(BiopacHeader):
     """
-    The Foreign Data header for AcqKnowledge files. This does some tricky
-    stuff based on file versions, ultimately to correctly determine
-    the effective length.
+    The Foreign Data header for AcqKnowledge files. I admit that I don't
+    know what goes in this section.
     """
 
     def __init__(self, file_revision, byte_order_char, **kwargs):
@@ -419,25 +418,11 @@ class ForeignHeader(BiopacHeader):
     def effective_len_bytes(self):
         if self.__version_bin == "PRE_4":
             return self.data['nLength']
-        elif self.data['lLength'] > 8:
-            # HORRIBLE HACK WARNING:
-            # This is a horrible hack. I only have one file where the foreign
-            # data header isn't empty, and the channel type headers don't seem
-            # to start until 80 bytes after the foreign data header. I don't see
-            # anything to suggest that this 80 bytes is indicated anywhere.
-            # For now, I'm going to just say "well I guess it's 80" as this
-            # passes all the test files in addition to the broken submitted
-            # files.
-            # TODO: Figure out what the foreign data header is for, make this
-            # be right.
-            return self.data['lLength'] + 80
         return self.data['lLength']
-
 
     @property
     def __h_elts(self):
         return self.__h_elt_versions[self.__version_bin]
-
 
     @property
     def __h_elt_versions(self):
@@ -461,9 +446,21 @@ class ChannelDTypeHeader(BiopacHeader):
         return self.data['nType']
 
     CODE_MAP = {
+        0: 'f8',
         1: 'f8',
         2: 'i2'
     }
+
+    @property
+    def possibly_valid(self):
+        # TODO: When and if we someday figure out the post-foreign-data header
+        # mystery, remove this. Until then, we'll use this function to guess at
+        # the location of the channel dtype header set.
+        dtype_code = self.CODE_MAP.get(self.type_code, None)
+        if dtype_code is None:
+            return False
+        type_size = int(dtype_code[-1])
+        return type_size == self.sample_size
 
     @property
     def numpy_dtype(self):
