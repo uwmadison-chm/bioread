@@ -1,3 +1,5 @@
+2.1.2: Try another strategy to handle weird-length foreign data headers. Improves support for some files.
+
 2.1.1: Improve support for some files.
 
 2.1.0: Add --data-only option to acq2hdf5 and acq2mat. Improve marker date handling. Guess at file encodings.
