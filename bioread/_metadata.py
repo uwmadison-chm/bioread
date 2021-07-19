@@ -10,12 +10,12 @@
 
 # NOTE: This file must not import anything, or it will break installation.
 
-version_tuple = (2, 1, 2)
+version_tuple = (2, 1, 3)
 version = ".".join([str(p) for p in version_tuple])
 version_description = "bioread {0}".format(version)
 
 author = "Nate Vack"
 author_email = "njvack@wisc.edu"
 license = "GPL 2.0"
-copyright = "Copyright 2016 Boards of Regent of the University of Wisconsin System"  # noqa
+copyright = "Copyright 2021 Boards of Regent of the University of Wisconsin System"  # noqa
 url = "https://github.com/uwmadison-chm/bioread"
