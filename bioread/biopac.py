@@ -275,10 +275,16 @@ class EventMarker(object):
         self.channel_number = channel_number
         self.channel = channel
         self.date_created_utc = None
-        if date_created_ms is not None:
-            self.date_created_utc = (
-                REF_DATE + timedelta(milliseconds=date_created_ms)
-            )
+        try:
+            if date_created_ms is not None:
+                self.date_created_utc = (
+                    REF_DATE + timedelta(milliseconds=date_created_ms)
+                )
+        except OverflowError:
+            # Sometimes the dates look to be insanely huge, I don't know
+            # what's up with this, honestly.
+            pass  # for now we'll just leave date_created_utc as None
+
         self.type_code = type_code
         super(EventMarker, self).__init__()
 
