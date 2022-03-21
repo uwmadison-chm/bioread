@@ -18,18 +18,21 @@ class MatlabWriter(object):
             data=None,
             filename=None,
             compress=False,
+            single_precision=False,
             oned_as='row',
             data_only=False):
         self.data = data
         self.filename = filename
         self.compress = compress
+        self.single_precision = single_precision
         self.oned_as = oned_as
         self.data_only = data_only
 
     @classmethod
     def write_file(
-            cls, data, filename, compress=False, oned_as='row', data_only=False):
-        writer = cls(data, filename, compress, oned_as, data_only)
+            cls, data, filename, compress=False, single_precision=False,
+            oned_as='row', data_only=False):
+        writer = cls(data, filename, compress, single_precision, oned_as, data_only)
         writer.write()
 
     def write(self):
@@ -50,7 +53,10 @@ class MatlabWriter(object):
         for i in range(nc):
             c = data.channels[i]
             chan_dict = {}
-            chan_dict['data'] = c.data.astype("=f8")
+            if self.single_precision:
+                chan_dict['data'] = c.data.astype("=f4")
+            else:
+                chan_dict['data'] = c.data.astype("=f8")
             chan_dict['samples_per_second'] = c.samples_per_second
             chan_dict['name'] = c.name
             chan_dict['frequency_divider'] = c.frequency_divider

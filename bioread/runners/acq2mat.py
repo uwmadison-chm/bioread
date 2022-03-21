@@ -20,9 +20,10 @@ Usage:
   acq2mat --version
 
 Options:
-  -c, --compress  Save compressed Matlab file
-  --data-only     Only save data and required header information -- do not
-                  save event markers.
+  -c, --compress            Save compressed Matlab file
+  -s, --single-precision    Save data with single precision instead of double
+  --data-only               Only save data and required header information -- do not
+                            save event markers.
 
 Note: scipy is required for this program.
 """
@@ -69,12 +70,14 @@ class AcqToMatRunner(object):
         infile = pargs['<acq_file>']
         matfile = pargs['<mat_file>']
         compress = pargs['--compress']
+        single = pargs['--single-precision']
 
         data = Reader.read(infile).datafile
         MatlabWriter.write_file(
             data,
             matfile,
             compress=compress,
+            single_precision=single,
             data_only=pargs['--data-only'])
 
         sys.stderr = old_err

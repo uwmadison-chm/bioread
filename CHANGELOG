@@ -1,3 +1,5 @@
+2.2.0: Add --single-precision option to acq2mat.
+
 2.1.2: Try another strategy to handle weird-length foreign data headers. Improves support for some files.
 
 2.1.1: Improve support for some files.

@@ -10,7 +10,7 @@
 
 # NOTE: This file must not import anything, or it will break installation.
 
-version_tuple = (2, 1, 3)
+version_tuple = (2, 2, 0)
 version = ".".join([str(p) for p in version_tuple])
 version_description = "bioread {0}".format(version)
 
