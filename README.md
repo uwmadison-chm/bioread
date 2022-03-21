@@ -115,6 +115,7 @@ Usage:
 
 Options:
   -c, --compress  Save compressed Matlab file
+  -s, --single-precision  Save data with single precision instead of double
   --data-only     Only save data and required header information -- do not
                   save event markers.
 
