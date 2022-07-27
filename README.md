@@ -247,6 +247,6 @@ This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot
 
 ## Copyright & Disclaimers
 
-bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
+bioread is distributed under the MIT license. For more details, see LICENSE.
 
 BIOPAC and AcqKnowledge are trademarks of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company neither supports nor endorses this software package.
