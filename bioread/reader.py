@@ -319,6 +319,7 @@ class Reader(object):
             marker_channel = self.datafile.channel_order_map.get(
                 mih.channel_number)
             event_markers.append(EventMarker(
+                time_index=(mih.sample_index * self.graph_header.sample_time) / 1000,
                 sample_index=mih.sample_index,
                 text=marker_text,
                 channel_number=mih.channel_number,
