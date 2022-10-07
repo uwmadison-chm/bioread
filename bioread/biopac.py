@@ -263,6 +263,7 @@ class EventMarker(object):
 
     def __init__(
             self,
+            time_index,
             sample_index,
             text,
             channel_number,
@@ -270,6 +271,7 @@ class EventMarker(object):
             date_created_ms=None,
             type_code=None):
 
+        self.time_index = time_index
         self.sample_index = sample_index
         self.text = text
         self.channel_number = channel_number
