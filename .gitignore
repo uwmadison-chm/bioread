@@ -23,6 +23,9 @@ var/
 .installed.cfg
 *.egg
 
+# Mac stuff
+.DS_Store
+
 # iPython notebooks for testing
 notebooks/
 
