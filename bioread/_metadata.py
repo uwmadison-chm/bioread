@@ -1,7 +1,7 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2022 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2023 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
@@ -17,5 +17,5 @@ version_description = "bioread {0}".format(version)
 author = "Nate Vack"
 author_email = "njvack@wisc.edu"
 license = "MIT"
-copyright = "Copyright 2022 Boards of Regent of the University of Wisconsin System"  # noqa
+copyright = "Copyright (c) 2023 Boards of Regent of the University of Wisconsin System"  # noqa
 url = "https://github.com/uwmadison-chm/bioread"
