@@ -529,7 +529,7 @@ def chunk_pattern(byte_pattern, channel_bytes_remaining):
         for i, rem in enumerate(channel_bytes_remaining)
     ]
     all_byte_indexes = np.concatenate(channel_byte_indexes)
-    pattern_mask = np.zeros(len(byte_pattern), dtype=np.bool)
+    pattern_mask = np.zeros(len(byte_pattern), dtype=bool)
     pattern_mask[all_byte_indexes] = True
     return byte_pattern[pattern_mask]
 

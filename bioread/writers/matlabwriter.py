@@ -44,9 +44,9 @@ class MatlabWriter(object):
         d = {}
         d['samples_per_second'] = data.samples_per_second
         nc = len(data.channels)
-        channels = np.zeros(nc, dtype=np.object)
-        channel_headers = np.zeros(nc, dtype=np.object)
-        channel_dtype_headers = np.zeros(nc, dtype=np.object)
+        channels = np.zeros(nc, dtype='O')
+        channel_headers = np.zeros(nc, dtype='O')
+        channel_dtype_headers = np.zeros(nc, dtype='O')
         for i in range(nc):
             c = data.channels[i]
             chan_dict = {}
@@ -73,7 +73,7 @@ class MatlabWriter(object):
         return d
 
     def __build_markers(self, data):
-        markers = np.zeros(len(data.event_markers), dtype=np.object)
+        markers = np.zeros(len(data.event_markers), dtype='O')
         for i, marker in enumerate(data.event_markers):
             md = {
                 'label': marker.text,
