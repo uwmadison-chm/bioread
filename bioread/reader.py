@@ -12,6 +12,8 @@
 from __future__ import with_statement, division
 import struct
 import zlib
+import gzip
+import io as pyio
 from contextlib import contextmanager
 
 import numpy as np
@@ -80,6 +82,14 @@ class Reader(object):
 
         returns: reader.Reader.
         """
+
+        # decompresses gzip file into memory
+        if isinstance(fo, str) and fo.endswith('.gz'):
+            with gzip.open(fo, 'rb') as compressed_fo:
+                decompressed_data = compressed_fo.read()
+                fo = pyio.BytesIO(decompressed_data)
+
+
         with open_or_yield(fo, 'rb') as io:
             reader = cls(io)
             reader._read_headers()
