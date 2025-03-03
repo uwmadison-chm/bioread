@@ -37,3 +37,6 @@ notebooks/
 .vscode/
 
 old_setup/
+
+# We don't need uv's lockfile, that's machine-specific
+uv.lock
