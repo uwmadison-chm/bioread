@@ -10,8 +10,7 @@
 
 # NOTE: This file must not import anything, or it will break installation.
 
-version_tuple = (3, 0, 1)
-__version__ = ".".join([str(p) for p in version_tuple])
+__version__ = "3.0.1"
 version_description = "bioread {0}".format(__version__)
 
 author = "Nate Vack"

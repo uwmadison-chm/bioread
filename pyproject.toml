@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "bioread"
-version = "3.0.1"
+dynamic = ["version"]
 description = "Utilities to read BIOPAC AcqKnowledge files"
 readme = "README.md"
 requires-python = ">=3.10"
