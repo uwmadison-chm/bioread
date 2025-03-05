@@ -189,6 +189,11 @@ def test_reading_r35_file():
     test_data = bioread.read(filename)  # This will raise an exception on fail
     assert len(test_data.channels) == 2
 
+def test_reading_r35_file():
+    filename = path.join(DATA_PATH, "misc", "r42_test.acq")
+    test_data = bioread.read(filename)  # This will raise an exception on fail
+    assert len(test_data.channels) == 1
+
 def test_read_iso_8859_1():
     filename = path.join(DATA_PATH, "misc", "iso_8859_1.acq")
     test_data = bioread.read(filename)  # This will raise an exception on fail
