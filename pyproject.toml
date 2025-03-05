@@ -18,6 +18,7 @@ dependencies = [
 mat = [ "scipy" ]
 hdf5 = [ "h5py" ]
 dev = ["pytest", "scipy", "h5py"]
+all = ["scipy", "h5py"]
 
 [project.scripts]
 acq_info = "bioread.runners.acq_info:main"
