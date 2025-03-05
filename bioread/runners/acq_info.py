@@ -81,8 +81,7 @@ class AcqInfoRunner(object):
             sys.stderr.write("Error reading {0}\n".format(infile))
             sys.exit(1)
 
-        self.reader = Reader(df)
-        self.reader._read_headers()
+        self.reader = Reader.read_headers(df)
         try:
             pass
         except Exception as e:
