@@ -26,6 +26,7 @@ import logging
 logger = reader.logger
 logger.setLevel(logging.DEBUG)
 
+
 DATA_PATH = path.join(path.dirname(path.abspath(__file__)), "data")
 
 DATASETS = ['physio', 'nojournal']
@@ -189,10 +190,15 @@ def test_reading_r35_file():
     test_data = bioread.read(filename)  # This will raise an exception on fail
     assert len(test_data.channels) == 2
 
-def test_reading_r35_file():
+def test_reading_r42_file_with_reader():
+    # This file has a journal that we can't read correctly -- it's a good
+    # test for reading a file with errors and then continuing.
     filename = path.join(DATA_PATH, "misc", "r42_test.acq")
-    test_data = bioread.read(filename)  # This will raise an exception on fail
-    assert len(test_data.channels) == 1
+    r = Reader.read(filename)
+    assert len(r.read_errors) > 0
+    assert len(r.channel_headers) == 4
+    assert len(r.datafile.channels) == 4
+    
 
 def test_read_iso_8859_1():
     filename = path.join(DATA_PATH, "misc", "iso_8859_1.acq")

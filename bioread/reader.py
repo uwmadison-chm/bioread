@@ -44,6 +44,13 @@ CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 # channel dtype headers
 MAX_DTYPE_SCANS = 4096
 
+READ_EXCEPTIONS = (
+    ValueError, IOError, OSError, UnicodeDecodeError, EOFError, struct.error)
+
+
+class ReaderError(Exception):
+    pass
+
 
 class Reader(object):
     def __init__(self, acq_file=None):
@@ -66,6 +73,7 @@ class Reader(object):
         self.marker_header = None
         self.marker_item_headers = None
         self.event_markers = None
+        self.read_errors = []
 
     @classmethod
     def read(cls,
@@ -82,8 +90,18 @@ class Reader(object):
         """
         with open_or_yield(fo, 'rb') as io:
             reader = cls(io)
-            reader._read_headers()
-            reader._read_data(channel_indexes, target_chunk_size)
+            try:
+                reader._read_headers()
+            except READ_EXCEPTIONS as e:
+                pass
+            # We've already logged the error. Try to read the data.
+            try:
+                reader._read_data(channel_indexes, target_chunk_size)
+            except READ_EXCEPTIONS as e:
+                # Log and print the error, but consume the exception so the
+                # caller still gets the reader.
+                logger.error(f"Error reading data: {e}")
+                reader.read_errors.append(str(e))
         return reader
 
     @classmethod
@@ -92,7 +110,11 @@ class Reader(object):
         """
         with open_or_yield(fo, 'rb') as io:
             reader = cls(io)
-            reader._read_headers()
+            try:
+                reader._read_headers()
+            except READ_EXCEPTIONS as e:
+                # Consume the exception so the caller still gets the reader.
+                pass
         return reader
 
     def stream(self, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
@@ -219,10 +241,16 @@ class Reader(object):
     def _read_journal(self):
         self.journal = None
         self.journal_header = None
-        if self.file_revision <= rev.V_400B:
-            self.__read_journal_v2()
-        else:
-            self.__read_journal_v4()
+
+        try:
+            if self.file_revision <= rev.V_400B:
+                self.__read_journal_v2()
+            else:
+                self.__read_journal_v4()
+        except READ_EXCEPTIONS as e:
+            logger.error(f"Error reading journal: {e}")
+            self.read_errors.append("Error reading journal: {e}")
+            raise
         self.datafile.journal_header = self.journal_header
         self.datafile.journal = self.journal
 
@@ -271,13 +299,20 @@ class Reader(object):
         h_offset = start_offset
         for i in range(num):
             h_offset += last_h_len
-            logger.debug("Reading {0} at offset {1}".format(h_class, h_offset))
+            logger.debug(f"Reading {h_class} at offset {h_offset}")
             h = h_class(self.file_revision,
                         self.byte_order_char,
                         encoding=self.encoding)
-            h.unpack_from_file(self.acq_file, h_offset)
-            logger.debug("Read %s bytes: %s" % (
-                h.struct_dict.len_bytes, h.data))
+            try:
+                h.unpack_from_file(self.acq_file, h_offset)
+            except Exception as e:
+                # If something goes wrong with reading, we want to log the
+                # error and reraise it -- read_headers() and read_data() will
+                # handle the error there.
+                logger.error(
+                    f"Error reading {h_class} at offset {h_offset}: {e}")
+                raise e
+            logger.debug(f"Read {h.struct_dict.len_bytes} bytes: {h.data}")
             last_h_len = h.effective_len_bytes
             headers.append(h)
         return headers
