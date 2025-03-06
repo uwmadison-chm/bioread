@@ -484,43 +484,14 @@ class ChannelDTypeHeader(BiopacHeader):
         )
 
 
-class PostMarkerHeader(BiopacHeader):
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-            ('hUnknown1', 'h', V_20a),
-            ('hUnknown2', 'h', V_20a),
-            ('lReps', 'l', V_20a),
-            ('Unknown3', '80B', V_20a)
-        )
-
-    @property
-    def effective_len_bytes(self):
-        return self.struct_dict.len_bytes + self.rep_bytes
-
-    @property
-    def rep_bytes(self):
-        # We seem to always need to read at least one of these...
-        # I have no idea what these things are for. From what I've seen, the
-        # file repeats the same data over and over, with a leading counter
-        # byte. The last four bytes in the structure are 44 33 22 11.
-        # The journal header follows immediately afterwards.
-        reps = self.data['lReps']
-        if reps < 1:
-            reps = 1
-        return 28 * reps
-
-
 class V2JournalHeader(BiopacHeader):
     """
-    Version 2-3 journal headers are trivial -- there's two bytes of
-    "I don't know what this is" followed by a long containing the length of
-    the journal text.
+    Version 2-3 journal headers are trivial -- there's a four-byte tag that
+    always contains 0x44332211, followed by a boolean "show" and then the
+    length of the journal text.
     """
+    EXPECTED_TAG_VALUE = (0x44, 0x33, 0x22, 0x11)
+    EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
 
     def __init__(self, file_revision, byte_order_char, **kwargs):
         super().__init__(self.__h_elts, file_revision, byte_order_char,
@@ -529,9 +500,29 @@ class V2JournalHeader(BiopacHeader):
     @property
     def __h_elts(self):
         return VersionedHeaderStructure(
-            ('hUnknown', 'h', V_20a),
-            ('lJournalLen', 'l', V_20a)
+            ('tag',         '4B',   V_20a),
+            ('hShow',       'h',    V_20a),
+            ('lJournalLen', 'l',    V_20a)
         )
+
+    @property
+    def show(self):
+        return self.data['hShow']
+
+    @property
+    def journal_len(self):
+        return self.data['lJournalLen']
+    
+    @property
+    def tag_value(self):
+        return self.data['tag']
+    
+    @property
+    def tag_value_hex(self):
+        return "".join(f"{b:02X}" for b in self.data['tag'])
+    
+    def tag_value_matches_expected(self):
+        return self.tag_value == self.EXPECTED_TAG_VALUE
 
 
 class V4JournalLengthHeader(BiopacHeader):
@@ -732,6 +723,69 @@ class V2MarkerHeader(BiopacHeader):
     def marker_count(self):
         return self.data['lMarkers']
 
+class V2MarkerMetadataPreHeader(BiopacHeader):
+    """
+    Tells us how many marker metadata headers there are. It's probably the same
+    as the marker count, but it's stored separately.
+    """
+
+    def __init__(self, file_revision, byte_order_char, **kwargs):
+        super().__init__(self.__h_elts, file_revision, byte_order_char,
+                         **kwargs)
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('tag'           ,'4B'   ,V_20a),
+        ('lItemCount'    ,'l'    ,V_20a),
+        ('sUnknown'      ,'76s'  ,V_20a),
+        )
+    
+    @property
+    def item_count(self):
+        return self.data['lItemCount']
+    
+    @property
+    def tag_value(self):
+        return self.data['tag']
+    
+    
+class V2MarkerMetadataHeader(BiopacHeader):
+    """
+    Marker metadata for files in Version 2.
+    """
+
+    def __init__(self, file_revision, byte_order_char, **kwargs):
+        super().__init__(self.__h_elts, file_revision, byte_order_char,
+                         **kwargs)  
+
+    @property
+    def __h_elts(self):
+        return VersionedHeaderStructure(
+        ('lUnknown1'            ,'l'    ,V_20a),
+        ('lMarkerNumber'        ,'l'    ,V_20a),
+        ('bUnknown2'            ,'12B'  ,V_20a),
+        ('rgbaColor'            ,'4B'   ,V_20a),
+        ('hMarkerTag'           ,'h'    ,V_20a),
+        ('hMarkerTypeId'        ,'h'    ,V_20a),
+        )
+    
+    @property
+    def marker_number(self):
+        return self.data['lMarkerNumber']
+    
+    @property
+    def rgba_color(self):
+        return self.data['rgbaColor']
+    
+    @property
+    def marker_tag(self):
+        return self.data['hMarkerTag']    
+    
+    @property
+    def marker_index(self):
+        return self.marker_number - 1
+    
 
 class V4MarkerHeader(BiopacHeader):
     """

@@ -269,7 +269,9 @@ class EventMarker(object):
             channel_number,
             channel=None,
             date_created_ms=None,
-            type_code=None):
+            type_code=None,
+            color=None,
+            tag=None):
 
         self.time_index = time_index
         self.sample_index = sample_index
@@ -277,6 +279,8 @@ class EventMarker(object):
         self.channel_number = channel_number
         self.channel = channel
         self.date_created_utc = None
+        self.color = color
+        self.tag = tag
         try:
             if date_created_ms is not None:
                 self.date_created_utc = (

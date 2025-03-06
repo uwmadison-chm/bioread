@@ -22,7 +22,7 @@ from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
 from bioread.headers import UnknownPaddingHeader
 from bioread.headers import ForeignHeader, MainCompressionHeader
 from bioread.headers import ChannelCompressionHeader
-from bioread.headers import PostMarkerHeader, V2JournalHeader, V4JournalHeader
+from bioread.headers import V2JournalHeader, V4JournalHeader
 from bioread.headers import V4JournalLengthHeader
 from bioread.biopac import Datafile, EventMarker
 
@@ -45,7 +45,14 @@ CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 MAX_DTYPE_SCANS = 4096
 
 READ_EXCEPTIONS = (
-    ValueError, IOError, OSError, UnicodeDecodeError, EOFError, struct.error)
+    ValueError,
+    IOError,
+    OSError,
+    UnicodeDecodeError,
+    EOFError,
+    struct.error,
+    IndexError
+)
 
 
 class ReaderError(Exception):
@@ -72,6 +79,8 @@ class Reader(object):
         self.marker_start_offset = None
         self.marker_header = None
         self.marker_item_headers = None
+        self.marker_metadata_pre_header = None
+        self.marker_metadata_headers = None
         self.event_markers = None
         self.read_errors = []
 
@@ -249,20 +258,20 @@ class Reader(object):
                 self.__read_journal_v4()
         except READ_EXCEPTIONS as e:
             logger.error(f"Error reading journal: {e}")
-            self.read_errors.append("Error reading journal: {e}")
+            self.read_errors.append(f"Error reading journal: {e}")
             raise
         self.datafile.journal_header = self.journal_header
         self.datafile.journal = self.journal
 
     def __read_journal_v2(self):
-        self.post_marker_header = self.__single_header(
-            self.acq_file.tell(), PostMarkerHeader)
         logger.debug("Reading journal starting at %s" % self.acq_file.tell())
-        logger.debug(self.post_marker_header.rep_bytes)
-        self.acq_file.seek(self.post_marker_header.rep_bytes, 1)
         logger.debug(self.acq_file.tell())
         self.journal_header = self.__single_header(
             self.acq_file.tell(), V2JournalHeader)
+        if not self.journal_header.tag_value_matches_expected():
+            raise ValueError(
+                f"Journal header tag is {self.journal_header.tag_value_hex}, expected {V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
+            )
         self.journal = self.acq_file.read(
             self.journal_header.data['lJournalLen']).decode(
                 self.encoding, errors='ignore').strip('\0')
@@ -337,6 +346,8 @@ class Reader(object):
             self.marker_start_offset, mh_class)
         self.datafile.marker_header = self.marker_header
         self.__read_marker_items(mih_class)
+        if self.file_revision >= rev.V_381 and self.file_revision <= rev.V_400B:
+            self.__read_v2_marker_metadata()
 
     def __read_marker_items(self, marker_item_header_class):
         """
@@ -364,6 +375,29 @@ class Reader(object):
         self.marker_item_headers = marker_item_headers
         self.datafile.marker_item_headers = marker_item_headers
         self.datafile.event_markers = event_markers
+    
+    def __read_v2_marker_metadata(self):
+        self.marker_metadata_pre_header = self.__single_header(
+            self.acq_file.tell(),
+            bh.V2MarkerMetadataPreHeader
+        )
+        # Sometimes the marker metadata headers are not present -- if we see
+        # that the first four bytes of the marker metadata preheader are
+        # actually the start of the journal header (0x44332211), rewind the
+        # file to the start of the marker metadata preheader and return
+        if self.marker_metadata_pre_header.tag_value == V2JournalHeader.EXPECTED_TAG_VALUE: 
+            self.acq_file.seek(self.marker_metadata_pre_header.offset)
+            logger.debug("No marker metadata headers found")
+            return
+
+        self.marker_metadata_headers = self.__multi_headers(
+            self.marker_metadata_pre_header.item_count,
+            self.acq_file.tell(),
+            bh.V2MarkerMetadataHeader
+        )
+        for mh in self.marker_metadata_headers:
+            self.datafile.event_markers[mh.marker_index].color = mh.rgba_color
+            self.datafile.event_markers[mh.marker_index].tag = mh.marker_tag
 
     def __read_data_compressed(self, channel_indexes):
         # At least in post-4.0 files, the compressed data isn't interleaved at
@@ -437,6 +471,7 @@ def open_or_yield(thing, mode):
     a filename, the file is guaranteed to be closed after yielding.
     """
     if isinstance(thing, str):
+        logger.debug(f"Opening file: {thing}")
         with open(thing, mode) as f:
             yield(f)
     else:

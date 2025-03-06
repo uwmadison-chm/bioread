@@ -86,7 +86,8 @@ def data_file_name(dataset, version, compression):
         BADEND_VERSIONS + NORMAL_VERSIONS,
         COMPRESSIONS))
 def test_reading(pathname):
-    assert Reader.read(pathname), 'Error reading {0}'.format(pathname)
+    logger.debug(f"test_reading: {pathname}")
+    assert Reader.read(pathname), f"Error reading {pathname}"
 
 
 #@pytest.fixture(scope='module')
@@ -191,11 +192,9 @@ def test_reading_r35_file():
     assert len(test_data.channels) == 2
 
 def test_reading_r42_file_with_reader():
-    # This file has a journal that we can't read correctly -- it's a good
-    # test for reading a file with errors and then continuing.
     filename = path.join(DATA_PATH, "misc", "r42_test.acq")
     r = Reader.read(filename)
-    assert len(r.read_errors) > 0
+    assert r.read_errors == []
     assert len(r.channel_headers) == 4
     assert len(r.datafile.channels) == 4
     
