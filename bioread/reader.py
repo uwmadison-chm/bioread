@@ -50,10 +50,6 @@ READ_EXCEPTIONS = (
 )
 
 
-class ReaderError(Exception):
-    pass
-
-
 class Reader(object):
     def __init__(self, acq_file=None):
         self.acq_file = acq_file
@@ -315,7 +311,6 @@ class Reader(object):
             self.graph_header.channel_count, cch_start,
             bh.ChannelCompressionHeader)
 
-    # Data reading methods
     def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):
         if self.data_reader is None:
             self.data_reader = DataReader(
