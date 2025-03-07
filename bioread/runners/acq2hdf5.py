@@ -7,7 +7,6 @@
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 #
 # This script writes an AcqKnowledge file as HDF5, using h5py:
 # http://www.h5py.org/

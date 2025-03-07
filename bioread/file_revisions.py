@@ -6,7 +6,6 @@
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
 # This is an enumeration of known file revisions, for use in header parsing.
 

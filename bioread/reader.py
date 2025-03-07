@@ -6,7 +6,6 @@
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 # Extended by Alexander Schlemmer.
 
 from __future__ import with_statement, division
@@ -18,12 +17,6 @@ import numpy as np
 
 import bioread.file_revisions as rev
 from bioread import headers as bh
-from bioread.headers import GraphHeader, ChannelHeader, ChannelDTypeHeader
-from bioread.headers import UnknownPaddingHeader
-from bioread.headers import ForeignHeader, MainCompressionHeader
-from bioread.headers import ChannelCompressionHeader
-from bioread.headers import V2JournalHeader, V4JournalHeader
-from bioread.headers import V4JournalLengthHeader
 from bioread.biopac import Datafile, EventMarker
 
 import logging
@@ -149,28 +142,30 @@ class Reader(object):
         if self.byte_order_char is None:
             self.__set_order_and_version()
 
-        self.graph_header = self.__single_header(0, GraphHeader)
+        graph_header_class = bh.get_graph_header_class(self.file_revision)
+        self.graph_header = self.__single_header(0, graph_header_class)
         channel_count = self.graph_header.channel_count
 
         pad_start = self.graph_header.effective_len_bytes
         pad_headers = self.__multi_headers(
             self.graph_header.expected_padding_headers,
             pad_start,
-            UnknownPaddingHeader)
+            bh.UnknownPaddingHeader)
         ch_start = pad_start + sum(
             [ph.effective_len_bytes for ph in pad_headers])
-        pad_header = self.__single_header(ch_start, UnknownPaddingHeader)
-        # if pad_header.effective_len_bytes == 40:
-        #     ch_start = 0
+        # skip past the unknown padding header
+        _ = self.__single_header(ch_start, bh.UnknownPaddingHeader)
+        channel_header_class = bh.get_channel_header_class(self.file_revision)
         self.channel_headers = self.__multi_headers(channel_count,
-                                                    ch_start, ChannelHeader)
+                                                    ch_start, channel_header_class)
         ch_len = self.channel_headers[0].effective_len_bytes
 
         for i, ch in enumerate(self.channel_headers):
             logger.debug("Channel header %s: %s" % (i, ch.data))
 
         fh_start = ch_start + len(self.channel_headers)*ch_len
-        self.foreign_header = self.__single_header(fh_start, ForeignHeader)
+        foreign_header_class = bh.get_foreign_header_class(self.file_revision)
+        self.foreign_header = self.__single_header(fh_start, foreign_header_class)
 
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
         self.channel_dtype_headers = self.__scan_for_dtype_headers(
@@ -223,7 +218,7 @@ class Reader(object):
         logger.debug('Scanning for start of channel dtype headers')
         for i in range(MAX_DTYPE_SCANS):
             dtype_headers = self.__multi_headers(
-                channel_count, start_index + i, ChannelDTypeHeader)
+                channel_count, start_index + i, bh.ChannelDTypeHeader)
             if all([h.possibly_valid for h in dtype_headers]):
                 logger.debug("Found at %s" % (start_index + i))
                 self.data_start_offset = self.acq_file.tell()
@@ -239,13 +234,14 @@ class Reader(object):
         # at the correct file offset.
         self.marker_start_offset = self.data_start_offset
         main_ch_start = self.acq_file.tell()
+        main_compression_header_class = bh.get_main_compression_header_class(self.file_revision)
         self.main_compression_header = self.__single_header(
-            main_ch_start, MainCompressionHeader)
+            main_ch_start, main_compression_header_class)
         cch_start = (main_ch_start +
                      self.main_compression_header.effective_len_bytes)
         self.channel_compression_headers = self.__multi_headers(
             self.graph_header.channel_count, cch_start,
-            ChannelCompressionHeader)
+            bh.ChannelCompressionHeader)
 
     def _read_journal(self):
         self.journal = None
@@ -267,29 +263,29 @@ class Reader(object):
         logger.debug("Reading journal starting at %s" % self.acq_file.tell())
         logger.debug(self.acq_file.tell())
         self.journal_header = self.__single_header(
-            self.acq_file.tell(), V2JournalHeader)
+            self.acq_file.tell(), bh.V2JournalHeader)
         if not self.journal_header.tag_value_matches_expected():
             raise ValueError(
-                f"Journal header tag is {self.journal_header.tag_value_hex}, expected {V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
+                f"Journal header tag is {self.journal_header.tag_value_hex}, expected {bh.V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
             )
         self.journal = self.acq_file.read(
-            self.journal_header.data['lJournalLen']).decode(
+            self.journal_header.journal_len).decode(
                 self.encoding, errors='ignore').strip('\0')
 
     def __read_journal_v4(self):
         self.journal_length_header = self.__single_header(
             self.acq_file.tell(),
-            V4JournalLengthHeader)
+            bh.V4JournalLengthHeader)
         journal_len = self.journal_length_header.journal_len
         self.journal = None
-        jh = V4JournalHeader(
+        jh = bh.V4JournalHeader(
             self.file_revision, self.byte_order_char)
         # If journal_length_header.journal_len is small, we don't have a
         # journal to read.
         if (jh.effective_len_bytes <= journal_len):
             self.journal_header = self.__single_header(
                 self.acq_file.tell(),
-                V4JournalHeader)
+                bh.V4JournalHeader)
             logger.debug("Reading {0} bytes of journal at {1}".format(
                 self.journal_header.journal_len,
                 self.acq_file.tell()))
@@ -385,7 +381,7 @@ class Reader(object):
         # that the first four bytes of the marker metadata preheader are
         # actually the start of the journal header (0x44332211), rewind the
         # file to the start of the marker metadata preheader and return
-        if self.marker_metadata_pre_header.tag_value == V2JournalHeader.EXPECTED_TAG_VALUE: 
+        if self.marker_metadata_pre_header.tag_value == bh.V2JournalHeader.EXPECTED_TAG_VALUE: 
             self.acq_file.seek(self.marker_metadata_pre_header.offset)
             logger.debug("No marker metadata headers found")
             return
@@ -429,27 +425,25 @@ class Reader(object):
     def __set_order_and_version(self):
         # Try unpacking the version string in both a bid and little-endian
         # fashion. Version string should be a small, positive integer.
-        self.acq_file.seek(0)
-        # No byte order flag -- we're gonna figure it out.
-        gh = GraphHeader(rev.V_ALL, '')
-        ver_fmt_str = gh.format_string
-        ver_len = struct.calcsize('<'+ver_fmt_str)
-        ver_data = self.acq_file.read(ver_len)
-
-        byte_order_chars = ['<', '>']
-        # Try both ways.
-        byte_order_versions = [
-            (struct.unpack(boc+ver_fmt_str, ver_data)[1], boc)
-            for boc in byte_order_chars
+        # It doesn't matter which graph header class we use; we're only using
+        # the file revision field, which is the same for all graph headers
+        graph_reads = [
+            bh.GraphHeaderPre4(rev.V_ALL, bom)
+            for bom in ['<', '>']
         ]
-
-        # Limit to positive numbers, choose smallest.
-        byte_order_versions = sorted([
-            bp for bp in byte_order_versions if bp[0] > 0])
-        bp = byte_order_versions[0]
-
-        self.byte_order_char = bp[1]
-        self.file_revision = bp[0]
+        for graph_header in graph_reads:
+            graph_header.unpack_from_file(self.acq_file, 0)
+            logger.debug(f"Interpreting file revision with byte order {graph_header.byte_order_char}: {graph_header.file_revision}")
+            logger.debug(f"Graph header: {graph_header.raw_data.hex()}")
+        
+        rev_bom = [
+            (graph_header._struct.lVersion, graph_header.byte_order_char)
+            for graph_header in graph_reads if graph_header._struct.lVersion > 0
+        ]
+        rev_bom.sort()
+        self.file_revision = rev_bom[0][0]
+        self.byte_order_char = rev_bom[0][1]
+        
         # Guess at file encoding -- I think that everything before acq4 is
         # in latin1 and everything newer is utf-8
         logger.debug("File revision: %s" % self.file_revision)

@@ -3,28 +3,17 @@
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
-# Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
+# Written by Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
-# Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
+# Wisconsin-Madison, and later the Center for Healthy Minds
 
 # flake8: noqa: E203, E231, E741, E405, E403
 
-# If I were to do this over again, I'd probably design it differently, without
-# the somewhat weird versioning structure, as well as using ctypes instead
-# of the weird StructDict thing we have.
-# But, you know what? It's not worth changing this now, unless there turns out
-# to be a compelling reason in the future.
-# But if you're ever looking to do something similar, probably don't use this as
-# a template of good code.
-
-
-from bioread.struct_dict import StructDict
 from bioread.file_revisions import *
 
 import ctypes
 
-class CtypesHeader:
+class Header:
     """
     The base class for all the Biopac headers we're going to use. Basically,
     this contains tooling to build a structure with appropriate endianness,
@@ -62,7 +51,9 @@ class CtypesHeader:
 
     @property
     def _struct_class(self):
-        """Get the appropriate structure class with correct byte order"""
+        """
+        Get the appropriate structure class with correct byte order
+        """
         if not hasattr(self, '__cached_struct_class'):
             base_class = self.BASES[self.byte_order_char]
             fields = self._fields_for_current_version()
@@ -72,7 +63,6 @@ class CtypesHeader:
             self.__cached_struct_class = StructClass
         return self.__cached_struct_class
     
-    # I'm not sure we'll need both struct_length and effective_len_bytes.
     @property
     def struct_length(self):
         """
@@ -97,452 +87,348 @@ class CtypesHeader:
             (field[0], field[1]) for field in self.__class__._versioned_fields
             if field[2] <= self.file_revision
         ]
-
-    # For compatibility with the old API, return a dict-like object
-    # that provides access to the structure fields. Once we're done migrating to
-    # the new API, we'll make sure no one uses this and remove it.
+    
+    # I thought I could get away from this, but it's useful for debugging.
     @property
     def data(self):
         """
-        For compatibility with the old API, return a dict-like object
-        that provides access to the structure fields
+        Return a dictionary of the fields in the structure.
         """
-        if not hasattr(self, '_data_dict'):
-            # Create a dict that maps field names to values in the structure
-            self._data_dict = {
+        if not hasattr(self, '__data'):
+            self.__data = {
                 field[0]: getattr(self._struct, field[0])
-                for field in self._struct.__class__._fields_
+                for field in self._struct._fields_
             }
-        return self._data_dict
+        return self.__data
+
+    def __repr__(self):
+        field_strings = [f"{field[0]}: {getattr(self._struct, field[0])}" for field in self._struct._fields_]
+        return f"{self.__class__.__name__}({', '.join(field_strings)})"
 
 
+def get_graph_header_class(file_revision):
+    if file_revision < V_400B:
+        return GraphHeaderPre4
+    else:
+        return GraphHeaderPost4
 
 
-class Header(object):
+class BaseGraphHeader(Header):
     """
-    Represents a binary header and its unpacking
+    Base class for Graph Headers to yield a common interface.
     """
-
-    def __init__(self, struct_dict, encoding='utf-8'):
-        self.struct_dict = struct_dict
-        self.encoding = encoding
-        self.offset = None
-        self.unpacked = {}
-
-    def unpack_from_str(self, str_data):
-        self.raw_data = str_data
-        self.__unpack_data()
-
-    def unpack_from_file(self, data_file, offset):
-        self.offset = offset
-        data_file.seek(offset)
-        self.raw_data = data_file.read(self.struct_dict.len_bytes)
-        self.__unpack_data()
 
     @property
     def effective_len_bytes(self):
-        """
-        This will be overridden frequently -- it's used in navigating files.
-        """
-        return self.struct_length
-    
-    @property
-    def struct_length(self):
-        return self.struct_dict.len_bytes
-
-    @property
-    def format_string(self):
-        return self.struct_dict.format_string
-
-    def __unpack_data(self):
-        self.data = self.struct_dict.unpack(self.raw_data)
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-    def __str__(self):
-        return str(self.data)
-
-
-class VersionedHeaderStructure(object):
-
-    def __init__(self, *structure_elements):
-        self.structure_elements = structure_elements
-
-    def elements_for(self, version):
-        return [se for se in self.structure_elements if se[2] <= version]
-
-
-class BiopacHeader(Header):
-    """
-    A simple superclass for GraphHeader, ChannelHeader, and friends.
-    """
-
-    def __init__(self, header_structure, file_revision, byte_order_char,
-                 **kwargs):
-        self.file_revision = file_revision
-        self.byte_order_char = byte_order_char
-        self.header_structure = header_structure
-        sd = StructDict(byte_order_char,
-                        header_structure.elements_for(file_revision))
-        super().__init__(sd, **kwargs)
-
-
-class GraphHeader(BiopacHeader):
-    """
-    The main Graph Header for an AcqKnowledge file. The documentation is much
-    more complete for older files (revision 45 and below); I've looked to find
-    the reliable (and essential) structure information in later files.
-
-    The fields we really need to decode the data:
-    Length
-    Number of channels
-    Sample time
-    Data compressed?
-    """
-
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        self.file_revision = file_revision
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def effective_len_bytes(self):
-        l = self.data['lExtItemHeaderLen']
+        l = self._struct.lExtItemHeaderLen
         # We're going to skip an extra 40 bytes. This is kind of an ugly hack;
         # there seems to be a whole other 40-byte header in there.
         # if self.file_revision >= V_430:
         #     l += 40
         return l
-
+    
     @property
     def channel_count(self):
-        return self.data['nChannels']
+        return self._struct.nChannels
 
     @property
     def sample_time(self):
-        return self.data['dSampleTime']
+        return self._struct.dSampleTime
 
     @property
     def compressed(self):
-        return self.data.get('bCompressed') == 1
+        if not hasattr(self._struct, 'bCompressed'):
+            return False
+        return self._struct.bCompressed != 0
 
     @property
     def data_format(self):
-        fmt = 'uncompressed'
-        if self.compressed:
-            fmt = 'compressed'
-        return fmt
-
-    @property
-    def __version_bin(self):
-        bin = 'Unknown'
-        if self.file_revision < V_400B:
-            bin = 'PRE_4'
-        else:
-            bin = 'POST_4'
-        return bin
+        return 'compressed' if self.compressed else 'uncompressed'
 
     @property
     def expected_padding_headers(self):
         if self.file_revision >= V_430:
-            return self.data['hExpectedPaddings']
+            return self._struct.hExpectedPaddings
         return 0
 
-    @property
-    def __h_elt_versions(self):
-        return {
-            'PRE_4' : VersionedHeaderStructure(
-                ('nItemHeaderLen'           ,'h'    ,V_ALL),
-                ('lVersion'                 ,'l'    ,V_ALL),
-                ('lExtItemHeaderLen'        ,'l'    ,V_20a),
-                ('nChannels'                ,'h'    ,V_20a),
-                ('nHorizAxisType'           ,'h'    ,V_20a),
-                ('nCurChannel'              ,'h'    ,V_20a),
-                ('dSampleTime'              ,'d'    ,V_20a),
-                ('dTimeOffset'              ,'d'    ,V_20a),
-                ('dTimeScale'               ,'d'    ,V_20a),
-                ('dTimeCursor1'             ,'d'    ,V_20a),
-                ('dTimeCursor2'             ,'d'    ,V_20a),
-                ('rcWindow'                 ,'4h'   ,V_20a),
-                ('nMeasurement'             ,'6h'   ,V_20a),
-                ('fHilite'                  ,'h'    ,V_20a),
-                ('dFirstTimeOffset'         ,'d'    ,V_20a),
-                ('nRescale'                 ,'h'    ,V_20a),
-                ('szHorizUnits1'            ,'40s'  ,V_20a),
-                ('szHorizUnits2'            ,'10s'  ,V_20a),
-                ('nInMemory'                ,'h'    ,V_20a),
-                ('fGrid'                    ,'h'    ,V_20a),
-                ('fMarkers'                 ,'h'    ,V_20a),
-                ('nPlotDraft'               ,'h'    ,V_20a),
-                ('nDispMode'                ,'h'    ,V_20a),
-                ('rRReserved'               ,'h'    ,V_20a),
-                ('BShowToolBar'             ,'h'    ,V_30r),
-                ('BShowChannelButtons'      ,'h'    ,V_30r),
-                ('BShowMeasurements'        ,'h'    ,V_30r),
-                ('BShowMarkers'             ,'h'    ,V_30r),
-                ('BShowJournal'             ,'h'    ,V_30r),
-                ('CurXChannel'              ,'h'    ,V_30r),
-                ('MmtPrecision'             ,'h'    ,V_30r),
-                ('NMeasurementRows'         ,'h'    ,V_303),
-                ('mmt40'                    ,'40h'  ,V_303),
-                ('mmtChan40'                ,'40h'  ,V_303),
-                ('MmtCalcOpnd1'             ,'40h'  ,V_35x),
-                ('MmtCalcOpnd2'             ,'40h'  ,V_35x),
-                ('MmtCalcOp'                ,'40h'  ,V_35x),
-                ('MmtCalcConstant'          ,'40d'  ,V_35x),
-                ('bNewGridWithMinor'        ,'l'    ,V_370),
-                ('colorMajorGrid'           ,'4B'   ,V_370),
-                ('colorMinorGrid'           ,'4B'   ,V_370),
-                ('wMajorGridStyle'          ,'h'    ,V_370),
-                ('wMinorGridStyle'          ,'h'    ,V_370),
-                ('wMajorGridWidth'          ,'h'    ,V_370),
-                ('wMinorGridWidth'          ,'h'    ,V_370),
-                ('bFixedUnitsDiv'           ,'l'    ,V_370),
-                ('bMid_Range_Show'          ,'l'    ,V_370),
-                ('dStart_Middle_Point'      ,'d'    ,V_370),
-                ('dOffset_Point'            ,'60d'  ,V_370),
-                ('hGrid'                    ,'d'    ,V_370),
-                ('vGrid'                    ,'60d'  ,V_370),
-                ('bEnableWaveTools'         ,'l'    ,V_370),
-                ('hozizPrecision'           ,'h'    ,V_373),
-                ('Reserved'                 ,'20b'  ,V_381),
-                ('bOverlapMode'             ,'l'    ,V_381),
-                ('bShowHardware'            ,'l'    ,V_381),
-                ('bXAutoPlot'               ,'l'    ,V_381),
-                ('bXAutoScroll'             ,'l'    ,V_381),
-                ('bStartButtonVisible'      ,'l'    ,V_381),
-                ('bCompressed'              ,'l'    ,V_381),
-                ('bAlwaysStartButtonVisible','l'    ,V_381),
-                ('pathVideo'                ,'260s' ,V_382),
-                ('optSyncDelay'             ,'l'    ,V_382),
-                ('syncDelay'                ,'d'    ,V_382),
-                ('bHRP_PasteMeasurements'   ,'l'    ,V_382),
-                ('graphType'                ,'l'    ,V_390),
-                ('mmtCalcExpr'              ,'10240s',V_390),
-                ('mmtMomentOrder'           ,'40l'  ,V_390),
-                ('mmtTimeDelay'             ,'40l'  ,V_390),
-                ('mmtEmbedDim'              ,'40l'  ,V_390),
-                ('mmtMIDelay'               ,'40l'  ,V_390),
-            ),
-            'POST_4' : VersionedHeaderStructure(
-                ('nItemHeaderLen'           ,'h'    ,V_ALL),
-                ('lVersion'                 ,'l'    ,V_ALL),
-                ('lExtItemHeaderLen'        ,'l'    ,V_20a),
-                ('nChannels'                ,'h'    ,V_20a),
-                ('nHorizAxisType'           ,'h'    ,V_20a),
-                ('nCurChannel'              ,'h'    ,V_20a),
-                ('dSampleTime'              ,'d'    ,V_20a),
-                ('dTimeOffset'              ,'d'    ,V_20a),
-                ('dTimeScale'               ,'d'    ,V_20a),
-                ('dTimeCursor1'             ,'d'    ,V_20a),
-                ('dTimeCursor2'             ,'d'    ,V_20a),
-                ('rcWindow'                 ,'4h'   ,V_20a),
-                ('nMeasurement'             ,'6h'   ,V_20a),
-                ('fHilite'                  ,'h'    ,V_20a),
-                ('dFirstTimeOffset'         ,'d'    ,V_20a),
-                ('nRescale'                 ,'h'    ,V_20a),
-                ('szHorizUnits1'            ,'40s'  ,V_20a),
-                ('szHorizUnits2'            ,'10s'  ,V_20a),
-                ('nInMemory'                ,'h'    ,V_20a),
-                ('fGrid'                    ,'h'    ,V_20a),
-                ('fMarkers'                 ,'h'    ,V_20a),
-                ('nPlotDraft'               ,'h'    ,V_20a),
-                ('nDispMode'                ,'h'    ,V_20a),
-                ('rRReserved'               ,'h'    ,V_20a),
-                ('Unknown'                  ,'822B' ,V_400B),
-                ('bCompressed'              ,'l'    ,V_400B),
-                ('Unknown2'                 ,'1422B',V_400B),
-                ('hExpectedPaddings'        ,'h'    ,V_430)
-            )}
 
-    @property
-    def __h_elts(self):
-        return self.__h_elt_versions[self.__version_bin]
+class GraphHeaderPre4(BaseGraphHeader):
+    """
+    Graph Header for files with revision less than 4.
+    """
+    _versioned_fields = [
+        ('nItemHeaderLen', ctypes.c_int16, V_ALL),
+        ('lVersion', ctypes.c_int32, V_ALL),
+        ('lExtItemHeaderLen', ctypes.c_int32, V_20a),
+        ('nChannels', ctypes.c_int16, V_20a),
+        ('nHorizAxisType', ctypes.c_int16, V_20a),
+        ('nCurChannel', ctypes.c_int16, V_20a),
+        ('dSampleTime', ctypes.c_double, V_20a),
+        ('dTimeOffset', ctypes.c_double, V_20a),
+        ('dTimeScale', ctypes.c_double, V_20a),
+        ('dTimeCursor1', ctypes.c_double, V_20a),
+        ('dTimeCursor2', ctypes.c_double, V_20a),
+        ('rcWindow', ctypes.c_int16 * 4, V_20a),
+        ('nMeasurement', ctypes.c_int16 * 6, V_20a),
+        ('fHilite', ctypes.c_int16, V_20a),
+        ('dFirstTimeOffset', ctypes.c_double, V_20a),
+        ('nRescale', ctypes.c_int16, V_20a),
+        ('szHorizUnits1', ctypes.c_char * 40, V_20a),
+        ('szHorizUnits2', ctypes.c_char * 10, V_20a),
+        ('nInMemory', ctypes.c_int16, V_20a),
+        ('fGrid', ctypes.c_int16, V_20a),
+        ('fMarkers', ctypes.c_int16, V_20a),
+        ('nPlotDraft', ctypes.c_int16, V_20a),
+        ('nDispMode', ctypes.c_int16, V_20a),
+        ('rRReserved', ctypes.c_int16, V_20a),
+        ('BShowToolBar', ctypes.c_int16, V_30r),
+        ('BShowChannelButtons', ctypes.c_int16, V_30r),
+        ('BShowMeasurements', ctypes.c_int16, V_30r),
+        ('BShowMarkers', ctypes.c_int16, V_30r),
+        ('BShowJournal', ctypes.c_int16, V_30r),
+        ('CurXChannel', ctypes.c_int16, V_30r),
+        ('MmtPrecision', ctypes.c_int16, V_30r),
+        ('NMeasurementRows', ctypes.c_int16, V_303),
+        ('mmt40', ctypes.c_int16 * 40, V_303),
+        ('mmtChan40', ctypes.c_int16 * 40, V_303),
+        ('MmtCalcOpnd1', ctypes.c_int16 * 40, V_35x),
+        ('MmtCalcOpnd2', ctypes.c_int16 * 40, V_35x),
+        ('MmtCalcOp', ctypes.c_int16 * 40, V_35x),
+        ('MmtCalcConstant', ctypes.c_double * 40, V_35x),
+        ('bNewGridWithMinor', ctypes.c_int32, V_370),
+        ('colorMajorGrid', ctypes.c_byte * 4, V_370),
+        ('colorMinorGrid', ctypes.c_byte * 4, V_370),
+        ('wMajorGridStyle', ctypes.c_int16, V_370),
+        ('wMinorGridStyle', ctypes.c_int16, V_370),
+        ('wMajorGridWidth', ctypes.c_int16, V_370),
+        ('wMinorGridWidth', ctypes.c_int16, V_370),
+        ('bFixedUnitsDiv', ctypes.c_int32, V_370),
+        ('bMid_Range_Show', ctypes.c_int32, V_370),
+        ('dStart_Middle_Point', ctypes.c_double, V_370),
+        ('dOffset_Point', ctypes.c_double * 60, V_370),
+        ('hGrid', ctypes.c_double, V_370),
+        ('vGrid', ctypes.c_double * 60, V_370),
+        ('bEnableWaveTools', ctypes.c_int32, V_370),
+        ('hozizPrecision', ctypes.c_int16, V_373),
+        ('Reserved', ctypes.c_byte * 20, V_381),
+        ('bOverlapMode', ctypes.c_int32, V_381),
+        ('bShowHardware', ctypes.c_int32, V_381),
+        ('bXAutoPlot', ctypes.c_int32, V_381),
+        ('bXAutoScroll', ctypes.c_int32, V_381),
+        ('bStartButtonVisible', ctypes.c_int32, V_381),
+        ('bCompressed', ctypes.c_int32, V_381),
+        ('bAlwaysStartButtonVisible', ctypes.c_int32, V_381),
+        ('pathVideo', ctypes.c_char * 260, V_382),
+        ('optSyncDelay', ctypes.c_int32, V_382),
+        ('syncDelay', ctypes.c_double, V_382),
+        ('bHRP_PasteMeasurements', ctypes.c_int32, V_382),
+        ('graphType', ctypes.c_int32, V_390),
+        ('mmtCalcExpr', ctypes.c_char * 10240, V_390),
+        ('mmtMomentOrder', ctypes.c_int32 * 40, V_390),
+        ('mmtTimeDelay', ctypes.c_int32 * 40, V_390),
+        ('mmtEmbedDim', ctypes.c_int32 * 40, V_390),
+        ('mmtMIDelay', ctypes.c_int32 * 40, V_390),
+    ]
 
 
-class UnknownPaddingHeader(BiopacHeader):
+class GraphHeaderPost4(BaseGraphHeader):
+    """
+    Graph Header for files with revision 4 and above.
+    """
+    _versioned_fields = [
+        ('nItemHeaderLen', ctypes.c_int16, V_ALL),
+        ('lVersion', ctypes.c_int32, V_ALL),
+        ('lExtItemHeaderLen', ctypes.c_int32, V_20a),
+        ('nChannels', ctypes.c_int16, V_20a),
+        ('nHorizAxisType', ctypes.c_int16, V_20a),
+        ('nCurChannel', ctypes.c_int16, V_20a),
+        ('dSampleTime', ctypes.c_double, V_20a),
+        ('dTimeOffset', ctypes.c_double, V_20a),
+        ('dTimeScale', ctypes.c_double, V_20a),
+        ('dTimeCursor1', ctypes.c_double, V_20a),
+        ('dTimeCursor2', ctypes.c_double, V_20a),
+        ('rcWindow', ctypes.c_int16 * 4, V_20a),
+        ('nMeasurement', ctypes.c_int16 * 6, V_20a),
+        ('fHilite', ctypes.c_int16, V_20a),
+        ('dFirstTimeOffset', ctypes.c_double, V_20a),
+        ('nRescale', ctypes.c_int16, V_20a),
+        ('szHorizUnits1', ctypes.c_char * 40, V_20a),
+        ('szHorizUnits2', ctypes.c_char * 10, V_20a),
+        ('nInMemory', ctypes.c_int16, V_20a),
+        ('fGrid', ctypes.c_int16, V_20a),
+        ('fMarkers', ctypes.c_int16, V_20a),
+        ('nPlotDraft', ctypes.c_int16, V_20a),
+        ('nDispMode', ctypes.c_int16, V_20a),
+        ('rRReserved', ctypes.c_int16, V_20a),
+        ('Unknown', ctypes.c_byte * 822, V_400B),
+        ('bCompressed', ctypes.c_int32, V_400B),
+        ('Unknown2', ctypes.c_byte * 1422, V_400B),
+        ('hExpectedPaddings', ctypes.c_int16, V_430)
+    ]
+
+
+class UnknownPaddingHeader(Header):
     """
     I don't know what this is for, but it's 40-bytes long and right before some
     modern files
     """
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        self.file_revision = file_revision
-        super().__init__(
-            self.__h_elts, file_revision, byte_order_char, **kwargs)
+    _versioned_fields = [
+        ('lChannelLen', ctypes.c_int32, V_ALL),
+        ('Uknown', ctypes.c_byte * 36, V_ALL)
+    ]
 
     @property
     def effective_len_bytes(self):
-        return self.data['lChannelLen']
-
-    @property
-    def __h_elts(self):
-        elts = VersionedHeaderStructure(
-            ('lChannelLen', 'l', V_ALL),
-            ('Uknown', '36B', V_ALL)
-        )
-        return elts
+        return self._struct.lChannelLen
 
 
-class ChannelHeader(BiopacHeader):
+def get_channel_header_class(file_revision):
+    if file_revision < V_400B:
+        return ChannelHeaderPre4
+    else:
+        return ChannelHeaderPost4
+
+
+class BaseChannelHeader(Header):
     """
-    The main Channel Header for an AcqKnowledge file. Note that this is known
-    to be wrong for more modern files -- but for the purposes of this
-    reader, we don't care. Enough fields are right that we can still find
-    our way around.
+    Base class for Channel Headers to yield a common interface.
     """
-
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        self.file_revision = file_revision
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __version_bin(self):
-        bin = 'Unknown'
-        if self.file_revision < V_400B:
-            bin = 'PRE_4'
-        else:
-            bin = 'POST_4'
-        return bin
 
     @property
     def effective_len_bytes(self):
-        return self.data['lChanHeaderLen']
+        return self._struct.lChanHeaderLen
 
     @property
     def frequency_divider(self):
-        """
-        The number you divide the graph's samples_per_second by to get this
-        channel's samples_per_second. If not defined (as in old file
-        versions), this should be 1.
-        """
-        return self.data.get('nVarSampleDivider') or 1
+        if hasattr(self._struct, 'nVarSampleDivider'):
+            return self._struct.nVarSampleDivider or 1
+        else:
+            return 1
 
     @property
     def raw_scale(self):
-        return self.data['dAmplScale']
+        return self._struct.dAmplScale
 
     @property
     def raw_offset(self):
-        return self.data['dAmplOffset']
+        return self._struct.dAmplOffset
 
     @property
     def units(self):
-        return self.data['szUnitsText'].decode(
-            self.encoding, errors='ignore').strip('\0')
+        return self._struct.szUnitsText.decode(self.encoding, errors='ignore').strip('\0')
 
     @property
     def name(self):
-        return self.data['szCommentText'].decode(
-            self.encoding, errors='ignore').strip('\0')
+        return self._struct.szCommentText.decode(self.encoding, errors='ignore').strip('\0')
 
     @property
     def point_count(self):
-        return self.data['lBufLength']
+        return self._struct.lBufLength
 
     @property
     def order_num(self):
-        return self.data['nChanOrder']
-
-    @property
-    def __h_elts(self):
-        return self.__h_elt_versions[self.__version_bin]
-
-    @property
-    def __h_elt_versions(self):
-        return {
-            'PRE_4' : VersionedHeaderStructure(
-                ('lChanHeaderLen'           ,'l'    ,V_20a),
-                ('nNum'                     ,'h'    ,V_20a),
-                ('szCommentText'            ,'40s'  ,V_20a),
-                ('rgbColor'                 ,'4B'   ,V_20a),
-                ('nDispChan'                ,'h'    ,V_20a),
-                ('dVoltOffset'              ,'d'    ,V_20a),
-                ('dVoltScale'               ,'d'    ,V_20a),
-                ('szUnitsText'              ,'20s'  ,V_20a),
-                ('lBufLength'               ,'l'    ,V_20a),
-                ('dAmplScale'               ,'d'    ,V_20a),
-                ('dAmplOffset'              ,'d'    ,V_20a),
-                ('nChanOrder'               ,'h'    ,V_20a),
-                ('nDispSize'                ,'h'    ,V_20a),
-                ('plotMode'                 ,'h'    ,V_30r),
-                ('vMid'                     ,'d'    ,V_30r),
-                ('szDescription'            ,'128s' ,V_370),
-                ('nVarSampleDivider'        ,'h'    ,V_370),
-                ('vertPrecision'            ,'h'    ,V_373),
-                ('activeSegmentColor'       ,'4b'   ,V_382),
-                ('activeSegmentStyle'       ,'l'    ,V_382),
-            ),
-            'POST_4' : VersionedHeaderStructure(
-                ('lChanHeaderLen'           ,'l'    ,V_20a),
-                ('nNum'                     ,'h'    ,V_20a),
-                ('szCommentText'            ,'40s'  ,V_20a),
-                ('notColor'                 ,'4B'   ,V_20a),
-                ('nDispChan'                ,'h'    ,V_20a),
-                ('dVoltOffset'              ,'d'    ,V_20a),
-                ('dVoltScale'               ,'d'    ,V_20a),
-                ('szUnitsText'              ,'20s'  ,V_20a),
-                ('lBufLength'               ,'l'    ,V_20a),
-                ('dAmplScale'               ,'d'    ,V_20a),
-                ('dAmplOffset'              ,'d'    ,V_20a),
-                ('nChanOrder'               ,'h'    ,V_20a),
-                ('nDispSize'                ,'h'    ,V_20a),
-                ('unknown'                  ,'40s'  ,V_400B),
-                ('nVarSampleDivider'        ,'h'    ,V_400B),
-            )}
+        return self._struct.nChanOrder
 
 
-class ForeignHeader(BiopacHeader):
+class ChannelHeaderPre4(BaseChannelHeader):
     """
-    The Foreign Data header for AcqKnowledge files. I admit that I don't
-    know what goes in this section.
+    Channel Header for files with revision less than 4.
     """
+    _versioned_fields = [
+        ('lChanHeaderLen', ctypes.c_int32, V_20a),
+        ('nNum', ctypes.c_int16, V_20a),
+        ('szCommentText', ctypes.c_char * 40, V_20a),
+        ('rgbColor', ctypes.c_byte * 4, V_20a),
+        ('nDispChan', ctypes.c_int16, V_20a),
+        ('dVoltOffset', ctypes.c_double, V_20a),
+        ('dVoltScale', ctypes.c_double, V_20a),
+        ('szUnitsText', ctypes.c_char * 20, V_20a),
+        ('lBufLength', ctypes.c_int32, V_20a),
+        ('dAmplScale', ctypes.c_double, V_20a),
+        ('dAmplOffset', ctypes.c_double, V_20a),
+        ('nChanOrder', ctypes.c_int16, V_20a),
+        ('nDispSize', ctypes.c_int16, V_20a),
+        ('plotMode', ctypes.c_int16, V_30r),
+        ('vMid', ctypes.c_double, V_30r),
+        ('szDescription', ctypes.c_char * 128, V_370),
+        ('nVarSampleDivider', ctypes.c_int16, V_370),
+        ('vertPrecision', ctypes.c_int16, V_373),
+        ('activeSegmentColor', ctypes.c_byte * 4, V_382),
+        ('activeSegmentStyle', ctypes.c_int32, V_382),
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        self.file_revision = file_revision
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
 
-    @property
-    def __version_bin(self):
-        bin = 'Unknown'
-        if self.file_revision <= V_390:
-            bin = "PRE_4"
-        elif self.file_revision >= V_400B:
-            bin = "POST_4"
-        return bin
+class ChannelHeaderPost4(BaseChannelHeader):
+    """
+    Channel Header for files with revision 4 and above.
+    """
+    _versioned_fields = [
+        ('lChanHeaderLen', ctypes.c_int32, V_20a),
+        ('nNum', ctypes.c_int16, V_20a),
+        ('szCommentText', ctypes.c_char * 40, V_20a),
+        ('notColor', ctypes.c_byte * 4, V_20a),
+        ('nDispChan', ctypes.c_int16, V_20a),
+        ('dVoltOffset', ctypes.c_double, V_20a),
+        ('dVoltScale', ctypes.c_double, V_20a),
+        ('szUnitsText', ctypes.c_char * 20, V_20a),
+        ('lBufLength', ctypes.c_int32, V_20a),
+        ('dAmplScale', ctypes.c_double, V_20a),
+        ('dAmplOffset', ctypes.c_double, V_20a),
+        ('nChanOrder', ctypes.c_int16, V_20a),
+        ('nDispSize', ctypes.c_int16, V_20a),
+        ('unknown', ctypes.c_char * 40, V_400B),
+        ('nVarSampleDivider', ctypes.c_int16, V_400B),
+    ]
+
+
+def get_foreign_header_class(file_revision):
+    if file_revision <= V_390:
+        return ForeignHeaderPre4
+    else:
+        return ForeignHeaderPost4
+
+
+class ForeignHeaderPre4(Header):
+    """
+    I'm genuinely not sure what the foreign data is for.
+    """
+    _versioned_fields = [
+        ('nLength', ctypes.c_int16, V_20a),
+        ('nType', ctypes.c_int16, V_20a)
+    ]
 
     @property
     def effective_len_bytes(self):
-        if self.__version_bin == "PRE_4":
-            return self.data['nLength']
-        return self.data['lLength']
+        return self._struct.nLength
+
+
+class ForeignHeaderPost4(Header):
+    """
+    I'm genuinely not sure what the foreign data is for.
+    """
+    _versioned_fields = [
+        ('lLength', ctypes.c_int32, V_400B)
+    ]
 
     @property
-    def __h_elts(self):
-        return self.__h_elt_versions[self.__version_bin]
-
-    @property
-    def __h_elt_versions(self):
-        return {
-            "PRE_4" : VersionedHeaderStructure(
-                ('nLength'                  ,'h'    ,V_20a),
-                ('nType'                    ,'h'    ,V_20a),
-            ),
-            "POST_4" : VersionedHeaderStructure(
-                ('lLength'                  ,'l'    ,V_400B),
-            )}
+    def effective_len_bytes(self):
+        return self._struct.lLength
 
 
-class ChannelDTypeHeader(BiopacHeader):
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
+class ChannelDTypeHeader(Header):
+    """
+    Channel data types. This comes immediately after the foreign data, but occasionally
+    there seems to be extra data -- so we use possibly_valid and scan forward until
+    we find valid channel data types, like some kind of animal. 
+    """
+    _versioned_fields = [
+        ('nSize', ctypes.c_int16, V_20a),
+        ('nType', ctypes.c_int16, V_20a)
+    ]
 
     @property
     def type_code(self):
-        return self.data['nType']
+        return self._struct.nType
 
     CODE_MAP = {
         0: 'f8',
@@ -552,9 +438,6 @@ class ChannelDTypeHeader(BiopacHeader):
 
     @property
     def possibly_valid(self):
-        # TODO: When and if we someday figure out the post-foreign-data header
-        # mystery, remove this. Until then, we'll use this function to guess at
-        # the location of the channel dtype header set.
         dtype_code = self.CODE_MAP.get(self.type_code, None)
         if dtype_code is None:
             return False
@@ -563,27 +446,14 @@ class ChannelDTypeHeader(BiopacHeader):
 
     @property
     def numpy_dtype(self):
-        """
-        A valid numpy dtype string: byte order and data type.
-
-        Examples: '<i2', '>f8'
-        """
         return self.byte_order_char + self.CODE_MAP[self.type_code]
 
     @property
     def sample_size(self):
-        return self.data['nSize']
-
-    @property
-    def __h_elts(self):
-        # This lets the standard effective_len_bytes work fine, I think.
-        return VersionedHeaderStructure(
-        ('nSize'                    ,'h'    ,V_20a),
-        ('nType'                    ,'h'    ,V_20a),
-        )
+        return self._struct.nSize
 
 
-class V2JournalHeader(BiopacHeader):
+class V2JournalHeader(Header):
     """
     Version 2-3 journal headers are trivial -- there's a four-byte tag that
     always contains 0x44332211, followed by a boolean "show" and then the
@@ -592,134 +462,88 @@ class V2JournalHeader(BiopacHeader):
     EXPECTED_TAG_VALUE = (0x44, 0x33, 0x22, 0x11)
     EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-            ('tag',         '4B',   V_20a),
-            ('hShow',       'h',    V_20a),
-            ('lJournalLen', 'l',    V_20a)
-        )
+    _versioned_fields = [
+        ('tag', ctypes.c_byte * 4, V_20a),
+        ('hShow', ctypes.c_int16, V_20a),
+        ('lJournalLen', ctypes.c_int32, V_20a)
+    ]
 
     @property
     def show(self):
-        return self.data['hShow']
+        return self._struct.hShow
 
     @property
     def journal_len(self):
-        return self.data['lJournalLen']
+        return self._struct.lJournalLen
     
     @property
     def tag_value(self):
-        return self.data['tag']
+        return tuple(self._struct.tag)
     
     @property
     def tag_value_hex(self):
-        return "".join(f"{b:02X}" for b in self.data['tag'])
+        return "".join(f"{b:02X}" for b in self._struct.tag)
     
     def tag_value_matches_expected(self):
         return self.tag_value == self.EXPECTED_TAG_VALUE
 
 
-class V4JournalHeader(BiopacHeader):
+class V4JournalHeader(Header):
     """
     In Version 4.1 and less, the journal is stored as plain text. From 4.2,
     it's stored as HTML. The start of the header tells the length of the
     entire journal section -- journal text and some preamble; the compression
     headers (if compressed) follow at self.offset + lFullLength.
-
-    The length of the actual journal text is contained 266 bytes into the
-    preamble for 4.1 files; in 4.2 files it's a long immediately before the
-    journal data.
-
-    The journal data starts at 560 bytes after the start of this header in
-    4.1 files; in 4.2 it's at 594 bytes, and 4.4 it's at 598 bytes.
     """
-
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-            ('bUnknown1', '262b', V_400B),
-            ('lEarlyJournalLen', 'l', V_400B),
-            ('bUnknown2', '290b', V_400B),
-            ('bUnknown3', '26b', V_420),
-            ('bUnknown4', '4b', V_440),
-            ('lLateJournalLenMinusOne', 'l', V_420),
-            ('lLateJournalLen', 'l', V_420)
-        )
+    _versioned_fields = [
+        ('bUnknown1', ctypes.c_byte * 262, V_400B),
+        ('lEarlyJournalLen', ctypes.c_int32, V_400B),
+        ('bUnknown2', ctypes.c_byte * 290, V_400B),
+        ('bUnknown3', ctypes.c_byte * 26, V_420),
+        ('bUnknown4', ctypes.c_byte * 4, V_440),
+        ('lLateJournalLenMinusOne', ctypes.c_int32, V_420),
+        ('lLateJournalLen', ctypes.c_int32, V_420)
+    ]
 
     @property
     def journal_len(self):
         if self.file_revision < V_420:
-            return self.data['lEarlyJournalLen']
-        return self.data['lLateJournalLen']
+            return self._struct.lEarlyJournalLen
+        return self._struct.lLateJournalLen
 
 
-class MainCompressionHeader(BiopacHeader):
-    # In compressed files, the markers are stored where the data would be in
-    # uncompressed files. There's also some padding, and I don't know
-    # what's in it.
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        self.file_revision = file_revision
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
+def get_main_compression_header_class(file_revision):
+    if file_revision <= V_400B:
+        return MainCompressionHeaderPre4
+    else:
+        return MainCompressionHeaderPost4
+
+
+class MainCompressionHeaderPre4(Header):
+    _versioned_fields = [
+        ('Unknown', ctypes.c_byte * 34, V_20a),
+        ('lTextLen', ctypes.c_int32, V_20a)
+    ]
 
     @property
     def effective_len_bytes(self):
-        return self.__effective_len_byte_versions[self.__version_bin]()
+        return self.struct_length + self._struct.lTextLen
+
+class MainCompressionHeaderPost4(Header):
+    _versioned_fields = [
+        ('Unknown1', ctypes.c_byte * 24, V_400B),
+        ('lStrLen1', ctypes.c_int32, V_400B),
+        ('lStrLen2', ctypes.c_int32, V_400B),
+        ('Unknown2', ctypes.c_byte * 20, V_400B),
+        ('Unknown3', ctypes.c_byte * 6, V_420)
+    ]
 
     @property
-    def __effective_len_byte_versions(self):
-        # Determined through experimentation, may not be correct for some
-        # revisions. Or files, for that matter. We'll see.
-        return {
-            'PRE_4': lambda: (
-                self.struct_dict.len_bytes + self.data['lTextLen']),
-            'POST_4': lambda: (  # This is incorrect for data with journals
-                self.struct_dict.len_bytes +
-                self.data['lStrLen1'] +
-                self.data['lStrLen2']
-                )
-        }
-
-    @property
-    def __version_bin(self):
-        bin = "Unknown"
-        if self.file_revision <= V_400B:
-            bin = "PRE_4"
-        else:
-            bin = "POST_4"
-        return bin
-
-    @property
-    def __h_elts(self):
-        return self.__h_elts_versions[self.__version_bin]
-
-    @property
-    def __h_elts_versions(self):
-        return {
-            'PRE_4': VersionedHeaderStructure(
-                ('Unknown', '34B', V_20a),
-                ('lTextLen', 'l', V_20a)
-            ),
-            'POST_4': VersionedHeaderStructure(
-                ('Unknown1', '24B', V_400B),  # Should probably be 24.
-                ('lStrLen1', 'l', V_400B),
-                ('lStrLen2', 'l', V_400B),
-                ('Unknown2', '20B', V_400B),
-                ('Unknown3', '6B', V_420),
-            )
-        }
+    def effective_len_bytes(self):
+        return self.struct_length + self._struct.lStrLen1 + self._struct.lStrLen2
 
 
-class ChannelCompressionHeader(CtypesHeader):
+class ChannelCompressionHeader(Header):
     """
     Represents the channel compression header in an AcqKnowledge file.
     """
@@ -767,7 +591,7 @@ class ChannelCompressionHeader(CtypesHeader):
         return self._struct.lCompressedLen
 
 
-class V2MarkerHeader(CtypesHeader):
+class V2MarkerHeader(Header):
     """
     Marker structure for files in Version 3, very likely down to version 2.
     """
@@ -781,7 +605,7 @@ class V2MarkerHeader(CtypesHeader):
         return self._struct.lMarkers
 
 
-class V2MarkerMetadataPreHeader(CtypesHeader):
+class V2MarkerMetadataPreHeader(Header):
     """
     Tells us how many marker metadata headers there are. It's probably the same
     as the marker count, but it's stored separately.
@@ -791,17 +615,18 @@ class V2MarkerMetadataPreHeader(CtypesHeader):
         ('lItemCount', ctypes.c_int32, V_20a),
         ('sUnknown', ctypes.c_char * 76, V_20a)
     ]
-
+    
     @property
     def item_count(self):
         return self._struct.lItemCount
-
+    
     @property
     def tag_value(self):
+        # Convert the c_byte_Array_4 to a tuple
         return tuple(self._struct.tag)
-
-
-class V2MarkerMetadataHeader(CtypesHeader):
+    
+    
+class V2MarkerMetadataHeader(Header):
     """
     Marker metadata for files in Version 2.
     """
@@ -813,25 +638,25 @@ class V2MarkerMetadataHeader(CtypesHeader):
         ('hMarkerTag', ctypes.c_int16, V_20a),
         ('hMarkerTypeId', ctypes.c_int16, V_20a)
     ]
-
+    
     @property
     def marker_number(self):
         return self._struct.lMarkerNumber
-
+    
     @property
     def rgba_color(self):
         return tuple(self._struct.rgbaColor)
-
+    
     @property
     def marker_tag(self):
         return self._struct.hMarkerTag
-
+    
     @property
     def marker_index(self):
         return self.marker_number - 1
+    
 
-
-class V4MarkerHeader(CtypesHeader):
+class V4MarkerHeader(Header):
     """
     Marker structure for files from Version 4 onwards
     """
@@ -851,7 +676,7 @@ class V4MarkerHeader(CtypesHeader):
         return self._struct.lMarkersExtra - 1
 
 
-class V2MarkerItemHeader(CtypesHeader):
+class V2MarkerItemHeader(Header):
     """
     Marker Items for files in Version 3, very likely down to version 2.
     """
@@ -891,7 +716,7 @@ class V2MarkerItemHeader(CtypesHeader):
 
 
 
-class V4MarkerItemHeader(CtypesHeader):
+class V4MarkerItemHeader(Header):
     """
     Marker Items for files in Version 4 onwards.
     """
@@ -936,7 +761,7 @@ class V4MarkerItemHeader(CtypesHeader):
 
 
 
-class V4JournalLengthHeader(CtypesHeader):
+class V4JournalLengthHeader(Header):
     """
     In the case where there's no journal data, there's no full journal header.
     Instead, we just have a single long that tells us how much journal stuff

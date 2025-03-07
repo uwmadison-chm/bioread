@@ -6,7 +6,6 @@
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
 # I'm just going to test one file, just let it write to stdout
 # Really I just want to make sure this thing basically runs so I don't

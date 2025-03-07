@@ -6,7 +6,6 @@
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 #
 # This is a very simple thing to write an AcqKnowledge file as tab-delimited
 # text. It'll produce very large output, so use it with care.
