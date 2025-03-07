@@ -321,7 +321,7 @@ class Reader(object):
                 logger.error(
                     f"Error reading {h_class} at offset {h_offset}: {e}")
                 raise e
-            logger.debug(f"Read {h.struct_dict.len_bytes} bytes: {h.data}")
+            logger.debug(f"Read {h.struct_length} bytes: {h.data}")
             last_h_len = h.effective_len_bytes
             headers.append(h)
         return headers

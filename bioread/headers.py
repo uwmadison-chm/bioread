@@ -22,6 +22,101 @@
 from bioread.struct_dict import StructDict
 from bioread.file_revisions import *
 
+import ctypes
+
+class CtypesHeader:
+    """
+    The base class for all the Biopac headers we're going to use. Basically,
+    this contains tooling to build a structure with appropriate endianness,
+    handle the thing where fields appear in different versions of the AcqKnowledge,
+    and then has the ability to unpack the data from a file.
+
+    The data property should not be used by any new code, it's just here for the
+    transition period.
+    """
+
+    BASES = {
+        ">": ctypes.BigEndianStructure,
+        "<": ctypes.LittleEndianStructure
+    }
+
+    def __init__(self, file_revision, byte_order_char, encoding="utf-8"):
+        self.file_revision = file_revision
+        self.byte_order_char = byte_order_char
+        self.encoding = encoding
+        self.offset = None
+        self.raw_data = None
+        self._struct = None
+
+    def unpack_from_file(self, data_file, offset):
+        """Unpack header data from a file at the given offset"""
+        self.offset = offset
+        data_file.seek(offset)
+        # Read enough bytes for this structure
+        self.unpack_from_bytes(data_file.read(self.struct_length))
+
+    def unpack_from_bytes(self, bytes_data):
+        """Unpack header data from a string/bytes. Useful for testing / debugging."""
+        self.raw_data = bytes_data
+        self._struct = self._struct_class.from_buffer_copy(bytes_data)
+
+    @property
+    def _struct_class(self):
+        """Get the appropriate structure class with correct byte order"""
+        if not hasattr(self, '__cached_struct_class'):
+            base_class = self.BASES[self.byte_order_char]
+            fields = self._fields_for_current_version()
+            class StructClass(base_class):
+                _pack_ = 1
+                _fields_ = fields
+            self.__cached_struct_class = StructClass
+        return self.__cached_struct_class
+    
+    # I'm not sure we'll need both struct_length and effective_len_bytes.
+    @property
+    def struct_length(self):
+        """
+        Length of the structure itself. You should probably not override this!
+        """
+        return ctypes.sizeof(self._struct_class)
+
+    @property
+    def effective_len_bytes(self):
+        """
+        The number of bytes it'll take to get to the next header in the file.
+        This may use the information from the header -- generally in cases where
+        the header contains things like variable length strings.
+        """
+        return self.struct_length
+    
+    def _fields_for_current_version(self):
+        """
+        Return a list of fields that should be included in the structure.
+        """
+        return [
+            (field[0], field[1]) for field in self.__class__._versioned_fields
+            if field[2] <= self.file_revision
+        ]
+
+    # For compatibility with the old API, return a dict-like object
+    # that provides access to the structure fields. Once we're done migrating to
+    # the new API, we'll make sure no one uses this and remove it.
+    @property
+    def data(self):
+        """
+        For compatibility with the old API, return a dict-like object
+        that provides access to the structure fields
+        """
+        if not hasattr(self, '_data_dict'):
+            # Create a dict that maps field names to values in the structure
+            self._data_dict = {
+                field[0]: getattr(self._struct, field[0])
+                for field in self._struct.__class__._fields_
+            }
+        return self._data_dict
+
+
+
 
 class Header(object):
     """
@@ -49,6 +144,10 @@ class Header(object):
         """
         This will be overridden frequently -- it's used in navigating files.
         """
+        return self.struct_length
+    
+    @property
+    def struct_length(self):
         return self.struct_dict.len_bytes
 
     @property
@@ -525,37 +624,6 @@ class V2JournalHeader(BiopacHeader):
         return self.tag_value == self.EXPECTED_TAG_VALUE
 
 
-class V4JournalLengthHeader(BiopacHeader):
-    """
-    In the case where there's no journal data, there's no full journal header.
-    Instead, we just have a single long that tells us how much journal stuff
-    (data + header) there is. Basically, if this value is less than the
-    length of the V4JournalHeader, don't even try to read that header or
-    journal data.
-
-    The next stuff (if there is any) will be at self.offset + lJournalDataLen
-    """
-
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-            ('lJournalDataLen', 'l', V_400B)
-        )
-
-    @property
-    def journal_len(self):
-        return self.data['lJournalDataLen']
-
-    @property
-    def data_end(self):
-        return self.offset + self.journal_len
-
-
-
 class V4JournalHeader(BiopacHeader):
     """
     In Version 4.1 and less, the journal is stored as plain text. From 4.2,
@@ -651,10 +719,17 @@ class MainCompressionHeader(BiopacHeader):
         }
 
 
-class ChannelCompressionHeader(BiopacHeader):
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
+class ChannelCompressionHeader(CtypesHeader):
+    """
+    Represents the channel compression header in an AcqKnowledge file.
+    """
+    _versioned_fields = [
+        ('Unknown', ctypes.c_byte * 44, V_381),
+        ('lChannelLabelLen', ctypes.c_int32, V_381),
+        ('lUnitLabelLen', ctypes.c_int32, V_381),
+        ('lUncompressedLen', ctypes.c_int32, V_381),
+        ('lCompressedLen', ctypes.c_int32, V_381)
+    ]
 
     @property
     def effective_len_bytes(self):
@@ -662,7 +737,7 @@ class ChannelCompressionHeader(BiopacHeader):
         Return the length of the header UP TO THE NEXT HEADER, skipping the
         compressed data. Use header_only_len_bytes for only the header length.
         """
-        return self.header_only_len_bytes + self.data['lCompressedLen']
+        return self.header_only_len_bytes + self._struct.lCompressedLen
 
     @property
     def header_only_len_bytes(self):
@@ -675,8 +750,9 @@ class ChannelCompressionHeader(BiopacHeader):
         be after the units text, and starts with 'x'.
         """
         return (
-            self.struct_dict.len_bytes + self.data['lChannelLabelLen'] +
-            self.data['lUnitLabelLen'])
+            self.struct_length + self._struct.lChannelLabelLen +
+            self._struct.lUnitLabelLen
+        )
 
     @property
     def compressed_data_offset(self):
@@ -688,168 +764,115 @@ class ChannelCompressionHeader(BiopacHeader):
 
     @property
     def compressed_data_len(self):
-        return self.data['lCompressedLen']
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('Unknown'                  ,'44B'  ,V_381),
-        ('lChannelLabelLen'         ,'l'    ,V_381),
-        ('lUnitLabelLen'            ,'l'    ,V_381),
-        ('lUncompressedLen'         ,'l'    ,V_381),
-        ('lCompressedLen'           ,'l'    ,V_381),
-        )
+        return self._struct.lCompressedLen
 
 
-class V2MarkerHeader(BiopacHeader):
+class V2MarkerHeader(CtypesHeader):
     """
     Marker structure for files in Version 3, very likely down to version 2.
     """
-
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    # NOTE: lLength does NOT include this header length -- only the length
-    # of all the marker items. This is different than in the v4 header.
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lLength'              ,'l'    ,V_20a),
-        ('lMarkers'             ,'l'    ,V_20a),
-        )
+    _versioned_fields = [
+        ('lLength', ctypes.c_int32, V_20a),
+        ('lMarkers', ctypes.c_int32, V_20a)
+    ]
 
     @property
     def marker_count(self):
-        return self.data['lMarkers']
+        return self._struct.lMarkers
 
-class V2MarkerMetadataPreHeader(BiopacHeader):
+
+class V2MarkerMetadataPreHeader(CtypesHeader):
     """
     Tells us how many marker metadata headers there are. It's probably the same
     as the marker count, but it's stored separately.
     """
+    _versioned_fields = [
+        ('tag', ctypes.c_byte * 4, V_20a),
+        ('lItemCount', ctypes.c_int32, V_20a),
+        ('sUnknown', ctypes.c_char * 76, V_20a)
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('tag'           ,'4B'   ,V_20a),
-        ('lItemCount'    ,'l'    ,V_20a),
-        ('sUnknown'      ,'76s'  ,V_20a),
-        )
-    
     @property
     def item_count(self):
-        return self.data['lItemCount']
-    
+        return self._struct.lItemCount
+
     @property
     def tag_value(self):
-        return self.data['tag']
-    
-    
-class V2MarkerMetadataHeader(BiopacHeader):
+        return tuple(self._struct.tag)
+
+
+class V2MarkerMetadataHeader(CtypesHeader):
     """
     Marker metadata for files in Version 2.
     """
+    _versioned_fields = [
+        ('lUnknown1', ctypes.c_int32, V_20a),
+        ('lMarkerNumber', ctypes.c_int32, V_20a),
+        ('bUnknown2', ctypes.c_byte * 12, V_20a),
+        ('rgbaColor', ctypes.c_byte * 4, V_20a),
+        ('hMarkerTag', ctypes.c_int16, V_20a),
+        ('hMarkerTypeId', ctypes.c_int16, V_20a)
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)  
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lUnknown1'            ,'l'    ,V_20a),
-        ('lMarkerNumber'        ,'l'    ,V_20a),
-        ('bUnknown2'            ,'12B'  ,V_20a),
-        ('rgbaColor'            ,'4B'   ,V_20a),
-        ('hMarkerTag'           ,'h'    ,V_20a),
-        ('hMarkerTypeId'        ,'h'    ,V_20a),
-        )
-    
     @property
     def marker_number(self):
-        return self.data['lMarkerNumber']
-    
+        return self._struct.lMarkerNumber
+
     @property
     def rgba_color(self):
-        return self.data['rgbaColor']
-    
+        return tuple(self._struct.rgbaColor)
+
     @property
     def marker_tag(self):
-        return self.data['hMarkerTag']    
-    
+        return self._struct.hMarkerTag
+
     @property
     def marker_index(self):
         return self.marker_number - 1
-    
 
-class V4MarkerHeader(BiopacHeader):
+
+class V4MarkerHeader(CtypesHeader):
     """
     Marker structure for files from Version 4 onwards
     """
+    _versioned_fields = [
+        ('lLength', ctypes.c_int32, V_400B),
+        ('lMarkersExtra', ctypes.c_int32, V_400B),
+        ('lMarkers', ctypes.c_int32, V_400B),
+        ('Unknown', ctypes.c_byte * 6, V_400B),
+        ('szDefl', ctypes.c_char * 5, V_400B),
+        ('Unknown2', ctypes.c_int16, V_400B),
+        ('Unknown3', ctypes.c_byte * 8, V_42x),
+        ('Unknown4', ctypes.c_byte * 8, V_440)
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    # NOTE: lLength INCLUDES this header length -- the markers end at
-    # marker_start_offset + lLength. This is different than in the v2 header.
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lLength'              ,'l'    ,V_400B),
-        ('lMarkersExtra'        ,'l'    ,V_400B),
-        ('lMarkers'             ,'l'    ,V_400B),
-        ('Unknown'              ,'6B'   ,V_400B),
-        ('szDefl'               ,'5s'   ,V_400B),
-        ('Unknown2'             ,'h'    ,V_400B),
-        ('Unknown3'             ,'8B'   ,V_42x),
-        ('Unknown4'             ,'8B'   ,V_440)
-        )
-
-    # I'm not quite sure about these two marker count headers; they seem to
-    # both be wrong.
     @property
     def marker_count(self):
-        return self.data['lMarkersExtra'] - 1
+        return self._struct.lMarkersExtra - 1
 
 
-class V2MarkerItemHeader(BiopacHeader):
+class V2MarkerItemHeader(CtypesHeader):
     """
     Marker Items for files in Version 3, very likely down to version 2.
     """
+    _versioned_fields = [
+        ('lSample', ctypes.c_int32, V_20a),
+        ('fSelected', ctypes.c_int16, V_35x),
+        ('fTextLocked', ctypes.c_int16, V_20a),
+        ('fPositionLocked', ctypes.c_int16, V_20a),
+        ('nTextLength', ctypes.c_int16, V_20a)
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lSample'              ,'l'    ,V_20a),
-        ('fSelected'            ,'h'    ,V_35x),
-        ('fTextLocked'          ,'h'    ,V_20a),
-        ('fPositionLocked'      ,'h'    ,V_20a),
-        ('nTextLength'          ,'h'    ,V_20a),
-        )
-
-    # Note: The spec says nTextLength includes the trailing null, but it
-    # seems to not...?
-    # It seems that it does include it in V_303 so haha
     @property
     def text_length(self):
         if self.file_revision < V_35x:
-            return self.data['nTextLength']
+            return self._struct.nTextLength
         else:
-            return self.data['nTextLength'] + 1
+            return self._struct.nTextLength + 1
 
     @property
     def sample_index(self):
-        return self.data['lSample']
+        return self._struct.lSample
 
     @property
     def channel_number(self):
@@ -868,52 +891,72 @@ class V2MarkerItemHeader(BiopacHeader):
 
 
 
-class V4MarkerItemHeader(BiopacHeader):
+class V4MarkerItemHeader(CtypesHeader):
     """
-    Marker Items for files in Version 4 ownards.
+    Marker Items for files in Version 4 onwards.
     """
+    # Define the structure fields
+    _versioned_fields = [
+        ('lSample', ctypes.c_int32, V_400B),
+        ('Unknown', ctypes.c_byte * 4, V_400B),
+        ('nChannel', ctypes.c_int16, V_400B),
+        ('sMarkerStyle', ctypes.c_char * 4, V_400B),
+        ('llDateCreated', ctypes.c_uint64, V_440),
+        ('Unknown3', ctypes.c_byte * 8, V_42x),
+        ('nTextLength', ctypes.c_int16, V_400B)
+    ]
 
-    def __init__(self, file_revision, byte_order_char, **kwargs):
-        super().__init__(self.__h_elts, file_revision, byte_order_char,
-                         **kwargs)
-
-    @property
-    def __h_elts(self):
-        return VersionedHeaderStructure(
-        ('lSample'              ,'l'    ,V_400B),
-        ('Unknown'              ,'4B'   ,V_400B),
-        ('nChannel'             ,'h'    ,V_400B),
-        ('sMarkerStyle'         ,'4s'   ,V_400B),
-        ('llDateCreated'        ,'Q'    ,V_440),
-        ('Unknown3'             ,'8B'   ,V_42x),
-        ('nTextLength'          ,'h'    ,V_400B),
-        )
-
-    # Unlike in older versions, nTextLength does include the trailing null.
     @property
     def text_length(self):
-        return self.data['nTextLength']
+        """Get the text length, including the trailing null."""
+        return self._struct.nTextLength
 
     @property
     def sample_index(self):
-        return self.data['lSample']
+        """Get the sample index."""
+        return self._struct.lSample
 
     @property
     def channel_number(self):
-        """ None means it's a global marker """
-        chan = self.data['nChannel']
-        if chan == -1:
-            chan = None
-        return chan
+        """Get the channel number, or None if it's a global marker."""
+        chan = self._struct.nChannel
+        return None if chan == -1 else chan
 
     @property
     def date_created_ms(self):
-        """ Date when marker was created (in ms since 1970-01-01) """
+        """Get the date when the marker was created (in ms since 1970-01-01)."""
         if self.file_revision < V_440:
             return None
-        else:
-            return self.data['llDateCreated']
+        return self._struct.llDateCreated
 
     @property
     def type_code(self):
-        return self.data['sMarkerStyle'].decode(self.encoding, errors='ignore')
+        """Get the type code, decoded as a string."""
+        return self._struct.sMarkerStyle.decode(self.encoding, errors='ignore')
+
+
+
+class V4JournalLengthHeader(CtypesHeader):
+    """
+    In the case where there's no journal data, there's no full journal header.
+    Instead, we just have a single long that tells us how much journal stuff
+    (data + header) there is. Basically, if this value is less than the
+    length of the V4JournalHeader, don't even try to read that header or
+    journal data.
+
+    The next stuff (if there is any) will be at self.offset + lJournalDataLen
+    """
+    # Define the structure fields
+    _versioned_fields = [
+        ('lJournalDataLen', ctypes.c_int32, V_400B)
+    ]
+
+    @property
+    def journal_len(self):
+        """Get the journal length directly from the structure"""
+        return self._struct.lJournalDataLen
+
+    @property
+    def data_end(self):
+        """Calculate the end position of the journal data"""
+        return self.offset + self.journal_len
