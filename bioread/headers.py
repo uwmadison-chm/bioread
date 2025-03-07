@@ -29,6 +29,9 @@ class Header:
         "<": ctypes.LittleEndianStructure
     }
 
+    # Subclasses can override this to exclude fields from the data dictionary.
+    DICT_EXCLUDE_FIELDS = []
+
     def __init__(self, file_revision, byte_order_char, encoding="utf-8"):
         self.file_revision = file_revision
         self.byte_order_char = byte_order_char
@@ -88,7 +91,8 @@ class Header:
             if field[2] <= self.file_revision
         ]
     
-    # I thought I could get away from this, but it's useful for debugging.
+    # I thought I could get away from this, but it's useful for debugging and dumping
+    # to other formats.
     @property
     def data(self):
         """
@@ -97,6 +101,8 @@ class Header:
         if not hasattr(self, '__data'):
             self.__data = {}
             for field, _field_type in self._struct._fields_:
+                if field in self.DICT_EXCLUDE_FIELDS:
+                    continue
                 if isinstance(getattr(self._struct, field), ctypes.Array):
                     self.__data[field] = list(getattr(self._struct, field))
                 else:
@@ -381,6 +387,8 @@ class ChannelHeaderPost4(BaseChannelHeader):
         ('unknown', ctypes.c_char * 40, V_400B),
         ('nVarSampleDivider', ctypes.c_int16, V_400B),
     ]
+
+    DICT_EXCLUDE_FIELDS = ['unknown']
 
 
 def get_foreign_header_class(file_revision):
