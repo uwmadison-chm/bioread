@@ -18,6 +18,11 @@ import numpy as np
 import bioread.file_revisions as rev
 from bioread import headers as bh
 from bioread.biopac import Datafile, EventMarker
+from bioread.header_reader import HeaderReader
+from bioread.dtype_header_reader import DTypeHeaderReader
+from bioread.journal_reader import JournalReader
+from bioread.marker_reader import MarkerReader
+from bioread.data_reader import DataReader, CHUNK_SIZE
 
 import logging
 # Re-adding the handler on reload causes duplicate log messages.
@@ -29,9 +34,6 @@ log_handler.setFormatter(logging.Formatter("%(message)s"))
 if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
 
-
-# This is how much interleaved uncompressed data we'll read at a time.
-CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
 # How far past the foreign data header we're willing to go looking for the
 # channel dtype headers
@@ -76,7 +78,15 @@ class Reader(object):
         self.marker_metadata_headers = None
         self.event_markers = None
         self.read_errors = []
+        
+        # Initialize readers
+        self.header_reader = None
+        self.dtype_header_reader = None
+        self.journal_reader = None
+        self.marker_reader = None
+        self.data_reader = None
 
+    # Public methods
     @classmethod
     def read(cls,
              fo,
@@ -126,49 +136,74 @@ class Reader(object):
             self._read_headers()
         if self.is_compressed:
             raise TypeError('Streaming is not supported for compressed files')
-        self.acq_file.seek(self.data_start_offset)
-        return make_chunk_reader(
-            self.acq_file,
-            self.datafile.channels,
-            channel_indexes,
-            target_chunk_size)
+            
+        # Initialize data reader if needed
+        if self.data_reader is None:
+            self.data_reader = DataReader(
+                self.acq_file, 
+                self.datafile, 
+                self.data_start_offset
+            )
+            
+        return self.data_reader.stream(channel_indexes, target_chunk_size)
 
     @property
     def is_compressed(self):
         return self.graph_header.compressed
 
+    def __repr__(self):
+        return "Reader('{0}')".format(self.acq_file)
+
+    # Header reading methods
     def _read_headers(self):
         logger.debug("I am in _read_headers")
+        
+        # Initialize header reader
+        self.header_reader = HeaderReader(self.acq_file, self.byte_order_char, 
+                                         self.file_revision, self.encoding)
+        
+        # Set byte order and version if not already set
         if self.byte_order_char is None:
-            self.__set_order_and_version()
+            self.file_revision, self.byte_order_char, self.encoding = self.header_reader.set_order_and_version()
 
+        # Initialize specialized readers
+        self.dtype_header_reader = DTypeHeaderReader(self.header_reader)
+        self.journal_reader = JournalReader.create_journal_reader(self.header_reader, self.file_revision)
+        self.marker_reader = MarkerReader.create_marker_reader(self.header_reader, self.file_revision)
+
+        # Read graph header
         graph_header_class = bh.get_graph_header_class(self.file_revision)
-        self.graph_header = self.__single_header(0, graph_header_class)
+        self.graph_header = self.header_reader.single_header(0, graph_header_class)
         channel_count = self.graph_header.channel_count
 
+        # Read padding headers
         pad_start = self.graph_header.effective_len_bytes
-        pad_headers = self.__multi_headers(
+        pad_headers = self.header_reader.multi_headers(
             self.graph_header.expected_padding_headers,
             pad_start,
             bh.UnknownPaddingHeader)
+        
+        # Read channel headers
         ch_start = pad_start + sum(
             [ph.effective_len_bytes for ph in pad_headers])
         # skip past the unknown padding header
-        _ = self.__single_header(ch_start, bh.UnknownPaddingHeader)
+        _ = self.header_reader.single_header(ch_start, bh.UnknownPaddingHeader)
         channel_header_class = bh.get_channel_header_class(self.file_revision)
-        self.channel_headers = self.__multi_headers(channel_count,
-                                                    ch_start, channel_header_class)
+        self.channel_headers = self.header_reader.multi_headers(channel_count,
+                                                  ch_start, channel_header_class)
         ch_len = self.channel_headers[0].effective_len_bytes
 
         for i, ch in enumerate(self.channel_headers):
             logger.debug("Channel header %s: %s" % (i, ch.data))
 
+        # Read foreign header
         fh_start = ch_start + len(self.channel_headers)*ch_len
         foreign_header_class = bh.get_foreign_header_class(self.file_revision)
-        self.foreign_header = self.__single_header(fh_start, foreign_header_class)
+        self.foreign_header = self.header_reader.single_header(fh_start, foreign_header_class)
 
+        # Read channel dtype headers
         cdh_start = fh_start + self.foreign_header.effective_len_bytes
-        self.channel_dtype_headers = self.__scan_for_dtype_headers(
+        self.channel_dtype_headers, self.data_start_offset = self.dtype_header_reader.scan_for_dtype_headers(
             cdh_start, channel_count)
         if self.channel_dtype_headers is None:
             raise ValueError("Can't find valid channel data type headers")
@@ -180,8 +215,10 @@ class Reader(object):
 
         logger.debug("Computed data start offset: %s" % self.data_start_offset)
 
+        # Calculate samples per second
         self.samples_per_second = 1000/self.graph_header.sample_time
 
+        # Create datafile
         logger.debug("About to allocate a Datafile")
         self.datafile = Datafile(
             graph_header=self.graph_header,
@@ -192,269 +229,102 @@ class Reader(object):
 
         logger.debug("Allocated a datafile!")
 
+        # Calculate data length
         self.data_length = self.datafile.data_length
         logger.debug("Computed data length: %s" % self.data_length)
 
         # In compressed files, markers come before compressed data. But
         # data_length is 0 for compressed files.
         self.marker_start_offset = (self.data_start_offset + self.data_length)
+        
+        # Read markers
         self._read_markers()
+        
+        # Read journal
         try:
             self._read_journal()
         except struct.error:
             logger.info("No journal information found.")
+            
+        # Read compression headers if needed
         if self.is_compressed:
-            self.__read_compression_headers()
-
-    def __scan_for_dtype_headers(self, start_index, channel_count):
-        # Sometimes the channel dtype headers don't seem to be right after the
-        # foreign data header, and I can't find anything that directs me to the
-        # proper location.
-        # As a gross hack, we can scan forward until we find something
-        # potentially valid.
-        # Return a set of channel dtype headers when we find something valid,
-        # self.data_start_offset will be set to the start of the data, and
-        # and self.acq_file will be seek()ed to that location.
-        logger.debug('Scanning for start of channel dtype headers')
-        for i in range(MAX_DTYPE_SCANS):
-            dtype_headers = self.__multi_headers(
-                channel_count, start_index + i, bh.ChannelDTypeHeader)
-            if all([h.possibly_valid for h in dtype_headers]):
-                logger.debug("Found at %s" % (start_index + i))
-                self.data_start_offset = self.acq_file.tell()
-                return dtype_headers
-        logger.warn(
-            "Couldn't find valid dtype headers, tried %s times" %
-            MAX_DTYPE_SCANS
+            self._read_compression_headers()
+            
+        # Initialize data reader
+        self.data_reader = DataReader(
+            self.acq_file, 
+            self.datafile, 
+            self.data_start_offset
         )
-        return None
+        
+        # Store compression headers in datafile
+        if self.is_compressed:
+            self.datafile.main_compression_header = self.main_compression_header
+            self.datafile.channel_compression_headers = self.channel_compression_headers
 
-    def __read_compression_headers(self):
-        # We need to have read the markers and journal; this puts us
-        # at the correct file offset.
-        self.marker_start_offset = self.data_start_offset
-        main_ch_start = self.acq_file.tell()
-        main_compression_header_class = bh.get_main_compression_header_class(self.file_revision)
-        self.main_compression_header = self.__single_header(
-            main_ch_start, main_compression_header_class)
-        cch_start = (main_ch_start +
-                     self.main_compression_header.effective_len_bytes)
-        self.channel_compression_headers = self.__multi_headers(
-            self.graph_header.channel_count, cch_start,
-            bh.ChannelCompressionHeader)
-
+    # Journal reading methods
     def _read_journal(self):
         self.journal = None
         self.journal_header = None
 
         try:
             if self.file_revision <= rev.V_400B:
-                self.__read_journal_v2()
+                self.journal_header, self.journal = self.journal_reader.read_journal()
             else:
-                self.__read_journal_v4()
+                self.journal_header, self.journal, self.journal_length_header = self.journal_reader.read_journal()
         except READ_EXCEPTIONS as e:
             logger.error(f"Error reading journal: {e}")
             self.read_errors.append(f"Error reading journal: {e}")
             raise
+            
         self.datafile.journal_header = self.journal_header
         self.datafile.journal = self.journal
 
-    def __read_journal_v2(self):
-        logger.debug("Reading journal starting at %s" % self.acq_file.tell())
-        logger.debug(self.acq_file.tell())
-        self.journal_header = self.__single_header(
-            self.acq_file.tell(), bh.V2JournalHeader)
-        if not self.journal_header.tag_value_matches_expected():
-            raise ValueError(
-                f"Journal header tag is {self.journal_header.tag_value_hex}, expected {bh.V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
-            )
-        self.journal = self.acq_file.read(
-            self.journal_header.journal_len).decode(
-                self.encoding, errors='ignore').strip('\0')
-
-    def __read_journal_v4(self):
-        self.journal_length_header = self.__single_header(
-            self.acq_file.tell(),
-            bh.V4JournalLengthHeader)
-        journal_len = self.journal_length_header.journal_len
-        self.journal = None
-        jh = bh.V4JournalHeader(
-            self.file_revision, self.byte_order_char)
-        # If journal_length_header.journal_len is small, we don't have a
-        # journal to read.
-        if (jh.effective_len_bytes <= journal_len):
-            self.journal_header = self.__single_header(
-                self.acq_file.tell(),
-                bh.V4JournalHeader)
-            logger.debug("Reading {0} bytes of journal at {1}".format(
-                self.journal_header.journal_len,
-                self.acq_file.tell()))
-            self.journal = self.acq_file.read(
-                self.journal_header.journal_len).decode(
-                    self.encoding, errors='ignore').strip('\0')
-        # Either way, we should seek to this point.
-        self.acq_file.seek(self.journal_length_header.data_end)
-
-    def __single_header(self, start_offset, h_class):
-        return self.__multi_headers(1, start_offset, h_class)[0]
-
-    def __multi_headers(self, num, start_offset, h_class):
-        headers = []
-        last_h_len = 0  # This will be changed reading the channel headers
-        h_offset = start_offset
-        for i in range(num):
-            h_offset += last_h_len
-            logger.debug(f"Reading {h_class} at offset {h_offset}")
-            h = h_class(self.file_revision,
-                        self.byte_order_char,
-                        encoding=self.encoding)
-            try:
-                h.unpack_from_file(self.acq_file, h_offset)
-            except Exception as e:
-                # If something goes wrong with reading, we want to log the
-                # error and reraise it -- read_headers() and read_data() will
-                # handle the error there.
-                logger.error(
-                    f"Error reading {h_class} at offset {h_offset}: {e}")
-                raise e
-            logger.debug(f"Read {h.struct_length} bytes: {h.data}")
-            last_h_len = h.effective_len_bytes
-            headers.append(h)
-        return headers
-
-    def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):
-        if self.is_compressed:
-            self.__read_data_compressed(channel_indexes)
-        else:
-            self.__read_data_uncompressed(channel_indexes, target_chunk_size)
-
+    # Marker reading methods
     def _read_markers(self):
         if self.marker_start_offset is None:
             self.read_headers()
-        logger.debug("Reading markers starting at %s" %
-            self.marker_start_offset)
-        mh_class = bh.V2MarkerHeader
-        mih_class = bh.V2MarkerItemHeader
-        if self.file_revision >= rev.V_400B:
-            mh_class = bh.V4MarkerHeader
-            mih_class = bh.V4MarkerItemHeader
-        self.marker_header = self.__single_header(
-            self.marker_start_offset, mh_class)
+            
+        # Read markers using the appropriate marker reader
+        result = self.marker_reader.read_markers(self.marker_start_offset, self.graph_header)
+        
+        # Unpack the result
+        self.marker_header, self.marker_item_headers, event_markers, self.marker_metadata_pre_header, self.marker_metadata_headers = result
+            
+        # Update channel references in event markers
+        for marker in event_markers:
+            marker.channel = self.datafile.channel_order_map.get(
+                marker.channel_number)
+                
         self.datafile.marker_header = self.marker_header
-        self.__read_marker_items(mih_class)
-        if self.file_revision >= rev.V_381 and self.file_revision <= rev.V_400B:
-            self.__read_v2_marker_metadata()
-
-    def __read_marker_items(self, marker_item_header_class):
-        """
-        self.acq_file must be seek()ed to the start of the first item header
-        """
-        event_markers = []
-        marker_item_headers = []
-        for i in range(self.marker_header.marker_count):
-            mih = self.__single_header(
-                self.acq_file.tell(), marker_item_header_class)
-            marker_text_bytes = self.acq_file.read(mih.text_length)
-            marker_text = marker_text_bytes.decode(
-                self.encoding, errors='ignore').strip('\0')
-            marker_item_headers.append(mih)
-            marker_channel = self.datafile.channel_order_map.get(
-                mih.channel_number)
-            event_markers.append(EventMarker(
-                time_index=(mih.sample_index * self.graph_header.sample_time) / 1000,
-                sample_index=mih.sample_index,
-                text=marker_text,
-                channel_number=mih.channel_number,
-                channel=marker_channel,
-                date_created_ms=mih.date_created_ms,
-                type_code=mih.type_code))
-        self.marker_item_headers = marker_item_headers
-        self.datafile.marker_item_headers = marker_item_headers
+        self.datafile.marker_item_headers = self.marker_item_headers
         self.datafile.event_markers = event_markers
-    
-    def __read_v2_marker_metadata(self):
-        self.marker_metadata_pre_header = self.__single_header(
-            self.acq_file.tell(),
-            bh.V2MarkerMetadataPreHeader
-        )
-        # Sometimes the marker metadata headers are not present -- if we see
-        # that the first four bytes of the marker metadata preheader are
-        # actually the start of the journal header (0x44332211), rewind the
-        # file to the start of the marker metadata preheader and return
-        if self.marker_metadata_pre_header.tag_value == bh.V2JournalHeader.EXPECTED_TAG_VALUE: 
-            self.acq_file.seek(self.marker_metadata_pre_header.offset)
-            logger.debug("No marker metadata headers found")
-            return
+        self.event_markers = event_markers
 
-        self.marker_metadata_headers = self.__multi_headers(
-            self.marker_metadata_pre_header.item_count,
-            self.acq_file.tell(),
-            bh.V2MarkerMetadataHeader
-        )
-        for mh in self.marker_metadata_headers:
-            self.datafile.event_markers[mh.marker_index].color = mh.rgba_color
-            self.datafile.event_markers[mh.marker_index].tag = mh.marker_tag
+    def _read_compression_headers(self):
+        # We need to have read the markers and journal; this puts us
+        # at the correct file offset.
+        self.marker_start_offset = self.data_start_offset
+        main_ch_start = self.acq_file.tell()
+        main_compression_header_class = bh.get_main_compression_header_class(self.file_revision)
+        self.main_compression_header = self.header_reader.single_header(
+            main_ch_start, main_compression_header_class)
+        cch_start = (main_ch_start +
+                     self.main_compression_header.effective_len_bytes)
+        self.channel_compression_headers = self.header_reader.multi_headers(
+            self.graph_header.channel_count, cch_start,
+            bh.ChannelCompressionHeader)
 
-    def __read_data_compressed(self, channel_indexes):
-        # At least in post-4.0 files, the compressed data isn't interleaved at
-        # all. It's stored in uniform compressed blocks -- this probably
-        # compresses far better than interleaved data.
-        # Strangely, the compressed data seems to always be little-endian.
-        if channel_indexes is None:
-            channel_indexes = np.arange(len(self.datafile.channels))
-
-        for i in channel_indexes:
-            cch = self.channel_compression_headers[i]
-            channel = self.datafile.channels[i]
-            # Data seems to always be little-endian
-            dt = channel.dtype.newbyteorder("<")
-            self.acq_file.seek(cch.compressed_data_offset)
-            comp_data = self.acq_file.read(cch.compressed_data_len)
-            decomp_data = zlib.decompress(comp_data)
-            channel.raw_data = np.frombuffer(decomp_data, dtype=dt)
-
-    def __read_data_uncompressed(self, channel_indexes, target_chunk_size):
-        self.acq_file.seek(self.data_start_offset)
-        # This will fill self.datafile.channels with data.
-        read_uncompressed(
-            self.acq_file,
-            self.datafile.channels,
-            channel_indexes,
-            target_chunk_size)
-
-    def __set_order_and_version(self):
-        # Try unpacking the version string in both a bid and little-endian
-        # fashion. Version string should be a small, positive integer.
-        # It doesn't matter which graph header class we use; we're only using
-        # the file revision field, which is the same for all graph headers
-        graph_reads = [
-            bh.GraphHeaderPre4(rev.V_ALL, bom)
-            for bom in ['<', '>']
-        ]
-        for graph_header in graph_reads:
-            graph_header.unpack_from_file(self.acq_file, 0)
-            logger.debug(f"Interpreting file revision with byte order {graph_header.byte_order_char}: {graph_header.file_revision}")
-            logger.debug(f"Graph header: {graph_header.raw_data.hex()}")
-        
-        rev_bom = [
-            (graph_header._struct.lVersion, graph_header.byte_order_char)
-            for graph_header in graph_reads
-        ]
-        rev_bom.sort()
-        self.file_revision = rev_bom[0][0]
-        self.byte_order_char = rev_bom[0][1]
-        
-        # Guess at file encoding -- I think that everything before acq4 is
-        # in latin1 and everything newer is utf-8
-        logger.debug("File revision: %s" % self.file_revision)
-        logger.debug("Byte order: %s" % self.byte_order_char)
-        if self.file_revision < rev.V_400B:
-            self.encoding = 'latin1'
-        else:
-            self.encoding = 'utf-8'
-
-    def __repr__(self):
-        return "Reader('{0}')".format(self.acq_file)
+    # Data reading methods
+    def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):
+        if self.data_reader is None:
+            self.data_reader = DataReader(
+                self.acq_file, 
+                self.datafile, 
+                self.data_start_offset
+            )
+            
+        self.data_reader.read_data(channel_indexes, target_chunk_size)
 
 
 @contextmanager
