@@ -95,10 +95,12 @@ class Header:
         Return a dictionary of the fields in the structure.
         """
         if not hasattr(self, '__data'):
-            self.__data = {
-                field[0]: getattr(self._struct, field[0])
-                for field in self._struct._fields_
-            }
+            self.__data = {}
+            for field, _field_type in self._struct._fields_:
+                if isinstance(getattr(self._struct, field), ctypes.Array):
+                    self.__data[field] = list(getattr(self._struct, field))
+                else:
+                    self.__data[field] = getattr(self._struct, field)
         return self.__data
 
     def __repr__(self):
@@ -196,14 +198,14 @@ class GraphHeaderPre4(BaseGraphHeader):
         ('MmtCalcOp', ctypes.c_int16 * 40, V_35x),
         ('MmtCalcConstant', ctypes.c_double * 40, V_35x),
         ('bNewGridWithMinor', ctypes.c_int32, V_370),
-        ('colorMajorGrid', ctypes.c_byte * 4, V_370),
-        ('colorMinorGrid', ctypes.c_byte * 4, V_370),
-        ('wMajorGridStyle', ctypes.c_int16, V_370),
-        ('wMinorGridStyle', ctypes.c_int16, V_370),
-        ('wMajorGridWidth', ctypes.c_int16, V_370),
-        ('wMinorGridWidth', ctypes.c_int16, V_370),
-        ('bFixedUnitsDiv', ctypes.c_int32, V_370),
-        ('bMid_Range_Show', ctypes.c_int32, V_370),
+        ('colorMajorGrid', ctypes.c_ubyte * 4, V_370),
+        ('colorMinorGrid', ctypes.c_ubyte * 4, V_370),
+        ('wMajorGridStyle', ctypes.c_uint16, V_370),
+        ('wMinorGridStyle', ctypes.c_uint16, V_370),
+        ('wMajorGridWidth', ctypes.c_uint16, V_370),
+        ('wMinorGridWidth', ctypes.c_uint16, V_370),
+        ('bFixedUnitsDiv', ctypes.c_uint32, V_370),
+        ('bMid_Range_Show', ctypes.c_uint32, V_370),
         ('dStart_Middle_Point', ctypes.c_double, V_370),
         ('dOffset_Point', ctypes.c_double * 60, V_370),
         ('hGrid', ctypes.c_double, V_370),
@@ -338,7 +340,7 @@ class ChannelHeaderPre4(BaseChannelHeader):
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
         ('nNum', ctypes.c_int16, V_20a),
         ('szCommentText', ctypes.c_char * 40, V_20a),
-        ('rgbColor', ctypes.c_byte * 4, V_20a),
+        ('rgbColor', ctypes.c_ubyte * 4, V_20a),
         ('nDispChan', ctypes.c_int16, V_20a),
         ('dVoltOffset', ctypes.c_double, V_20a),
         ('dVoltScale', ctypes.c_double, V_20a),
@@ -353,7 +355,7 @@ class ChannelHeaderPre4(BaseChannelHeader):
         ('szDescription', ctypes.c_char * 128, V_370),
         ('nVarSampleDivider', ctypes.c_int16, V_370),
         ('vertPrecision', ctypes.c_int16, V_373),
-        ('activeSegmentColor', ctypes.c_byte * 4, V_382),
+        ('activeSegmentColor', ctypes.c_ubyte * 4, V_382),
         ('activeSegmentStyle', ctypes.c_int32, V_382),
     ]
 
@@ -366,7 +368,7 @@ class ChannelHeaderPost4(BaseChannelHeader):
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
         ('nNum', ctypes.c_int16, V_20a),
         ('szCommentText', ctypes.c_char * 40, V_20a),
-        ('notColor', ctypes.c_byte * 4, V_20a),
+        ('notColor', ctypes.c_ubyte * 4, V_20a),
         ('nDispChan', ctypes.c_int16, V_20a),
         ('dVoltOffset', ctypes.c_double, V_20a),
         ('dVoltScale', ctypes.c_double, V_20a),
@@ -463,7 +465,7 @@ class V2JournalHeader(Header):
     EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
 
     _versioned_fields = [
-        ('tag', ctypes.c_byte * 4, V_20a),
+        ('tag', ctypes.c_ubyte * 4, V_20a),
         ('hShow', ctypes.c_int16, V_20a),
         ('lJournalLen', ctypes.c_int32, V_20a)
     ]
