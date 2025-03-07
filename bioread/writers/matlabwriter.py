@@ -64,6 +64,9 @@ class MatlabWriter(object):
         if not self.data_only:
             d['event_markers'] = self.__build_markers(data)
 
+        fixed_headers = self.__clean_headers(channel_headers)
+        print(fixed_headers)
+
         d['headers'] = {
             'graph': data.graph_header.data,
             'foreign': data.foreign_header.data,
@@ -71,6 +74,11 @@ class MatlabWriter(object):
             'channel_dtype': channel_dtype_headers}
 
         return d
+
+    def __clean_headers(self, headers):
+        for h in headers:
+            h.pop("unknown", None)
+        return headers
 
     def __build_markers(self, data):
         markers = np.zeros(len(data.event_markers), dtype='O')
