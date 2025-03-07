@@ -166,7 +166,7 @@ class GraphHeaderPre4(BaseGraphHeader):
     """
     _versioned_fields = [
         ('nItemHeaderLen', ctypes.c_int16, V_ALL),
-        ('lVersion', ctypes.c_int32, V_ALL),
+        ('lVersion', ctypes.c_uint32, V_ALL),
         ('lExtItemHeaderLen', ctypes.c_int32, V_20a),
         ('nChannels', ctypes.c_int16, V_20a),
         ('nHorizAxisType', ctypes.c_int16, V_20a),

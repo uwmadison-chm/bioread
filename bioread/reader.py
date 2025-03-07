@@ -438,7 +438,7 @@ class Reader(object):
         
         rev_bom = [
             (graph_header._struct.lVersion, graph_header.byte_order_char)
-            for graph_header in graph_reads if graph_header._struct.lVersion > 0
+            for graph_header in graph_reads
         ]
         rev_bom.sort()
         self.file_revision = rev_bom[0][0]
