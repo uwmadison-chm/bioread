@@ -26,8 +26,6 @@ Options:
 Note: scipy is required for this program.
 """
 
-from __future__ import absolute_import
-
 import sys
 from docopt import docopt
 
@@ -44,7 +42,7 @@ def main(argv=None):
     amr.run()
 
 
-class AcqToMatRunner(object):
+class AcqToMatRunner:
     """The little wrapper class that converts acq files to mat files"""
 
     def __init__(self, argv, err=None):

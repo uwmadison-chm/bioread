@@ -48,7 +48,7 @@ def main(argv=None):
     amr.run()
 
 
-class AcqToTxtRunner(object):
+class AcqToTxtRunner:
     """The little wrapper class that converts acq files to text files"""
 
     def __init__(self, argv):

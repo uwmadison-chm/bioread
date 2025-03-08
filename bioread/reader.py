@@ -8,7 +8,6 @@
 # Wisconsin-Madison
 # Extended by Alexander Schlemmer.
 
-from __future__ import with_statement, division
 import struct
 from contextlib import contextmanager
 from io import IOBase
@@ -50,7 +49,7 @@ READ_EXCEPTIONS = (
 )
 
 
-class Reader(object):
+class Reader:
     def __init__(self, acq_file=None):
         self.acq_file = acq_file
         self.encoding = None  # We're gonna guess from _set_order_and_version

@@ -9,7 +9,9 @@
 # Extended by Alexander Schlemmer.
 
 import logging
+from typing import Optional, Tuple, List
 from bioread import headers as bh
+from bioread.header_reader import HeaderReader
 
 # How far past the foreign data header we're willing to go looking for the
 # channel dtype headers
@@ -22,7 +24,7 @@ class DTypeHeaderReader:
     """
     A class to handle reading channel data type headers from a BIOPAC file.
     """
-    def __init__(self, header_reader):
+    def __init__(self, header_reader: HeaderReader) -> None:
         """
         Initialize a DTypeHeaderReader.
         
@@ -34,7 +36,7 @@ class DTypeHeaderReader:
         self.header_reader = header_reader
         self.acq_file = header_reader.acq_file
         
-    def scan_for_dtype_headers(self, start_index, channel_count):
+    def scan_for_dtype_headers(self, start_index: int, channel_count: int) -> Tuple[Optional[List[bh.ChannelDTypeHeader]], Optional[int]]:
         """
         Scan for channel dtype headers.
         
@@ -60,12 +62,11 @@ class DTypeHeaderReader:
         for i in range(MAX_DTYPE_SCANS):
             dtype_headers = self.header_reader.multi_headers(
                 channel_count, start_index + i, bh.ChannelDTypeHeader)
-            if all([h.possibly_valid for h in dtype_headers]):
-                logger.debug("Found at %s" % (start_index + i))
+            if all(h.possibly_valid for h in dtype_headers):
+                logger.debug(f"Found at {start_index + i}")
                 data_start_offset = self.acq_file.tell()
                 return dtype_headers, data_start_offset
-        logger.warn(
-            "Couldn't find valid dtype headers, tried %s times" %
-            MAX_DTYPE_SCANS
+        logger.warning(
+            f"Couldn't find valid dtype headers, tried {MAX_DTYPE_SCANS} times"
         )
         return None, None 

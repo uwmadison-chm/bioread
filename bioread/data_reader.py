@@ -18,7 +18,7 @@ logger = logging.getLogger("bioread")
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
 
 
-class ChunkBuffer(object):
+class ChunkBuffer:
     def __init__(self, channel):
         self.channel = channel
         self.buffer = None

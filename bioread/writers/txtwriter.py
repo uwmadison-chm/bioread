@@ -10,7 +10,6 @@
 # This is a very simple thing to write an AcqKnowledge file as tab-delimited
 # text. It'll produce very large output, so use it with care.
 
-from __future__ import unicode_literals
 import csv
 
 
@@ -20,7 +19,7 @@ def write_text(datafile, out_stream, channel_indexes, missing_val):
         channel_indexes = range(len(datafile.channels))
     chans = [datafile.channels[i] for i in channel_indexes]
     headers = ["time (s)"] + [
-        "{0} ({1})".format(c.name, c.units) for c in chans]
+        f"{c.name} ({c.units})" for c in chans]
     headers = [s.encode('utf-8') for s in headers]
     writer.writerow(headers)
     for i, t in enumerate(datafile.time_index):

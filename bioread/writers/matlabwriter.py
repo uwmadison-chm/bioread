@@ -10,7 +10,7 @@
 import numpy as np
 
 
-class MatlabWriter(object):
+class MatlabWriter:
 
     def __init__(
             self,

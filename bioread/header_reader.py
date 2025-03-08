@@ -77,8 +77,8 @@ class HeaderReader:
         
         # Guess at file encoding -- I think that everything before acq4 is
         # in latin1 and everything newer is utf-8
-        logger.debug("File revision: %s" % file_revision)
-        logger.debug("Byte order: %s" % byte_order_char)
+        logger.debug(f"File revision: {file_revision}")
+        logger.debug(f"Byte order: {byte_order_char}")
         if file_revision < rev.V_400B:
             encoding = 'latin1'
         else:
@@ -178,12 +178,11 @@ class HeaderReader:
             dtype_headers = self.multi_headers(
                 channel_count, start_index + i, bh.ChannelDTypeHeader)
             if all([h.possibly_valid for h in dtype_headers]):
-                logger.debug("Found at %s" % (start_index + i))
+                logger.debug(f"Found at {start_index + i}")
                 data_start_offset = self.acq_file.tell()
                 return dtype_headers, data_start_offset
-        logger.warn(
-            "Couldn't find valid dtype headers, tried %s times" %
-            MAX_DTYPE_SCANS
+        logger.warning(
+            f"Couldn't find valid dtype headers, tried {MAX_DTYPE_SCANS} times"
         )
         return None, None
     

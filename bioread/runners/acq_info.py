@@ -45,7 +45,7 @@ def main(argv=None):
     air.run()
 
 
-class AcqInfoRunner(object):
+class AcqInfoRunner:
 
     def __init__(self, argv, out=None, err=None):
         self.argv = argv
@@ -101,20 +101,19 @@ class AcqInfoRunner(object):
         gh = self.reader.graph_header
         chs = self.reader.channel_headers
         cdhs = self.reader.channel_dtype_headers
-        print("File revision: %s" % gh.file_revision)
+        print(f"File revision: {gh.file_revision}")
         if self.reader.datafile.earliest_marker_created_at is not None:
             print(
-                "Earliest event marker created at: %s" %
-                self.reader.datafile.earliest_marker_created_at.isoformat()
+                f"Earliest event marker created at: {self.reader.datafile.earliest_marker_created_at.isoformat()}"
             )
-        print("Sample time: %s" % gh.sample_time)
-        print("Compressed: %s" % gh.compressed)
-        print("Number of channels: %s" % gh.channel_count)
+        print(f"Sample time: {gh.sample_time}")
+        print(f"Compressed: {gh.compressed}")
+        print(f"Number of channels: {gh.channel_count}")
         for ch, cdh in zip(chs, cdhs):
-            print("%s:" % ch.name)
-            print("\tUnits: %s" % ch.units)
-            print("\tNumber of samples: %s" % ch.point_count)
-            print("\tFrequency divider: %s" % ch.frequency_divider)
+            print(f"{ch.name}:")
+            print(f"\tUnits: {ch.units}")
+            print(f"\tNumber of samples: {ch.point_count}")
+            print(f"\tFrequency divider: {ch.frequency_divider}")
 
     def __print_debug(self):
         gh = self.reader.graph_header
