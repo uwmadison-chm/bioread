@@ -1,0 +1,3 @@
+In this sample, we collected three channels of physio data -- EKG for heart rate, EDA for skin conductance, and a respiration belt. I took three deep breaths.
+
+The filtered & differentiated EDA channel should hopefully be stored as a float.

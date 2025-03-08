@@ -79,14 +79,18 @@ class V2JournalReader(JournalReader):
         tuple
             (journal_header, journal)
         """
+        if self.header_reader.file_revision < rev.V_370:
+            # We don't know how to read journals from before V_370
+            logger.info(f"Can't read journals from file revision {self.header_reader.file_revision}")
+            return
         logger.debug("Reading journal starting at %s" % self.acq_file.tell())
-        logger.debug(self.acq_file.tell())
         journal_header = self.header_reader.single_header(
             self.acq_file.tell(), bh.V2JournalHeader)
         if not journal_header.tag_value_matches_expected():
             raise ValueError(
                 f"Journal header tag is {journal_header.tag_value_hex}, expected {bh.V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
             )
+        logger.debug(f"Reading {journal_header.journal_len} bytes of journal at {self.acq_file.tell()}")
         journal = self.acq_file.read(
             journal_header.journal_len).decode(
                 self.encoding, errors='ignore').strip('\0')
@@ -128,4 +132,4 @@ class V4JournalReader(JournalReader):
                     self.encoding, errors='ignore').strip('\0')
         # Either way, we should seek to this point.
         self.acq_file.seek(journal_length_header.data_end)
-        return journal_header, journal, journal_length_header 
+        return journal_header, journal

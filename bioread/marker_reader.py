@@ -181,7 +181,7 @@ class V2MarkerReader(MarkerReader):
             return marker_metadata_pre_header, None
 
         marker_metadata_headers = self.header_reader.multi_headers(
-            marker_metadata_pre_header.item_count,
+            len(event_markers),
             self.acq_file.tell(),
             bh.V2MarkerMetadataHeader
         )

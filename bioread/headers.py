@@ -617,18 +617,14 @@ class V2MarkerHeader(Header):
 
 class V2MarkerMetadataPreHeader(Header):
     """
-    Tells us how many marker metadata headers there are. It's probably the same
-    as the marker count, but it's stored separately.
+    I'm not sure what the data here mean -- there's an item count field, but
+    the number from V2MarkerHeader seems to be the correct one.
     """
     _versioned_fields = [
         ('tag', ctypes.c_byte * 4, V_20a),
         ('lItemCount', ctypes.c_int32, V_20a),
         ('sUnknown', ctypes.c_char * 76, V_20a)
     ]
-    
-    @property
-    def item_count(self):
-        return self._struct.lItemCount
     
     @property
     def tag_value(self):
@@ -665,26 +661,6 @@ class V2MarkerMetadataHeader(Header):
     def marker_index(self):
         return self.marker_number - 1
     
-
-class V4MarkerHeader(Header):
-    """
-    Marker structure for files from Version 4 onwards
-    """
-    _versioned_fields = [
-        ('lLength', ctypes.c_int32, V_400B),
-        ('lMarkersExtra', ctypes.c_int32, V_400B),
-        ('lMarkers', ctypes.c_int32, V_400B),
-        ('Unknown', ctypes.c_byte * 6, V_400B),
-        ('szDefl', ctypes.c_char * 5, V_400B),
-        ('Unknown2', ctypes.c_int16, V_400B),
-        ('Unknown3', ctypes.c_byte * 8, V_42x),
-        ('Unknown4', ctypes.c_byte * 8, V_440)
-    ]
-
-    @property
-    def marker_count(self):
-        return self._struct.lMarkersExtra - 1
-
 
 class V2MarkerItemHeader(Header):
     """
@@ -726,13 +702,33 @@ class V2MarkerItemHeader(Header):
 
 
 
+class V4MarkerHeader(Header):
+    """
+    Marker structure for files from Version 4 onwards
+    """
+    _versioned_fields = [
+        ('lLength', ctypes.c_int32, V_400B),
+        ('lMarkersExtra', ctypes.c_int32, V_400B),
+        ('lMarkers', ctypes.c_int32, V_400B),
+        ('Unknown', ctypes.c_byte * 6, V_400B),
+        ('szDefl', ctypes.c_char * 5, V_400B),
+        ('Unknown2', ctypes.c_int16, V_400B),
+        ('Unknown3', ctypes.c_byte * 8, V_42x),
+        ('Unknown4', ctypes.c_byte * 8, V_440)
+    ]
+
+    @property
+    def marker_count(self):
+        return self._struct.lMarkersExtra - 1
+
+
 class V4MarkerItemHeader(Header):
     """
     Marker Items for files in Version 4 onwards.
     """
     # Define the structure fields
     _versioned_fields = [
-        ('lSample', ctypes.c_int32, V_400B),
+        ('lSample', ctypes.c_uint32, V_400B),
         ('Unknown', ctypes.c_byte * 4, V_400B),
         ('nChannel', ctypes.c_int16, V_400B),
         ('sMarkerStyle', ctypes.c_char * 4, V_400B),

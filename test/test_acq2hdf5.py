@@ -11,19 +11,15 @@
 # Really I just want to make sure this thing basically runs so I don't
 # push a totally broken executable in a release
 
-from __future__ import absolute_import
-import os
-from os import path
+from pathlib import Path
 
 from bioread.runners import acq2hdf5
 
-DATA_PATH = path.join(path.dirname(path.abspath(__file__)), "data")
+def test_acq2hdf5_runs_all_files(any_acq_file, tmpdir):
+    """Test that acq2hdf5 runs on all data files."""
 
-DATA_FILE = path.join(DATA_PATH, 'unicode', 'small-unicode-4.4.0.acq')
-
-
-def test_acq2hdf5_runs(tmpdir):
-    out_file = tmpdir.join("test.hdf5")
-    fname = str(out_file)
-    acq2hdf5.main([DATA_FILE, fname])
-    assert os.stat(fname).st_size > 0
+    acq_path = Path(any_acq_file)
+    base_name = acq_path.stem
+    out_file = str(tmpdir / f"{base_name}.hdf5")
+    acq2hdf5.main([any_acq_file, out_file])
+    assert Path(out_file).stat().st_size > 0  # Should create a non-empty file

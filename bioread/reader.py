@@ -10,14 +10,14 @@
 
 from __future__ import with_statement, division
 import struct
-import zlib
 from contextlib import contextmanager
+from io import IOBase
 
 import numpy as np
 
 import bioread.file_revisions as rev
 from bioread import headers as bh
-from bioread.biopac import Datafile, EventMarker
+from bioread.biopac import Datafile
 from bioread.header_reader import HeaderReader
 from bioread.dtype_header_reader import DTypeHeaderReader
 from bioread.journal_reader import JournalReader
@@ -264,10 +264,10 @@ class Reader(object):
         self.journal_header = None
 
         try:
-            if self.file_revision <= rev.V_400B:
-                self.journal_header, self.journal = self.journal_reader.read_journal()
-            else:
-                self.journal_header, self.journal, self.journal_length_header = self.journal_reader.read_journal()
+            header_and_journal = self.journal_reader.read_journal()
+            if header_and_journal is None:
+                return
+            self.journal_header, self.journal = header_and_journal
         except READ_EXCEPTIONS as e:
             logger.error(f"Error reading journal: {e}")
             self.read_errors.append(f"Error reading journal: {e}")
@@ -324,19 +324,20 @@ class Reader(object):
 
 @contextmanager
 def open_or_yield(thing, mode):
-    """ If 'thing' is a string, open it and yield it. Otherwise, yield it.
+    """ If 'thing' is a string or Path, open it and yield it. Otherwise, yield it.
 
     This lets you use a filename, open file, other IO object. If 'thing' was
     a filename, the file is guaranteed to be closed after yielding.
     """
-    if isinstance(thing, str):
+    if isinstance(thing, IOBase):
+        yield thing
+    else:
         logger.debug(f"Opening file: {thing}")
         with open(thing, mode) as f:
             yield(f)
-    else:
-        yield(thing)
 
 
+# TODO: This is a copy of the class in the old bioread.reader module.
 class ChunkBuffer(object):
     def __init__(self, channel):
         self.channel = channel
