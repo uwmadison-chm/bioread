@@ -9,15 +9,12 @@
 
 import pytest
 
-from os import path
 import numpy as np
 from html.parser import HTMLParser
 
 import bioread
 from bioread import reader
 from bioread.reader import Reader
-
-import file_groups
 
 
 def test_read_does_not_raise_exception(any_acq_file):
@@ -86,32 +83,6 @@ def test_compressed_uncompressed_markers_match(compressed_uncompressed_pair):
     assert um == cm
 
 
-# Lower-level function tests.
-def test_greatest_common_denominator():
-    assert reader.greatest_common_denominator(8, 12) == 4
-    assert reader.greatest_common_denominator(0, 8) == 8
-
-
-def test_least_common_multiple():
-    assert reader.least_common_multiple(4) == 4
-    assert reader.least_common_multiple(2, 8) == 8
-    assert reader.least_common_multiple(8, 2) == 8
-    assert reader.least_common_multiple(2, 7) == 14
-    assert reader.least_common_multiple(2, 3, 8) == 24
-
-
-def assert_pattern(dividers, pattern):
-    assert np.array_equal(reader.sample_pattern(dividers), pattern)
-
-
-def test_sample_pattern():
-    assert_pattern([1], [0])
-    assert_pattern([1, 2], [0, 1, 0])
-    assert_pattern([2, 2], [0, 1])
-    assert_pattern([1, 4, 2], [0, 1, 2, 0, 0, 2, 0])
-
-
-
 # This is kind of intense for something used by tests -- but the deal is:
 # different versions of acqknowledge are treating the versions upconverted
 # from 3.8.1 differently in the last, partially-filled pattern.
@@ -119,7 +90,7 @@ def test_sample_pattern():
 # filled-pattern parts. So this function returns a slice that'll get you that
 # part of the raw data.
 def full_pattern_slices(channels):
-    pattern = reader.sample_pattern([c.frequency_divider for c in channels])
+    pattern = bioread.data_reader.sample_pattern([c.frequency_divider for c in channels])
     point_counts = np.array([c.point_count for c in channels])
     pattern_uses = np.bincount(pattern)
     full_pattern_counts = point_counts - (point_counts % pattern_uses)

@@ -33,6 +33,13 @@ class MarkerReader:
         self.acq_file = header_reader.acq_file
         self.encoding = header_reader.encoding
         self.file_revision = header_reader.file_revision
+
+        self.marker_header = None
+        self.marker_item_headers = None
+        self.event_markers = None
+        self.marker_metadata_pre_header = None
+        self.marker_metadata_headers = None
+
         
     @staticmethod
     def create_marker_reader(header_reader, file_revision):
@@ -79,7 +86,7 @@ class V2MarkerReader(MarkerReader):
     """
     Reader for version 2 marker data.
     """
-    def read_markers(self, marker_start_offset, graph_header):
+    def read_markers(self, marker_start_offset, sample_time):
         """
         Read version 2 markers.
         
@@ -87,10 +94,10 @@ class V2MarkerReader(MarkerReader):
         ----------
         marker_start_offset : int
             The offset where markers start
-        graph_header : header
-            The graph header
-            
-        Returns
+
+        sample_time : float
+
+                Returns
         -------
         tuple
             (marker_header, marker_item_headers, event_markers)
@@ -103,17 +110,21 @@ class V2MarkerReader(MarkerReader):
             
         # Read marker items
         marker_item_headers, event_markers = self._read_marker_items(
-            marker_header, bh.V2MarkerItemHeader, graph_header)
+            marker_header, bh.V2MarkerItemHeader, sample_time)
             
         # Read marker metadata if needed
         marker_metadata_pre_header = None
         marker_metadata_headers = None
-        if self.file_revision >= rev.V_381 and self.file_revision <= rev.V_400B:
+        if self.file_revision >= rev.V_381:
             marker_metadata_pre_header, marker_metadata_headers = self._read_v2_marker_metadata(event_markers)
-            
-        return marker_header, marker_item_headers, event_markers, marker_metadata_pre_header, marker_metadata_headers
-        
-    def _read_marker_items(self, marker_header, marker_item_header_class, graph_header):
+
+        self.marker_header = marker_header
+        self.marker_item_headers = marker_item_headers
+        self.event_markers = event_markers
+        self.marker_metadata_pre_header = marker_metadata_pre_header
+        self.marker_metadata_headers = marker_metadata_headers
+                
+    def _read_marker_items(self, marker_header, marker_item_header_class, sample_time):
         """
         Read marker items.
         
@@ -143,7 +154,7 @@ class V2MarkerReader(MarkerReader):
             marker_item_headers.append(mih)
             # We don't have the channel_order_map yet, so we'll just store None for now
             event_markers.append(EventMarker(
-                time_index=(mih.sample_index * graph_header.sample_time) / 1000,
+                time_index=(mih.sample_index * sample_time) / 1000,
                 sample_index=mih.sample_index,
                 text=marker_text,
                 channel_number=mih.channel_number,
@@ -196,7 +207,7 @@ class V4MarkerReader(MarkerReader):
     """
     Reader for version 4 marker data.
     """
-    def read_markers(self, marker_start_offset, graph_header):
+    def read_markers(self, marker_start_offset, sample_time):
         """
         Read version 4 markers.
         
@@ -204,8 +215,8 @@ class V4MarkerReader(MarkerReader):
         ----------
         marker_start_offset : int
             The offset where markers start
-        graph_header : header
-            The graph header
+        sample_time : float
+            The sample time
             
         Returns
         -------
@@ -220,11 +231,13 @@ class V4MarkerReader(MarkerReader):
             
         # Read marker items
         marker_item_headers, event_markers = self._read_marker_items(
-            marker_header, bh.V4MarkerItemHeader, graph_header)
-            
-        return marker_header, marker_item_headers, event_markers, None, None
+            marker_header, bh.V4MarkerItemHeader, sample_time)
         
-    def _read_marker_items(self, marker_header, marker_item_header_class, graph_header):
+        self.marker_header = marker_header
+        self.marker_item_headers = marker_item_headers
+        self.event_markers = event_markers
+                    
+    def _read_marker_items(self, marker_header, marker_item_header_class, sample_time):
         """
         Read marker items.
         
@@ -234,8 +247,8 @@ class V4MarkerReader(MarkerReader):
             The marker header
         marker_item_header_class : class
             The marker item header class
-        graph_header : header
-            The graph header
+        sample_time : float
+            The sample time
             
         Returns
         -------
@@ -254,7 +267,7 @@ class V4MarkerReader(MarkerReader):
             marker_item_headers.append(mih)
             # We don't have the channel_order_map yet, so we'll just store None for now
             event_markers.append(EventMarker(
-                time_index=(mih.sample_index * graph_header.sample_time) / 1000,
+                time_index=(mih.sample_index * sample_time) / 1000,
                 sample_index=mih.sample_index,
                 text=marker_text,
                 channel_number=mih.channel_number,
