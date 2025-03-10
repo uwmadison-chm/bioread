@@ -18,10 +18,9 @@ def write_text(datafile, out_stream, channel_indexes, missing_val):
     if not channel_indexes:
         channel_indexes = range(len(datafile.channels))
     chans = [datafile.channels[i] for i in channel_indexes]
-    headers = ["time (s)"] + [
-        f"{c.name} ({c.units})" for c in chans]
-    headers = [s.encode('utf-8') for s in headers]
+    headers = ["time (s)"] + [f"{c.name} ({c.units})" for c in chans]
     writer.writerow(headers)
+    
     for i, t in enumerate(datafile.time_index):
         rd = [t] + [data_or_blank(c, i, missing_val) for c in chans]
         writer.writerow(rd)
