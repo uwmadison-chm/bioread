@@ -13,6 +13,9 @@
 
 """Convert an AcqKnowledge file to a MATLAB file.
 
+This program is deprecated -- MATLAB can read HDF5 files natively, so I
+highly recommend using acq2hdf5 instead.
+
 Usage:
   acq2mat [options] <acq_file> <mat_file>
   acq2mat -h | --help
