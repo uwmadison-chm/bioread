@@ -24,6 +24,7 @@ class MatlabWriter:
         self.compress = compress
         self.oned_as = oned_as
         self.data_only = data_only
+        self.write_meta = not self.data_only
 
     @classmethod
     def write_file(
@@ -55,19 +56,21 @@ class MatlabWriter:
             chan_dict['frequency_divider'] = c.frequency_divider
             chan_dict['units'] = c.units
             channels[i] = chan_dict
-            channel_headers[i] = data.channel_headers[i].data
-            channel_dtype_headers[i] = data.channel_dtype_headers[i].data
+            if self.write_meta:
+                channel_headers[i] = data.channel_headers[i].data
+                channel_dtype_headers[i] = data.channel_dtype_headers[i].data
 
         d['channels'] = channels
 
-        if not self.data_only:
+        if self.write_meta:
             d['event_markers'] = self.__build_markers(data)
-
-        d['headers'] = {
-            'graph': data.graph_header.data,
-            'foreign': data.foreign_header.data,
-            'channel': channel_headers,
-            'channel_dtype': channel_dtype_headers}
+            d['headers'] = {
+                'graph': data.graph_header.data,
+                'foreign': data.foreign_header.data,
+                'channel': channel_headers,
+                'channel_dtype': channel_dtype_headers}
+            if data.journal is not None:
+                d['journal'] = data.journal
 
         return d
 
