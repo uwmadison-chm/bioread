@@ -2,12 +2,11 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2021 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
 # This contains the entry point for an executable to convert BIOPAC
 # AcqKnowledge files into text files
@@ -49,7 +48,7 @@ def main(argv=None):
     amr.run()
 
 
-class AcqToTxtRunner(object):
+class AcqToTxtRunner:
     """The little wrapper class that converts acq files to text files"""
 
     def __init__(self, argv):

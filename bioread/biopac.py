@@ -1,21 +1,19 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2021 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
-from __future__ import division
 import numpy as np
 from datetime import datetime, timezone, timedelta
 
 REF_DATE = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
-class Datafile(object):
+class Datafile:
     """
     A data file for the AcqKnowledge system. Generally, gonna be created
     from a file by reader.Reader.
@@ -65,9 +63,7 @@ class Datafile(object):
         return sum([c.data_length for c in self.channels])
 
     def __str__(self):
-        return("AcqKnowledge file (rev %s): %s channels, %s samples/sec" % (
-            self.graph_header.file_revision, self.graph_header.channel_count,
-            self.samples_per_second))
+        return f"AcqKnowledge file (rev {self.graph_header.file_revision}): {self.graph_header.channel_count} channels, {self.samples_per_second} samples/sec"
 
     def __repr__(self):
         return str(self)
@@ -118,7 +114,7 @@ class Datafile(object):
             c.time_index = self.time_index[::c.frequency_divider]
 
 
-class Channel(object):
+class Channel:
     """
     An individual channel of Biopac data. Has methods to access raw data from
     the file, as well as a scaled copy if the raw data is in integer format.
@@ -243,17 +239,13 @@ class Channel(object):
         self.__upsampled_data = None
 
     def __str__(self):
-        return("Channel %s: %s samples, %s samples/sec, loaded: %s" % (
-            self.name,
-            self.point_count,
-            self.samples_per_second,
-            self.loaded))
+        return f"Channel {self.name}: {self.point_count} samples, {self.samples_per_second} samples/sec, loaded: {self.loaded}"
 
     def __repr__(self):
         return str(self)
 
 
-class EventMarker(object):
+class EventMarker:
     """
     A marker -- some kind of annotation for an AcqKnowledge file. They all
     have a sample index and some text, and more modern ones can be one of
@@ -263,18 +255,24 @@ class EventMarker(object):
 
     def __init__(
             self,
+            time_index,
             sample_index,
             text,
             channel_number,
             channel=None,
             date_created_ms=None,
-            type_code=None):
+            type_code=None,
+            color=None,
+            tag=None):
 
+        self.time_index = time_index
         self.sample_index = sample_index
         self.text = text
         self.channel_number = channel_number
         self.channel = channel
         self.date_created_utc = None
+        self.color = color
+        self.tag = tag
         try:
             if date_created_ms is not None:
                 self.date_created_utc = (
@@ -286,7 +284,6 @@ class EventMarker(object):
             pass  # for now we'll just leave date_created_utc as None
 
         self.type_code = type_code
-        super(EventMarker, self).__init__()
 
     def __eq__(self, other):
         return all([
@@ -302,7 +299,7 @@ class EventMarker(object):
             self.text,
             self.sample_index,
             self.channel_number,
-            self.date_created_utc.isoformat(),
+            self.date_created_str,
             self.type_code))
 
     def __repr__(self):

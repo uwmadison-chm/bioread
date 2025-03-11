@@ -23,6 +23,9 @@ var/
 .installed.cfg
 *.egg
 
+# Mac stuff
+.DS_Store
+
 # iPython notebooks for testing
 notebooks/
 
@@ -32,3 +35,8 @@ notebooks/
 
 # vscode
 .vscode/
+
+old_setup/
+
+# We don't need uv's lockfile, that's machine-specific
+uv.lock

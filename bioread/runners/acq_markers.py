@@ -2,12 +2,11 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2021 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 #
 # This script pulls all the markers from an AcqKnowledge file and writes it
 # to a delimited format.

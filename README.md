@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/970625.svg)](https://zenodo.org/badge/latestdoi/970625)
 
-These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on [Application Note 156](http://www.biopac.com/Manuals/app_pdf/app156.pdf) from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger and Nate Vack.
+These utilities are for reading the files produced by BIOPAC's AcqKnowledge software. Much of the information is based on [Application Note 156](http://www.biopac.com/Manuals/app_pdf/app156.pdf) from BIOPAC; however, newer file formats were decoded through the tireless efforts of John Ollinger, Nate Vack, and Mike Davison. [Updated file structure documentation from Mike](https://github.com/uwmadison-chm/bioread/raw/2e9a312342210c394b9bd3a6dbc220e1e9e89851/notes/acqknowledge_file_structure.pdf) is in the notes/ directory.
 
 This library is mostly concerned with getting you the data, and less so with interpreting UI-related header values.
 
@@ -248,6 +248,6 @@ This code was pretty much all written by Nate Vack <njvack@wisc.edu>, with a lot
 
 ## Copyright & Disclaimers
 
-bioread is distributed under Version 2 of the GNU Public License. For more details, see LICENSE.
+bioread is distributed under the MIT license. For more details, see LICENSE.
 
 BIOPAC and AcqKnowledge are trademarks of BIOPAC Systems, Inc. The authors of this software have no affiliation with BIOPAC Systems, Inc, and that company neither supports nor endorses this software package.

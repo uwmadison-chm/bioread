@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bioread"
+dynamic = ["version"]
+description = "Utilities to read BIOPAC AcqKnowledge files"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "docopt>=0.6.1",
+    "numpy>=2.2.3",
+    "pytest>=8.3.4",
+]
+
+[project.optional-dependencies]
+mat = [ "scipy" ]
+hdf5 = [ "h5py" ]
+dev = ["pytest", "scipy", "h5py"]
+all = ["scipy", "h5py"]
+
+[project.scripts]
+acq_info = "bioread.runners.acq_info:main"
+acq_markers = "bioread.runners.acq_markers:main"
+acq2txt = "bioread.runners.acq2txt:main"
+acq2hdf5 = "bioread.runners.acq2hdf5:main"
+acq2mat = "bioread.runners.acq2mat:main"
+
+[tool.hatch.version]
+path = "bioread/_metadata.py"
+
+[tool.uv.sources]
+bioread = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "bioread",
+]
+hdf5 = [
+    "h5py",
+]
+mat = [
+    "scipy",
+]

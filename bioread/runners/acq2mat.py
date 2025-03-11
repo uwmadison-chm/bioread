@@ -2,17 +2,19 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2021 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
 # This contains the entry point for an executable to convert BIOPAC
 # AcqKnowledge files into Matlab files.
 
 """Convert an AcqKnowledge file to a MATLAB file.
+
+This program is deprecated -- MATLAB can read HDF5 files natively, so I
+highly recommend using acq2hdf5 instead.
 
 Usage:
   acq2mat [options] <acq_file> <mat_file>
@@ -27,8 +29,6 @@ Options:
 
 Note: scipy is required for this program.
 """
-
-from __future__ import absolute_import
 
 import sys
 from docopt import docopt
@@ -46,7 +46,7 @@ def main(argv=None):
     amr.run()
 
 
-class AcqToMatRunner(object):
+class AcqToMatRunner:
     """The little wrapper class that converts acq files to mat files"""
 
     def __init__(self, argv, err=None):

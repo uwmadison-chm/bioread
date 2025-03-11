@@ -1,17 +1,16 @@
 # coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
-# Copyright (c) 2021 Board of Regents of the University of Wisconsin System
+# Copyright (c) 2025 Board of Regents of the University of Wisconsin System
 #
 # Written Nate Vack <njvack@wisc.edu> with research from John Ollinger
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
-# Project home: http://github.com/njvack/bioread
 
 import numpy as np
 
 
-class MatlabWriter(object):
+class MatlabWriter:
 
     def __init__(
             self,
@@ -27,6 +26,7 @@ class MatlabWriter(object):
         self.single_precision = single_precision
         self.oned_as = oned_as
         self.data_only = data_only
+        self.write_meta = not self.data_only
 
     @classmethod
     def write_file(
@@ -47,9 +47,9 @@ class MatlabWriter(object):
         d = {}
         d['samples_per_second'] = data.samples_per_second
         nc = len(data.channels)
-        channels = np.zeros(nc, dtype=np.object)
-        channel_headers = np.zeros(nc, dtype=np.object)
-        channel_dtype_headers = np.zeros(nc, dtype=np.object)
+        channels = np.zeros(nc, dtype='O')
+        channel_headers = np.zeros(nc, dtype='O')
+        channel_dtype_headers = np.zeros(nc, dtype='O')
         for i in range(nc):
             c = data.channels[i]
             chan_dict = {}
@@ -62,24 +62,26 @@ class MatlabWriter(object):
             chan_dict['frequency_divider'] = c.frequency_divider
             chan_dict['units'] = c.units
             channels[i] = chan_dict
-            channel_headers[i] = data.channel_headers[i].data
-            channel_dtype_headers[i] = data.channel_dtype_headers[i].data
+            if self.write_meta:
+                channel_headers[i] = data.channel_headers[i].data
+                channel_dtype_headers[i] = data.channel_dtype_headers[i].data
 
         d['channels'] = channels
 
-        if not self.data_only:
+        if self.write_meta:
             d['event_markers'] = self.__build_markers(data)
-
-        d['headers'] = {
-            'graph': data.graph_header.data,
-            'foreign': data.foreign_header.data,
-            'channel': channel_headers,
-            'channel_dtype': channel_dtype_headers}
+            d['headers'] = {
+                'graph': data.graph_header.data,
+                'foreign': data.foreign_header.data,
+                'channel': channel_headers,
+                'channel_dtype': channel_dtype_headers}
+            if data.journal is not None:
+                d['journal'] = data.journal
 
         return d
 
     def __build_markers(self, data):
-        markers = np.zeros(len(data.event_markers), dtype=np.object)
+        markers = np.zeros(len(data.event_markers), dtype='O')
         for i, marker in enumerate(data.event_markers):
             md = {
                 'label': marker.text,
