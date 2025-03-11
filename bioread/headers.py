@@ -128,12 +128,7 @@ class BaseGraphHeader(Header):
 
     @property
     def effective_len_bytes(self):
-        l = self._struct.lExtItemHeaderLen
-        # We're going to skip an extra 40 bytes. This is kind of an ugly hack;
-        # there seems to be a whole other 40-byte header in there.
-        # if self.file_revision >= V_430:
-        #     l += 40
-        return l
+        return self._struct.lExtItemHeaderLen
     
     @property
     def channel_count(self):
@@ -384,7 +379,7 @@ class ChannelHeaderPost4(BaseChannelHeader):
         ('dAmplOffset', ctypes.c_double, V_20a),
         ('nChanOrder', ctypes.c_int16, V_20a),
         ('nDispSize', ctypes.c_int16, V_20a),
-        ('unknown', ctypes.c_char * 40, V_400B),
+        ('unknown', ctypes.c_ubyte * 40, V_400B),
         ('nVarSampleDivider', ctypes.c_int16, V_400B),
     ]
 
@@ -599,6 +594,10 @@ class ChannelCompressionHeader(Header):
     @property
     def compressed_data_len(self):
         return self._struct.lCompressedLen
+    
+    @property
+    def uncompressed_data_len(self):
+        return self._struct.lUncompressedLen
 
 
 class V2MarkerHeader(Header):
@@ -623,7 +622,7 @@ class V2MarkerMetadataPreHeader(Header):
     _versioned_fields = [
         ('tag', ctypes.c_byte * 4, V_20a),
         ('lItemCount', ctypes.c_int32, V_20a),
-        ('sUnknown', ctypes.c_char * 76, V_20a)
+        ('sUnknown', ctypes.c_ubyte * 76, V_20a)
     ]
     
     @property
@@ -680,6 +679,10 @@ class V2MarkerItemHeader(Header):
             return self._struct.nTextLength
         else:
             return self._struct.nTextLength + 1
+    
+    @property
+    def effective_len_bytes(self):
+        return self.struct_length + self.text_length
 
     @property
     def sample_index(self):
@@ -699,7 +702,6 @@ class V2MarkerItemHeader(Header):
     def type_code(self):
         """ These markers don't get type_codes, but it's OK """
         return None
-
 
 
 class V4MarkerHeader(Header):
@@ -743,6 +745,10 @@ class V4MarkerItemHeader(Header):
         return self._struct.nTextLength
 
     @property
+    def effective_len_bytes(self):
+        return self.struct_length + self.text_length
+
+    @property
     def sample_index(self):
         """Get the sample index."""
         return self._struct.lSample
@@ -759,7 +765,7 @@ class V4MarkerItemHeader(Header):
         if self.file_revision < V_440:
             return None
         return self._struct.llDateCreated
-
+    
     @property
     def type_code(self):
         """Get the type code, decoded as a string."""

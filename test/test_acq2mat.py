@@ -31,7 +31,7 @@ def test_acq2mat_runs_all_files(any_acq_file, tmpdir):
     assert Path(out_file).stat().st_size > 0  # Should create a non-empty file
     data = loadmat(out_file)
     assert 'channels' in data
-    assert 'headers' in data
+    assert 'event_markers' in data
 
 
 def test_acq2mat_with_data_only(any_acq_file, tmpdir):

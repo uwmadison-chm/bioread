@@ -1,9 +1,9 @@
 {
     "description": "Utilities to work with files from BIOPAC's AcqKnowlege software",
     "title": "uwmadison-chm/bioread",
-    "version": "2025.03.10",
+    "version": "2025.03.11",
     "upload_type": "software",
-    "publication_date": "2025-03-10",
+    "publication_date": "2025-03-11",
     "creators": [
         {
             "affiliation": "Center for Healthy Minds, University of Wisconsin-Madison",

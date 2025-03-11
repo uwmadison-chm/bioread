@@ -26,6 +26,7 @@ acq_markers = "bioread.runners.acq_markers:main"
 acq2txt = "bioread.runners.acq2txt:main"
 acq2hdf5 = "bioread.runners.acq2hdf5:main"
 acq2mat = "bioread.runners.acq2mat:main"
+acq_layout = "bioread.runners.acq_layout:main"
 
 [tool.hatch.version]
 path = "bioread/_metadata.py"

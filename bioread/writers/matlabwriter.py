@@ -7,6 +7,10 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
+"""
+Turns an .acq file into a .mat file with scipy.io.savemat
+"""
+
 import numpy as np
 
 
@@ -45,8 +49,6 @@ class MatlabWriter:
         d['samples_per_second'] = data.samples_per_second
         nc = len(data.channels)
         channels = np.zeros(nc, dtype='O')
-        channel_headers = np.zeros(nc, dtype='O')
-        channel_dtype_headers = np.zeros(nc, dtype='O')
         for i in range(nc):
             c = data.channels[i]
             chan_dict = {}
@@ -56,19 +58,11 @@ class MatlabWriter:
             chan_dict['frequency_divider'] = c.frequency_divider
             chan_dict['units'] = c.units
             channels[i] = chan_dict
-            if self.write_meta:
-                channel_headers[i] = data.channel_headers[i].data
-                channel_dtype_headers[i] = data.channel_dtype_headers[i].data
 
         d['channels'] = channels
 
         if self.write_meta:
             d['event_markers'] = self.__build_markers(data)
-            d['headers'] = {
-                'graph': data.graph_header.data,
-                'foreign': data.foreign_header.data,
-                'channel': channel_headers,
-                'channel_dtype': channel_dtype_headers}
             if data.journal is not None:
                 d['journal'] = data.journal
 

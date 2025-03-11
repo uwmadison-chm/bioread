@@ -71,7 +71,7 @@ class DataReader:
         channel_indexes : list, optional
             The indexes of the channels to read
         """
-        # At least in post-4.0 files, the compressed data isn't interleaved at
+        # The compressed data isn't interleaved at
         # all. It's stored in uniform compressed blocks -- this probably
         # compresses far better than interleaved data.
         # Strangely, the compressed data seems to always be little-endian.

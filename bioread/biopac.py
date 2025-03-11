@@ -19,24 +19,18 @@ class Datafile:
     from a file by reader.Reader.
     """
 
-    def __init__(
-            self,
-            graph_header=None, channel_headers=None, foreign_header=None,
-            channel_dtype_headers=None, samples_per_second=None, name=None,
-            marker_header=None, marker_item_headers=None,):
+    def __init__(self, graph_header, channel_headers, channel_dtype_headers, samples_per_second, name=None):
         self.graph_header = graph_header
         self.channel_headers = channel_headers
-        self.foreign_header = foreign_header
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
-        self.marker_header = marker_header
-        self.marker_item_headers = marker_item_headers
         self.event_markers = None
-        self.journal_header = None
         self.journal = None
         self.__named_channels = None
         self.__time_index = None
+        self.channel_compression_headers = None
+        self.all_headers = []
 
         self.channels = self.__build_channels()
         self.channel_order_map = dict(
@@ -55,12 +49,6 @@ class Datafile:
     @property
     def is_compressed(self):
         return self.graph_header.compressed
-
-    @property
-    def data_length(self):
-        if self.is_compressed:
-            return 0
-        return sum([c.data_length for c in self.channels])
 
     def __str__(self):
         return f"AcqKnowledge file (rev {self.graph_header.file_revision}): {self.graph_header.channel_count} channels, {self.samples_per_second} samples/sec"

@@ -39,10 +39,11 @@ class MarkerReader:
         self.event_markers = None
         self.marker_metadata_pre_header = None
         self.marker_metadata_headers = None
+        self.all_headers = []
 
         
     @staticmethod
-    def create_marker_reader(header_reader, file_revision):
+    def create_marker_reader(header_reader):
         """
         Factory method to create the appropriate marker reader based on file revision.
         
@@ -58,12 +59,12 @@ class MarkerReader:
         MarkerReader
             The appropriate marker reader
         """
-        if file_revision >= rev.V_400B:
+        if header_reader.file_revision >= rev.V_400B:
             return V4MarkerReader(header_reader)
         else:
             return V2MarkerReader(header_reader)
             
-    def read_markers(self, marker_start_offset, graph_header):
+    def read_markers(self, marker_start_offset, sample_time):
         """
         Read the marker data.
         
@@ -76,8 +77,8 @@ class MarkerReader:
             
         Returns
         -------
-        tuple
-            (marker_header, marker_item_headers, event_markers)
+        
+        event_markers: List[EventMarker]
         """
         raise NotImplementedError("Subclasses must implement read_markers")
 
@@ -86,45 +87,41 @@ class V2MarkerReader(MarkerReader):
     """
     Reader for version 2 marker data.
     """
-    def read_markers(self, marker_start_offset, sample_time):
+    def read_markers(self, offset, sample_time):
         """
         Read version 2 markers.
         
         Parameters
         ----------
-        marker_start_offset : int
+        offset : int
             The offset where markers start
 
         sample_time : float
 
                 Returns
         -------
-        tuple
-            (marker_header, marker_item_headers, event_markers)
+        event_markers
         """
-        logger.debug("Reading markers starting at %s" % marker_start_offset)
+        logger.debug("Reading markers starting at %s" % offset)
         
         # Read marker header
-        marker_header = self.header_reader.single_header(
-            marker_start_offset, bh.V2MarkerHeader)
+        marker_header = self.header_reader.single_header(offset, bh.V2MarkerHeader)
+        self.all_headers.append(marker_header)
             
         # Read marker items
-        marker_item_headers, event_markers = self._read_marker_items(
-            marker_header, bh.V2MarkerItemHeader, sample_time)
+        marker_item_offset = marker_header.offset + marker_header.effective_len_bytes
+        event_markers = self._read_marker_items(
+            marker_header.marker_count, marker_item_offset, sample_time)
+        
+        metadata_offset = self.acq_file.tell()
             
-        # Read marker metadata if needed
-        marker_metadata_pre_header = None
-        marker_metadata_headers = None
         if self.file_revision >= rev.V_381:
-            marker_metadata_pre_header, marker_metadata_headers = self._read_v2_marker_metadata(event_markers)
+            # This consumes data and modifies event_markers and self.all_headers
+            self._read_v2_marker_metadata(event_markers, metadata_offset)
 
-        self.marker_header = marker_header
-        self.marker_item_headers = marker_item_headers
-        self.event_markers = event_markers
-        self.marker_metadata_pre_header = marker_metadata_pre_header
-        self.marker_metadata_headers = marker_metadata_headers
+        return event_markers
                 
-    def _read_marker_items(self, marker_header, marker_item_header_class, sample_time):
+    def _read_marker_items(self, marker_count, offset, sample_time):
         """
         Read marker items.
         
@@ -142,17 +139,16 @@ class V2MarkerReader(MarkerReader):
         tuple
             (marker_item_headers, event_markers)
         """
+        marker_item_headers = self.header_reader.multi_headers(
+            marker_count, offset, bh.V2MarkerItemHeader)
+        self.all_headers.extend(marker_item_headers)
         event_markers = []
-        marker_item_headers = []
-        
-        for i in range(marker_header.marker_count):
-            mih = self.header_reader.single_header(
-                self.acq_file.tell(), marker_item_header_class)
+        for mih in marker_item_headers:
+            self.acq_file.seek(mih.offset + mih.struct_length)
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode(
                 self.encoding, errors='ignore').strip('\0')
-            marker_item_headers.append(mih)
-            # We don't have the channel_order_map yet, so we'll just store None for now
+            logger.debug(f"Marker text: {marker_text}")
             event_markers.append(EventMarker(
                 time_index=(mih.sample_index * sample_time) / 1000,
                 sample_index=mih.sample_index,
@@ -161,10 +157,9 @@ class V2MarkerReader(MarkerReader):
                 channel=None,
                 date_created_ms=mih.date_created_ms,
                 type_code=mih.type_code))
-        
-        return marker_item_headers, event_markers
-        
-    def _read_v2_marker_metadata(self, event_markers):
+        return event_markers
+
+    def _read_v2_marker_metadata(self, event_markers, metadata_offset):
         """
         Read version 2 marker metadata.
         
@@ -179,9 +174,8 @@ class V2MarkerReader(MarkerReader):
             (marker_metadata_pre_header, marker_metadata_headers)
         """
         marker_metadata_pre_header = self.header_reader.single_header(
-            self.acq_file.tell(),
-            bh.V2MarkerMetadataPreHeader
-        )
+            metadata_offset, bh.V2MarkerMetadataPreHeader)
+        
         # Sometimes the marker metadata headers are not present -- if we see
         # that the first four bytes of the marker metadata preheader are
         # actually the start of the journal header (0x44332211), rewind the
@@ -189,8 +183,10 @@ class V2MarkerReader(MarkerReader):
         if marker_metadata_pre_header.tag_value == bh.V2JournalHeader.EXPECTED_TAG_VALUE: 
             self.acq_file.seek(marker_metadata_pre_header.offset)
             logger.debug("No marker metadata headers found")
-            return marker_metadata_pre_header, None
+            return
+        self.all_headers.append(marker_metadata_pre_header)
 
+        # Read marker metadata headers
         marker_metadata_headers = self.header_reader.multi_headers(
             len(event_markers),
             self.acq_file.tell(),
@@ -199,21 +195,20 @@ class V2MarkerReader(MarkerReader):
         for mh in marker_metadata_headers:
             event_markers[mh.marker_index].color = mh.rgba_color
             event_markers[mh.marker_index].tag = mh.marker_tag
+        self.all_headers.extend(marker_metadata_headers)
             
-        return marker_metadata_pre_header, marker_metadata_headers
-
 
 class V4MarkerReader(MarkerReader):
     """
     Reader for version 4 marker data.
     """
-    def read_markers(self, marker_start_offset, sample_time):
+    def read_markers(self, offset, sample_time):
         """
         Read version 4 markers.
         
         Parameters
         ----------
-        marker_start_offset : int
+        offset : int
             The offset where markers start
         sample_time : float
             The sample time
@@ -223,21 +218,20 @@ class V4MarkerReader(MarkerReader):
         tuple
             (marker_header, marker_item_headers, event_markers)
         """
-        logger.debug("Reading markers starting at %s" % marker_start_offset)
+        logger.debug(f"Reading markers starting at {offset}")
         
         # Read marker header
-        marker_header = self.header_reader.single_header(
-            marker_start_offset, bh.V4MarkerHeader)
+        marker_header = self.header_reader.single_header(offset, bh.V4MarkerHeader)
+        self.all_headers.append(marker_header)
             
         # Read marker items
-        marker_item_headers, event_markers = self._read_marker_items(
-            marker_header, bh.V4MarkerItemHeader, sample_time)
+        event_markers_offset = marker_header.offset + marker_header.effective_len_bytes
+        event_markers = self._read_marker_items(
+            marker_header.marker_count, event_markers_offset, sample_time)
         
-        self.marker_header = marker_header
-        self.marker_item_headers = marker_item_headers
-        self.event_markers = event_markers
+        return event_markers
                     
-    def _read_marker_items(self, marker_header, marker_item_header_class, sample_time):
+    def _read_marker_items(self, marker_count, offset, sample_time):
         """
         Read marker items.
         
@@ -256,15 +250,16 @@ class V4MarkerReader(MarkerReader):
             (marker_item_headers, event_markers)
         """
         event_markers = []
-        marker_item_headers = []
+        marker_item_headers = self.header_reader.multi_headers(
+            marker_count, offset, bh.V4MarkerItemHeader)
+        self.all_headers.extend(marker_item_headers)
         
-        for i in range(marker_header.marker_count):
-            mih = self.header_reader.single_header(
-                self.acq_file.tell(), marker_item_header_class)
+        for mih in marker_item_headers:
+            self.acq_file.seek(mih.offset + mih.struct_length)
             marker_text_bytes = self.acq_file.read(mih.text_length)
             marker_text = marker_text_bytes.decode(
                 self.encoding, errors='ignore').strip('\0')
-            marker_item_headers.append(mih)
+            logger.debug(f"Marker text: {marker_text}")
             # We don't have the channel_order_map yet, so we'll just store None for now
             event_markers.append(EventMarker(
                 time_index=(mih.sample_index * sample_time) / 1000,
@@ -275,4 +270,4 @@ class V4MarkerReader(MarkerReader):
                 date_created_ms=mih.date_created_ms,
                 type_code=mih.type_code))
         
-        return marker_item_headers, event_markers 
+        return event_markers 

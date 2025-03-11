@@ -31,134 +31,51 @@ import logging
 from io import BytesIO
 from docopt import docopt
 
-from bioread import reader
-
 from bioread.reader import Reader
 from bioread import _metadata as meta
 
+logger = logging.getLogger("bioread")
+logger.setLevel(logging.INFO)
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    air = AcqInfoRunner(argv)
+    parsed = docopt(
+        __doc__,
+        argv,
+        version=meta.version_description)
+    if parsed['--debug']:
+        logger.setLevel(logging.DEBUG)
+    logger.debug(parsed)
+    acq_file = parsed['<acq_file>']
+    if acq_file == '-':
+        acq_file = BytesIO(sys.stdin.read())
+    air = AcqInfoRunner(acq_file)
     air.run()
 
 
 class AcqInfoRunner:
 
-    def __init__(self, argv, out=None, err=None):
-        self.argv = argv
-        if out is None:
-            out = sys.stdout
-        self.out = out
-        if err is None:
-            err = sys.stderr
-        self.err = err
+    def __init__(self, acq_file):
+        self.acq_file = acq_file
 
     def run(self):
-        old_out = sys.stdout
-        old_err = sys.stderr
-        sys.stdout = self.out
-        sys.stderr = self.err
+        reader = Reader.read_headers(self.acq_file)
+        datafile = reader.datafile
 
-        pargs = docopt(
-            __doc__,
-            self.argv,
-            version=meta.version_description)
-        if pargs['--debug']:
-          reader.logger.level = logging.DEBUG
-
-        df = None
-        infile = pargs['<acq_file>']
-        try:
-            if infile == '-':
-                df = BytesIO(sys.stdin.read())
-            else:
-                df = open(infile, 'rb')
-        except Exception:
-            sys.stderr.write("Error reading {0}\n".format(infile))
-            sys.exit(1)
-
-        self.reader = Reader.read_headers(df)
-        try:
-            pass
-        except Exception as e:
-            sys.stderr.write("Error reading headers!\n")
-            sys.stderr.write("File position: %s\n" % self.reader.acq_file.tell())
-            sys.stderr.write(str(e))
-            # Don't exit here; it'll still print what it can.
-
-        if pargs['--debug']:
-            self.__print_debug()
-        else:
-            self.__print_simple()
-
-        sys.stderr = old_err
-        sys.stdout = old_out
-
-    def __print_simple(self):
-        gh = self.reader.graph_header
-        chs = self.reader.channel_headers
-        cdhs = self.reader.channel_dtype_headers
-        print(f"File revision: {gh.file_revision}")
-        if self.reader.datafile.earliest_marker_created_at is not None:
-            print(
-                f"Earliest event marker created at: {self.reader.datafile.earliest_marker_created_at.isoformat()}"
-            )
+        gh = reader.graph_header
+        rev = gh.file_revision
+        print(f"File revision: {rev} ({reader.version_string}), byte order: {gh.byte_order_char}")
         print(f"Sample time: {gh.sample_time}")
         print(f"Compressed: {gh.compressed}")
         print(f"Number of channels: {gh.channel_count}")
-        for ch, cdh in zip(chs, cdhs):
-            print(f"{ch.name}:")
-            print(f"\tUnits: {ch.units}")
-            print(f"\tNumber of samples: {ch.point_count}")
-            print(f"\tFrequency divider: {ch.frequency_divider}")
-
-    def __print_debug(self):
-        gh = self.reader.graph_header
-        fh = self.reader.foreign_header
-        chs = self.reader.channel_headers
-        cdhs = self.reader.channel_dtype_headers
-
-        print("Graph header starts at offset %s" % gh.offset)
-        print(gh.data)
-        print("\n")
-        for i, ch in enumerate(chs):
-            print("Channel header %s starts at offset %s" % (i, ch.offset))
-            print(ch.data)
-            print("\n")
-        print("Foreign header starts at offset %s" % fh.offset)
-        print(fh.data)
-        print("\n")
-        for i, cdh in enumerate(cdhs):
-            print(
-                "Channel dtype header %s starts at offset %s" %
-                (i, cdh.offset))
-            print(cdh.data)
-            print("\n")
-
-        if not gh.compressed:
-            print("Data starts at offset %s, length %s" % (
-              self.reader.data_start_offset,
-              self.reader.data_length
-            ))
-        else:
-            mch = self.reader.main_compression_header
-            cchs = self.reader.channel_compression_headers
-            print("Main compression header starts at offset %s" % mch.offset)
-            print("\n")
-            for i, cch in enumerate(cchs):
-                print(
-                    "Channel compression header %s starts at offset %s" %
-                    (i, cch.offset))
-                print(cch.data)
-                print(
-                    "Compressed data starts at offset %s" %
-                    cch.compressed_data_offset)
-                print("\n")
-        print("\n")
-        print("Markers start at offset %s" % self.reader.marker_start_offset)
+        for channel in datafile.channels:
+            print(f"{channel.name}:")
+            print(f"\tUnits: {channel.units}")
+            print(f"\tNumber of samples: {channel.point_count}")
+            print(f"\tFrequency divider: {channel.frequency_divider}")
+            print(f"\tData type: {channel.dtype}")
 
 
 if __name__ == '__main__':
