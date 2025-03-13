@@ -87,7 +87,7 @@ class HeaderReader:
         for i in range(num):
             h_offset += last_h_len
             logger.debug(f"Reading {h_class} at offset {h_offset}")
-            h = h_class(self.file_revision,
+            h = h_class.for_revision(self.file_revision,
                         self.byte_order_char,
                         encoding=self.encoding)
             try:
@@ -118,7 +118,7 @@ class GraphHeaderReader:
         # It doesn't matter which graph header class we use; we're only using
         # the file revision field, which is the same for all graph headers
         graph_reads = [
-            bh.GraphHeaderPre4(rev.V_ALL, bom)
+            bh.GraphHeader.for_revision(rev.V_ALL, bom)
             for bom in ['<', '>']
         ]
         for graph_header in graph_reads:
@@ -142,8 +142,7 @@ class GraphHeaderReader:
         else:
             encoding = 'utf-8'
             
-        header_class = bh.get_graph_header_class(file_revision)
-        graph_header = header_class(file_revision, byte_order_char, encoding)
+        graph_header = bh.GraphHeader.for_revision(file_revision, byte_order_char, encoding)
         graph_header.unpack_from_file(acq_file, 0)
         
         return graph_header

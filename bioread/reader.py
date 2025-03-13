@@ -169,9 +169,8 @@ class Reader:
             [ph.effective_len_bytes for ph in pad_headers])
         # skip past the unknown padding header
 
-        channel_header_class = bh.get_channel_header_class(self.file_revision)
         channel_headers = self.header_reader.multi_headers(
-            channel_count, channel_offset, channel_header_class)
+            channel_count, channel_offset, bh.ChannelHeader)
         ch_len = channel_headers[0].effective_len_bytes
         self.channel_headers = channel_headers
         self.headers.extend(channel_headers)
@@ -181,8 +180,7 @@ class Reader:
 
         # Read foreign header
         foreign_offset = channel_offset + len(channel_headers)*ch_len
-        foreign_header_class = bh.get_foreign_header_class(self.file_revision)
-        foreign_header = self.header_reader.single_header(foreign_offset, foreign_header_class)
+        foreign_header = self.header_reader.single_header(foreign_offset, bh.ForeignHeader)
         self.headers.append(foreign_header)
 
         # Read channel dtype headers
@@ -256,9 +254,8 @@ class Reader:
             return
         
         main_ch_offset = self.acq_file.tell()
-        main_compression_header_class = bh.get_main_compression_header_class(self.file_revision)
         main_compression_header = self.header_reader.single_header(
-            main_ch_offset, main_compression_header_class)
+            main_ch_offset, bh.MainCompressionHeader)
         self.headers.append(main_compression_header)
         cch_offset = (main_ch_offset +
                      main_compression_header.effective_len_bytes)

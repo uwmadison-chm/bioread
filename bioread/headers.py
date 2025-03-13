@@ -13,15 +13,41 @@ from bioread.file_revisions import *
 
 import ctypes
 
-class Header:
+class HeaderMeta(type):
+    """
+    Metaclass for the Header class. We'll use this to register subclasses
+    that are valid for a given revision, so you can do something like:
+    main_compression_header = ChannelHeader.for_revision(file_revision, ...)
+    and you'll get either a ChannelHeaderPre4 or ChannelHeaderPost4 depenting
+    on file_revision.
+
+    Note that to register a class as a subclass, you need to both
+    be a subclass of Header and have an is_valid_for_revision() method.
+    """
+    def __new__(mcs, name, bases, class_dict):
+        # Initialize _versioned_subclasses for this class if it doesn't exist
+        cls = super().__new__(mcs, name, bases, class_dict)
+        # Don't register Header itself, it's an abstract base class
+        if name == 'Header':
+            return cls
+        if '_versioned_subclasses' not in class_dict:
+            cls._versioned_subclasses = []
+        # Only register if this class has its own is_valid_for_revision method
+        if 'is_valid_for_revision' in class_dict:
+            # Register on the direct parent class
+            superclass = bases[0]
+            if not hasattr(superclass, '_versioned_subclasses'):
+                superclass._versioned_subclasses = []
+            superclass._versioned_subclasses.append(cls)
+        return cls
+
+
+class Header(metaclass=HeaderMeta):
     """
     The base class for all the Biopac headers we're going to use. Basically,
     this contains tooling to build a structure with appropriate endianness,
     handle the thing where fields appear in different versions of the AcqKnowledge,
     and then has the ability to unpack the data from a file.
-
-    The data property should not be used by any new code, it's just here for the
-    transition period.
     """
 
     BASES = {
@@ -29,16 +55,38 @@ class Header:
         "<": ctypes.LittleEndianStructure
     }
 
-    # Subclasses can override this to exclude fields from the data dictionary.
-    DICT_EXCLUDE_FIELDS = []
-
-    def __init__(self, file_revision, byte_order_char, encoding="utf-8"):
+    def __init__(self, file_revision, byte_order_char, encoding="utf-8", _from_factory=False):
+        """
+        Private constructor. Use for_revision() to create a header object.
+        If you really need to use this method, pass _from_factory=True.
+        """
+        if not _from_factory:
+            raise ValueError("Headers should be created using for_revision() method.")
         self.file_revision = file_revision
         self.byte_order_char = byte_order_char
         self.encoding = encoding
         self.offset = None
         self.raw_data = None
         self._struct = None
+    
+    # @classmethod
+    # def _register_subclass(cls, subclass):
+    #     print(f"Registering subclass {subclass.__name__} on {cls.__name__}")
+    #     cls._versioned_subclasses.append(subclass)
+
+    @classmethod
+    def for_revision(cls, file_revision, byte_order_char, encoding="utf-8"):
+        """
+        Factory method for creating a header object for a given revision.
+        Checks _versioned_subclasses for a subclass that returns True for
+        is_valid_for_revision(), and if it finds one, instantiates that.
+        Otherwise, it returns an instance of the base class.
+        """
+        constructor_args = [file_revision, byte_order_char, encoding, True]
+        for subclass in cls._versioned_subclasses:
+            if subclass.is_valid_for_revision(subclass,file_revision):
+                return subclass(*constructor_args)
+        return cls(*constructor_args)
 
     def unpack_from_file(self, data_file, offset):
         """Unpack header data from a file at the given offset"""
@@ -91,8 +139,6 @@ class Header:
             if field[2] <= self.file_revision
         ]
     
-    # I thought I could get away from this, but it's useful for debugging and dumping
-    # to other formats.
     @property
     def data(self):
         """
@@ -101,27 +147,14 @@ class Header:
         if not hasattr(self, '__data'):
             self.__data = {}
             for field, _field_type in self._struct._fields_:
-                if field in self.DICT_EXCLUDE_FIELDS:
-                    continue
                 if isinstance(getattr(self._struct, field), ctypes.Array):
                     self.__data[field] = list(getattr(self._struct, field))
                 else:
                     self.__data[field] = getattr(self._struct, field)
         return self.__data
 
-    def __repr__(self):
-        field_strings = [f"{field[0]}: {getattr(self._struct, field[0])}" for field in self._struct._fields_]
-        return f"{self.__class__.__name__}({', '.join(field_strings)})"
 
-
-def get_graph_header_class(file_revision):
-    if file_revision < V_400B:
-        return GraphHeaderPre4
-    else:
-        return GraphHeaderPost4
-
-
-class BaseGraphHeader(Header):
+class GraphHeader(Header):
     """
     Base class for Graph Headers to yield a common interface.
     """
@@ -155,10 +188,14 @@ class BaseGraphHeader(Header):
         return 0
 
 
-class GraphHeaderPre4(BaseGraphHeader):
+class GraphHeaderPre4(GraphHeader):
     """
     Graph Header for files with revision less than 4.
     """
+
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('nItemHeaderLen', ctypes.c_int16, V_ALL),
         ('lVersion', ctypes.c_uint32, V_ALL),
@@ -234,10 +271,14 @@ class GraphHeaderPre4(BaseGraphHeader):
     ]
 
 
-class GraphHeaderPost4(BaseGraphHeader):
+class GraphHeaderPost4(GraphHeader):
     """
     Graph Header for files with revision 4 and above.
     """
+
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     _versioned_fields = [
         ('nItemHeaderLen', ctypes.c_int16, V_ALL),
         ('lVersion', ctypes.c_int32, V_ALL),
@@ -285,14 +326,7 @@ class UnknownPaddingHeader(Header):
         return self._struct.lChannelLen
 
 
-def get_channel_header_class(file_revision):
-    if file_revision < V_400B:
-        return ChannelHeaderPre4
-    else:
-        return ChannelHeaderPost4
-
-
-class BaseChannelHeader(Header):
+class ChannelHeader(Header):
     """
     Base class for Channel Headers to yield a common interface.
     """
@@ -333,10 +367,13 @@ class BaseChannelHeader(Header):
         return self._struct.nChanOrder
 
 
-class ChannelHeaderPre4(BaseChannelHeader):
+class ChannelHeaderPre4(ChannelHeader):
     """
     Channel Header for files with revision less than 4.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
         ('nNum', ctypes.c_int16, V_20a),
@@ -361,10 +398,13 @@ class ChannelHeaderPre4(BaseChannelHeader):
     ]
 
 
-class ChannelHeaderPost4(BaseChannelHeader):
+class ChannelHeaderPost4(ChannelHeader):
     """
     Channel Header for files with revision 4 and above.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     _versioned_fields = [
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
         ('nNum', ctypes.c_int16, V_20a),
@@ -383,20 +423,21 @@ class ChannelHeaderPost4(BaseChannelHeader):
         ('nVarSampleDivider', ctypes.c_int16, V_400B),
     ]
 
-    DICT_EXCLUDE_FIELDS = ['unknown']
 
 
-def get_foreign_header_class(file_revision):
-    if file_revision <= V_390:
-        return ForeignHeaderPre4
-    else:
-        return ForeignHeaderPost4
-
-
-class ForeignHeaderPre4(Header):
+class ForeignHeader(Header):
     """
+    Abstract base class for foreign headers.
     I'm genuinely not sure what the foreign data is for.
     """
+    pass
+
+
+class ForeignHeaderPre4(ForeignHeader):
+
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('nLength', ctypes.c_int16, V_20a),
         ('nType', ctypes.c_int16, V_20a)
@@ -407,10 +448,11 @@ class ForeignHeaderPre4(Header):
         return self._struct.nLength
 
 
-class ForeignHeaderPost4(Header):
-    """
-    I'm genuinely not sure what the foreign data is for.
-    """
+class ForeignHeaderPost4(ForeignHeader):
+
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     _versioned_fields = [
         ('lLength', ctypes.c_int32, V_400B)
     ]
@@ -458,12 +500,24 @@ class ChannelDTypeHeader(Header):
         return self._struct.nSize
 
 
-class V2JournalHeader(Header):
+class JournalHeader(Header):    
+    """
+    Abstract base class for journal headers.
+    """
+    pass
+
+
+
+class JournalHeaderPre4(JournalHeader):
     """
     Version 2-3 journal headers are trivial -- there's a four-byte tag that
     always contains 0x44332211, followed by a boolean "show" and then the
     length of the journal text.
     """
+
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     EXPECTED_TAG_VALUE = (0x44, 0x33, 0x22, 0x11)
     EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
 
@@ -493,13 +547,16 @@ class V2JournalHeader(Header):
         return self.tag_value == self.EXPECTED_TAG_VALUE
 
 
-class V4JournalHeader(Header):
+class JournalHeaderPost4(JournalHeader):
     """
     In Version 4.1 and less, the journal is stored as plain text. From 4.2,
     it's stored as HTML. The start of the header tells the length of the
     entire journal section -- journal text and some preamble; the compression
     headers (if compressed) follow at self.offset + lFullLength.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     _versioned_fields = [
         ('bUnknown1', ctypes.c_byte * 262, V_400B),
         ('lEarlyJournalLen', ctypes.c_int32, V_400B),
@@ -517,14 +574,45 @@ class V4JournalHeader(Header):
         return self._struct.lLateJournalLen
 
 
-def get_main_compression_header_class(file_revision):
-    if file_revision <= V_400B:
-        return MainCompressionHeaderPre4
-    else:
-        return MainCompressionHeaderPost4
+class JournalLengthHeader(Header):
+    """
+    In the case where there's no journal data, there's no full journal header.
+    Instead, we just have a single long that tells us how much journal stuff
+    (data + header) there is. Basically, if this value is less than the
+    length of the V4JournalHeader, don't even try to read that header or
+    journal data.
+
+    The next stuff (if there is any) will be at self.offset + lJournalDataLen
+
+    This is only present in version 4.
+    """
+    # Define the structure fields
+    _versioned_fields = [
+        ('lJournalDataLen', ctypes.c_int32, V_400B)
+    ]
+
+    @property
+    def journal_len(self):
+        """Get the journal length directly from the structure"""
+        return self._struct.lJournalDataLen
+
+    @property
+    def data_end(self):
+        """Calculate the end position of the journal data"""
+        return self.offset + self.journal_len
 
 
-class MainCompressionHeaderPre4(Header):
+class MainCompressionHeader(Header):
+    """
+    Abstract base class for main compression headers.
+    """
+    pass
+
+
+class MainCompressionHeaderPre4(MainCompressionHeader):
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('Unknown', ctypes.c_byte * 34, V_20a),
         ('lTextLen', ctypes.c_int32, V_20a)
@@ -534,7 +622,10 @@ class MainCompressionHeaderPre4(Header):
     def effective_len_bytes(self):
         return self.struct_length + self._struct.lTextLen
 
-class MainCompressionHeaderPost4(Header):
+class MainCompressionHeaderPost4(MainCompressionHeader):
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     _versioned_fields = [
         ('Unknown1', ctypes.c_byte * 24, V_400B),
         ('lStrLen1', ctypes.c_int32, V_400B),
@@ -600,10 +691,20 @@ class ChannelCompressionHeader(Header):
         return self._struct.lUncompressedLen
 
 
-class V2MarkerHeader(Header):
+class MarkerHeader(Header): 
+    """
+    Abstract base class for marker headers.
+    """
+    pass
+
+
+class MarkerHeaderPre4(MarkerHeader):
     """
     Marker structure for files in Version 3, very likely down to version 2.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('lLength', ctypes.c_int32, V_20a),
         ('lMarkers', ctypes.c_int32, V_20a)
@@ -614,10 +715,33 @@ class V2MarkerHeader(Header):
         return self._struct.lMarkers
 
 
-class V2MarkerMetadataPreHeader(Header):
+class MarkerHeaderPost4(MarkerHeader):
+    """
+    Marker structure for files from Version 4 onwards
+    """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
+    _versioned_fields = [
+        ('lLength', ctypes.c_int32, V_400B),
+        ('lMarkersExtra', ctypes.c_int32, V_400B),
+        ('lMarkers', ctypes.c_int32, V_400B),
+        ('Unknown', ctypes.c_byte * 6, V_400B),
+        ('szDefl', ctypes.c_char * 5, V_400B),
+        ('Unknown2', ctypes.c_int16, V_400B),
+        ('Unknown3', ctypes.c_byte * 8, V_42x),
+        ('Unknown4', ctypes.c_byte * 8, V_440)
+    ]
+
+    @property
+    def marker_count(self):
+        return self._struct.lMarkersExtra - 1
+
+
+class MarkerPreItemMetadataHeaderPre4(Header):
     """
     I'm not sure what the data here mean -- there's an item count field, but
-    the number from V2MarkerHeader seems to be the correct one.
+    the number from MarkerHeaderPre4 seems to be the correct one.
     """
     _versioned_fields = [
         ('tag', ctypes.c_byte * 4, V_20a),
@@ -631,9 +755,10 @@ class V2MarkerMetadataPreHeader(Header):
         return tuple(self._struct.tag)
     
     
-class V2MarkerMetadataHeader(Header):
+class MarkerItemMetadataHeader(Header):
     """
-    Marker metadata for files in Version 2.
+    Marker metadata for files in Version 2-3.
+    This header is not present in Version 4.
     """
     _versioned_fields = [
         ('lUnknown1', ctypes.c_int32, V_20a),
@@ -660,11 +785,20 @@ class V2MarkerMetadataHeader(Header):
     def marker_index(self):
         return self.marker_number - 1
     
+class MarkerItemHeader(Header):
+    """
+    Abstract base class for marker item headers.
+    """
+    pass
 
-class V2MarkerItemHeader(Header):
+
+class MarkerItemHeaderPre4(MarkerItemHeader):
     """
     Marker Items for files in Version 3, very likely down to version 2.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision < V_400B
+
     _versioned_fields = [
         ('lSample', ctypes.c_int32, V_20a),
         ('fSelected', ctypes.c_int16, V_35x),
@@ -704,30 +838,14 @@ class V2MarkerItemHeader(Header):
         return None
 
 
-class V4MarkerHeader(Header):
-    """
-    Marker structure for files from Version 4 onwards
-    """
-    _versioned_fields = [
-        ('lLength', ctypes.c_int32, V_400B),
-        ('lMarkersExtra', ctypes.c_int32, V_400B),
-        ('lMarkers', ctypes.c_int32, V_400B),
-        ('Unknown', ctypes.c_byte * 6, V_400B),
-        ('szDefl', ctypes.c_char * 5, V_400B),
-        ('Unknown2', ctypes.c_int16, V_400B),
-        ('Unknown3', ctypes.c_byte * 8, V_42x),
-        ('Unknown4', ctypes.c_byte * 8, V_440)
-    ]
 
-    @property
-    def marker_count(self):
-        return self._struct.lMarkersExtra - 1
-
-
-class V4MarkerItemHeader(Header):
+class MarkerItemHeaderPost4(MarkerItemHeader):
     """
     Marker Items for files in Version 4 onwards.
     """
+    def is_valid_for_revision(self, file_revision):
+        return file_revision >= V_400B
+
     # Define the structure fields
     _versioned_fields = [
         ('lSample', ctypes.c_uint32, V_400B),
@@ -773,27 +891,3 @@ class V4MarkerItemHeader(Header):
 
 
 
-class V4JournalLengthHeader(Header):
-    """
-    In the case where there's no journal data, there's no full journal header.
-    Instead, we just have a single long that tells us how much journal stuff
-    (data + header) there is. Basically, if this value is less than the
-    length of the V4JournalHeader, don't even try to read that header or
-    journal data.
-
-    The next stuff (if there is any) will be at self.offset + lJournalDataLen
-    """
-    # Define the structure fields
-    _versioned_fields = [
-        ('lJournalDataLen', ctypes.c_int32, V_400B)
-    ]
-
-    @property
-    def journal_len(self):
-        """Get the journal length directly from the structure"""
-        return self._struct.lJournalDataLen
-
-    @property
-    def data_end(self):
-        """Calculate the end position of the journal data"""
-        return self.offset + self.journal_len

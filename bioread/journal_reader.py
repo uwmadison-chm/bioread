@@ -51,10 +51,9 @@ class JournalReader:
         JournalReader
             The appropriate journal reader
         """
-        if header_reader.file_revision <= rev.V_400B:
-            return V2JournalReader(header_reader)
-        else:
+        if header_reader.file_revision >= rev.V_400B:
             return V4JournalReader(header_reader)
+        return V2JournalReader(header_reader)
             
     def read_journal(self, offset):
         """
@@ -84,10 +83,10 @@ class V2JournalReader(JournalReader):
             logger.info(f"Can't read journals from file revision {self.header_reader.file_revision}")
             return None
         logger.debug("Reading journal starting at %s" % self.acq_file.tell())
-        journal_header = self.header_reader.single_header(offset, bh.V2JournalHeader)
+        journal_header = self.header_reader.single_header(offset, bh.JournalHeader)
         if not journal_header.tag_value_matches_expected():
             raise ValueError(
-                f"Journal header tag is {journal_header.tag_value_hex}, expected {bh.V2JournalHeader.EXPECTED_TAG_VALUE_HEX}"
+                f"Journal header tag is {journal_header.tag_value_hex}, expected {bh.JournalHeader.EXPECTED_TAG_VALUE_HEX}"
             )
         self.all_headers.append(journal_header)
         logger.debug(f"Reading {journal_header.journal_len} bytes of journal at {self.acq_file.tell()}")
@@ -109,18 +108,20 @@ class V4JournalReader(JournalReader):
         -------
         journal: str
         """
-        journal_length_header = self.header_reader.single_header(offset, bh.V4JournalLengthHeader)
+        journal_length_header = self.header_reader.single_header(offset, bh.JournalLengthHeader)
         journal_length = journal_length_header.journal_len
         self.all_headers.append(journal_length_header)
         journal_offset = offset + journal_length_header.effective_len_bytes
 
-        # We're just using this to get the jouurnal length, it won't have data
-        jh = bh.V4JournalHeader(self.header_reader.file_revision, self.header_reader.byte_order_char)
+        # We're just using this to get the journal length, it won't have data
+        jh = bh.JournalHeader.for_revision(
+            self.header_reader.file_revision,
+            self.header_reader.byte_order_char)
         # If the journal length as reported by the journal length header is
         # less than the length of the journal header, we don't have a journal.
         journal = None
         if (jh.effective_len_bytes <= journal_length):
-            journal_header = self.header_reader.single_header(journal_offset, bh.V4JournalHeader)
+            journal_header = self.header_reader.single_header(journal_offset, bh.JournalHeader)
             self.all_headers.append(journal_header)
             logger.debug("Reading {0} bytes of journal at {1}".format(
                 journal_header.journal_len,

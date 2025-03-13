@@ -61,8 +61,7 @@ class MarkerReader:
         """
         if header_reader.file_revision >= rev.V_400B:
             return V4MarkerReader(header_reader)
-        else:
-            return V2MarkerReader(header_reader)
+        return V2MarkerReader(header_reader)
             
     def read_markers(self, marker_start_offset, sample_time):
         """
@@ -105,7 +104,7 @@ class V2MarkerReader(MarkerReader):
         logger.debug("Reading markers starting at %s" % offset)
         
         # Read marker header
-        marker_header = self.header_reader.single_header(offset, bh.V2MarkerHeader)
+        marker_header = self.header_reader.single_header(offset, bh.MarkerHeader)
         self.all_headers.append(marker_header)
             
         # Read marker items
@@ -140,7 +139,7 @@ class V2MarkerReader(MarkerReader):
             (marker_item_headers, event_markers)
         """
         marker_item_headers = self.header_reader.multi_headers(
-            marker_count, offset, bh.V2MarkerItemHeader)
+            marker_count, offset, bh.MarkerItemHeader)
         self.all_headers.extend(marker_item_headers)
         event_markers = []
         for mih in marker_item_headers:
@@ -174,13 +173,13 @@ class V2MarkerReader(MarkerReader):
             (marker_metadata_pre_header, marker_metadata_headers)
         """
         marker_metadata_pre_header = self.header_reader.single_header(
-            metadata_offset, bh.V2MarkerMetadataPreHeader)
+            metadata_offset, bh.MarkerPreItemMetadataHeaderPre4)
         
         # Sometimes the marker metadata headers are not present -- if we see
         # that the first four bytes of the marker metadata preheader are
         # actually the start of the journal header (0x44332211), rewind the
         # file to the start of the marker metadata preheader and return
-        if marker_metadata_pre_header.tag_value == bh.V2JournalHeader.EXPECTED_TAG_VALUE: 
+        if marker_metadata_pre_header.tag_value == bh.JournalHeaderPre4.EXPECTED_TAG_VALUE: 
             self.acq_file.seek(marker_metadata_pre_header.offset)
             logger.debug("No marker metadata headers found")
             return
@@ -190,7 +189,7 @@ class V2MarkerReader(MarkerReader):
         marker_metadata_headers = self.header_reader.multi_headers(
             len(event_markers),
             self.acq_file.tell(),
-            bh.V2MarkerMetadataHeader
+            bh.MarkerItemMetadataHeader
         )
         for mh in marker_metadata_headers:
             event_markers[mh.marker_index].color = mh.rgba_color
@@ -221,7 +220,7 @@ class V4MarkerReader(MarkerReader):
         logger.debug(f"Reading markers starting at {offset}")
         
         # Read marker header
-        marker_header = self.header_reader.single_header(offset, bh.V4MarkerHeader)
+        marker_header = self.header_reader.single_header(offset, bh.MarkerHeader)
         self.all_headers.append(marker_header)
             
         # Read marker items
@@ -251,7 +250,7 @@ class V4MarkerReader(MarkerReader):
         """
         event_markers = []
         marker_item_headers = self.header_reader.multi_headers(
-            marker_count, offset, bh.V4MarkerItemHeader)
+            marker_count, offset, bh.MarkerItemHeader)
         self.all_headers.extend(marker_item_headers)
         
         for mih in marker_item_headers:
