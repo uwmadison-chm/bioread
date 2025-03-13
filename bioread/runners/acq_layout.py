@@ -23,9 +23,6 @@ Options:
                       this length. 0 means no truncation. [default: 16]
   -x, --hex           Print offsets and lengths in hex
   -d, --debug         Print lots of debugging data
-
-Note: Using - for <acq_file> reads from stdin.
-
 """
 
 import csv
