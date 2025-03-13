@@ -116,7 +116,7 @@ class V2MarkerReader(MarkerReader):
             
         if self.file_revision >= rev.V_381:
             # This consumes data and modifies event_markers and self.all_headers
-            self._read_v2_marker_metadata(event_markers, metadata_offset)
+            self._read_marker_metadata(event_markers, metadata_offset)
 
         return event_markers
                 
@@ -158,7 +158,7 @@ class V2MarkerReader(MarkerReader):
                 type_code=mih.type_code))
         return event_markers
 
-    def _read_v2_marker_metadata(self, event_markers, metadata_offset):
+    def _read_marker_metadata(self, event_markers, metadata_offset):
         """
         Read version 2 marker metadata.
         
