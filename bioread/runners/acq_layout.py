@@ -209,8 +209,8 @@ class AcqLayoutRunner:
                 self._dec_or_hex(reader.data_length),
                 "Data stream",
                 channel_types,
-                self._whole_array_as_string(sample_pattern),
-                self._whole_array_as_string(byte_pattern),
+                "Sample logical pattern: " + self._whole_array_as_string(sample_pattern),
+                "Sample byte pattern: " + self._whole_array_as_string(byte_pattern),
                 "Continuous data",
                 example_data_hex,
             ]

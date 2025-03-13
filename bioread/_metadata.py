@@ -9,7 +9,7 @@
 
 # NOTE: This file must not import anything, or it will break installation.
 
-__version__ = "2025.03.11"
+__version__ = "2025.03.13"
 version_description = "bioread {0}".format(__version__)
 
 author = "Nate Vack"
