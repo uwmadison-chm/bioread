@@ -13,6 +13,14 @@ from bioread.file_revisions import *
 
 import ctypes
 
+
+class HeaderDefinitionError(TypeError):
+    """
+    Exception raised when a header definition is invalid.
+    """
+    pass
+
+
 class HeaderMeta(type):
     """
     Metaclass for the Header class. We'll use this to register subclasses
@@ -40,6 +48,19 @@ class HeaderMeta(type):
                 superclass._versioned_subclasses = []
             superclass._versioned_subclasses.append(cls)
         return cls
+
+
+def revision_range(min_revision=None, max_revision=None):
+    """
+    Create a class method that checks if a revision is within the given range.
+    """
+    def is_valid_for_revision(cls, file_revision):
+        if min_revision is not None and file_revision < min_revision:
+            return False
+        if max_revision is not None and file_revision >= max_revision:
+            return False
+        return True
+    return classmethod(is_valid_for_revision)
 
 
 class Header(metaclass=HeaderMeta):
@@ -83,10 +104,19 @@ class Header(metaclass=HeaderMeta):
         Otherwise, it returns an instance of the base class.
         """
         constructor_args = [file_revision, byte_order_char, encoding, True]
-        for subclass in cls._versioned_subclasses:
-            if subclass.is_valid_for_revision(subclass,file_revision):
-                return subclass(*constructor_args)
-        return cls(*constructor_args)
+        matching_subclasses = [
+            subclass for subclass in cls._versioned_subclasses 
+            if subclass.is_valid_for_revision(file_revision)
+        ]
+        if len(matching_subclasses) == 0:
+            return cls(*constructor_args)
+        
+        if len(matching_subclasses) > 1:
+            # This should never happen, but it's good to have this check
+            raise HeaderDefinitionError(f"Multiple subclasses of {cls.__name__} are valid for revision {file_revision}: {matching_subclasses}")
+        
+        return matching_subclasses[0](*constructor_args)
+        
 
     def unpack_from_file(self, data_file, offset):
         """Unpack header data from a file at the given offset"""
@@ -193,8 +223,7 @@ class GraphHeaderPre4(GraphHeader):
     Graph Header for files with revision less than 4.
     """
 
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('nItemHeaderLen', ctypes.c_int16, V_ALL),
@@ -276,8 +305,7 @@ class GraphHeaderPost4(GraphHeader):
     Graph Header for files with revision 4 and above.
     """
 
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('nItemHeaderLen', ctypes.c_int16, V_ALL),
@@ -371,8 +399,7 @@ class ChannelHeaderPre4(ChannelHeader):
     """
     Channel Header for files with revision less than 4.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
@@ -402,8 +429,7 @@ class ChannelHeaderPost4(ChannelHeader):
     """
     Channel Header for files with revision 4 and above.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('lChanHeaderLen', ctypes.c_int32, V_20a),
@@ -434,9 +460,7 @@ class ForeignHeader(Header):
 
 
 class ForeignHeaderPre4(ForeignHeader):
-
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('nLength', ctypes.c_int16, V_20a),
@@ -449,9 +473,7 @@ class ForeignHeaderPre4(ForeignHeader):
 
 
 class ForeignHeaderPost4(ForeignHeader):
-
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('lLength', ctypes.c_int32, V_400B)
@@ -514,9 +536,7 @@ class JournalHeaderPre4(JournalHeader):
     always contains 0x44332211, followed by a boolean "show" and then the
     length of the journal text.
     """
-
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     EXPECTED_TAG_VALUE = (0x44, 0x33, 0x22, 0x11)
     EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
@@ -554,8 +574,7 @@ class JournalHeaderPost4(JournalHeader):
     entire journal section -- journal text and some preamble; the compression
     headers (if compressed) follow at self.offset + lFullLength.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('bUnknown1', ctypes.c_byte * 262, V_400B),
@@ -610,8 +629,8 @@ class MainCompressionHeader(Header):
 
 
 class MainCompressionHeaderPre4(MainCompressionHeader):
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('Unknown', ctypes.c_byte * 34, V_20a),
@@ -623,8 +642,7 @@ class MainCompressionHeaderPre4(MainCompressionHeader):
         return self.struct_length + self._struct.lTextLen
 
 class MainCompressionHeaderPost4(MainCompressionHeader):
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('Unknown1', ctypes.c_byte * 24, V_400B),
@@ -702,8 +720,7 @@ class MarkerHeaderPre4(MarkerHeader):
     """
     Marker structure for files in Version 3, very likely down to version 2.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('lLength', ctypes.c_int32, V_20a),
@@ -719,8 +736,7 @@ class MarkerHeaderPost4(MarkerHeader):
     """
     Marker structure for files from Version 4 onwards
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     _versioned_fields = [
         ('lLength', ctypes.c_int32, V_400B),
@@ -796,8 +812,7 @@ class MarkerItemHeaderPre4(MarkerItemHeader):
     """
     Marker Items for files in Version 3, very likely down to version 2.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision < V_400B
+    is_valid_for_revision = revision_range(max_revision=V_400B)
 
     _versioned_fields = [
         ('lSample', ctypes.c_int32, V_20a),
@@ -843,8 +858,7 @@ class MarkerItemHeaderPost4(MarkerItemHeader):
     """
     Marker Items for files in Version 4 onwards.
     """
-    def is_valid_for_revision(self, file_revision):
-        return file_revision >= V_400B
+    is_valid_for_revision = revision_range(min_revision=V_400B)
 
     # Define the structure fields
     _versioned_fields = [
