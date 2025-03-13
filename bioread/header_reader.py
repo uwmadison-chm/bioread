@@ -13,10 +13,6 @@ import logging
 import bioread.file_revisions as rev
 from bioread import headers as bh
 
-# How far past the foreign data header we're willing to go looking for the
-# channel dtype headers
-# MAX_DTYPE_SCANS = 4096
-
 logger = logging.getLogger("bioread")
 
 
