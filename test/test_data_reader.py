@@ -11,6 +11,7 @@ import numpy as np
 
 from bioread import data_reader
 
+
 # Lower-level function tests.
 def test_greatest_common_denominator():
     assert data_reader.greatest_common_denominator(8, 12) == 4
@@ -34,6 +35,3 @@ def test_sample_pattern():
     assert_pattern([1, 2], [0, 1, 0])
     assert_pattern([2, 2], [0, 1])
     assert_pattern([1, 4, 2], [0, 1, 2, 0, 0, 2, 0])
-
-
-

@@ -41,21 +41,23 @@ V_501 = 132
 # Make a dictionary mapping revison numbers to the version string.
 # This is a silly amount of code for a very marginal need
 
+
 def stringify_version(version_name):
     """
     Convert something like V_400 to "4.0.0"
     """
-    no_v = version_name.replace('V_', '')
+    no_v = version_name.replace("V_", "")
     if no_v.startswith("A"):
         return "unknown early version"
     return ".".join(no_v)
+
 
 # wooooo looping over globals(), I kind of hate this
 
 REVISION_TO_VERSION = {
     revision: stringify_version(ver_const_name)
     for ver_const_name, revision in globals().items()
-    if isinstance(revision, int) and ver_const_name.startswith('V_')
+    if isinstance(revision, int) and ver_const_name.startswith("V_")
 }
 
 
@@ -76,6 +78,6 @@ def version_string_guess(revision):
     for i, check_revision in enumerate(sorted_revisions):
         if revision < check_revision:
             print(i)
-            low_bound = REVISION_TO_VERSION[sorted_revisions[i-1]]
+            low_bound = REVISION_TO_VERSION[sorted_revisions[i - 1]]
             high_bound = REVISION_TO_VERSION[sorted_revisions[i]]
             return f"between {low_bound} and {high_bound}"

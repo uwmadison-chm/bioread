@@ -16,7 +16,10 @@ from bioread.biopac import Datafile
 from ._metadata import __version__, author as __author__  # noqa
 
 
-def read(filelike: Union[str, os.PathLike, BinaryIO], channel_indexes: Optional[List[int]] = None) -> Datafile:
+def read(
+    filelike: Union[str, os.PathLike, BinaryIO],
+    channel_indexes: Optional[List[int]] = None,
+) -> Datafile:
     """
     Read a file (either an IO object or a filename) and return a Datafile.
 
@@ -76,8 +79,8 @@ def reader_for_streaming(io: BinaryIO) -> reader.Reader:
     TypeError
         If io is not a file-like object or is not opened in binary mode
     """
-    if not hasattr(io, 'read'):
-        raise TypeError(f'{io} must be an opened file.')
-    if hasattr(io, 'encoding'):
-        raise TypeError(f'{io} must be opened in binary mode')
+    if not hasattr(io, "read"):
+        raise TypeError(f"{io} must be an opened file.")
+    if hasattr(io, "encoding"):
+        raise TypeError(f"{io} must be opened in binary mode")
     return reader.Reader.read_headers(io)

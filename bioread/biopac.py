@@ -19,7 +19,14 @@ class Datafile:
     from a file by reader.Reader.
     """
 
-    def __init__(self, graph_header, channel_headers, channel_dtype_headers, samples_per_second, name=None):
+    def __init__(
+        self,
+        graph_header,
+        channel_headers,
+        channel_dtype_headers,
+        samples_per_second,
+        name=None,
+    ):
         self.graph_header = graph_header
         self.channel_headers = channel_headers
         self.channel_dtype_headers = channel_dtype_headers
@@ -33,9 +40,7 @@ class Datafile:
         self.all_headers = []
 
         self.channels = self.__build_channels()
-        self.channel_order_map = dict(
-            [[c.order_num, c] for c in self.channels]
-        )
+        self.channel_order_map = dict([[c.order_num, c] for c in self.channels])
 
     @property
     def named_channels(self):
@@ -62,8 +67,8 @@ class Datafile:
             return self.__time_index
 
         total_samples = max(
-            [ch.frequency_divider * ch.point_count
-                for ch in self.channel_headers])
+            [ch.frequency_divider * ch.point_count for ch in self.channel_headers]
+        )
         total_seconds = total_samples / self.samples_per_second
         self.__time_index = np.linspace(0, total_seconds, total_samples)
         return self.__time_index
@@ -79,8 +84,8 @@ class Datafile:
         if self.event_markers is None:
             return None
         created_times = [
-            m.date_created_utc for m in self.event_markers
-            if m.date_created_utc]
+            m.date_created_utc for m in self.event_markers if m.date_created_utc
+        ]
         try:
             return min(created_times)
         except (ValueError, TypeError):
@@ -92,14 +97,14 @@ class Datafile:
                 chan_hdr=ch,
                 dtype_hdr=cdh,
                 samples_per_second=self.samples_per_second,
-                datafile=self)
-            for ch, cdh in zip(
-                self.channel_headers, self.channel_dtype_headers)
+                datafile=self,
+            )
+            for ch, cdh in zip(self.channel_headers, self.channel_dtype_headers)
         ]
 
     def __set_channel_time_indexes(self):
         for c in self.channels:
-            c.time_index = self.time_index[::c.frequency_divider]
+            c.time_index = self.time_index[:: c.frequency_divider]
 
 
 class Channel:
@@ -110,11 +115,18 @@ class Channel:
     """
 
     def __init__(
-            self,
-            frequency_divider=None, raw_scale_factor=None, raw_offset=None,
-            name=None, units=None, fmt_str=None, samples_per_second=None,
-            point_count=None, order_num=None, datafile=None):
-
+        self,
+        frequency_divider=None,
+        raw_scale_factor=None,
+        raw_offset=None,
+        name=None,
+        units=None,
+        fmt_str=None,
+        samples_per_second=None,
+        point_count=None,
+        order_num=None,
+        datafile=None,
+    ):
         self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
         self.raw_offset = raw_offset
@@ -125,7 +137,7 @@ class Channel:
         self.point_count = point_count
         self.dtype = np.dtype(fmt_str)
         # For some reason, scale and offset lie for float files
-        if self.dtype.kind == 'f':
+        if self.dtype.kind == "f":
             self.raw_scale_factor = 1
             self.raw_offset = 0
         self.order_num = order_num
@@ -139,12 +151,7 @@ class Channel:
         self.__upsampled_data = None
 
     @classmethod
-    def from_headers(
-            cls,
-            chan_hdr,
-            dtype_hdr,
-            samples_per_second,
-            datafile=None):
+    def from_headers(cls, chan_hdr, dtype_hdr, samples_per_second, datafile=None):
         divider = chan_hdr.frequency_divider
         chan_samp_per_sec = samples_per_second / divider
 
@@ -158,7 +165,7 @@ class Channel:
             samples_per_second=chan_samp_per_sec,
             point_count=chan_hdr.point_count,
             order_num=chan_hdr.order_num,
-            datafile=datafile
+            datafile=datafile,
         )
 
     def _allocate_raw_data(self):
@@ -187,7 +194,7 @@ class Channel:
         if self.datafile is None:
             return None
         div = self.frequency_divider
-        return self.datafile.time_index[::div][0:self.point_count]
+        return self.datafile.time_index[::div][0 : self.point_count]
 
     @property
     def data(self):
@@ -200,11 +207,10 @@ class Channel:
             return None
         if self.__data is not None:
             return self.__data
-        if self.dtype.kind == 'f':
+        if self.dtype.kind == "f":
             self.__data = self.raw_data
         else:
-            self.__data = (
-                (self.raw_data * self.raw_scale_factor) + self.raw_offset)
+            self.__data = (self.raw_data * self.raw_scale_factor) + self.raw_offset
         return self.__data
 
     @property
@@ -216,9 +222,10 @@ class Channel:
         Nearest-neighbor sampling is used.
         """
         if self.__upsampled_data is None:
-            total_samples = self.data.shape[0]*self.frequency_divider
+            total_samples = self.data.shape[0] * self.frequency_divider
             self.__upsampled_data = self.data[
-                np.arange(total_samples)//self.frequency_divider]
+                np.arange(total_samples) // self.frequency_divider
+            ]
         return self.__upsampled_data
 
     def free_data(self):
@@ -242,17 +249,17 @@ class EventMarker:
     """
 
     def __init__(
-            self,
-            time_index,
-            sample_index,
-            text,
-            channel_number,
-            channel=None,
-            date_created_ms=None,
-            type_code=None,
-            color=None,
-            tag=None):
-
+        self,
+        time_index,
+        sample_index,
+        text,
+        channel_number,
+        channel=None,
+        date_created_ms=None,
+        type_code=None,
+        color=None,
+        tag=None,
+    ):
         self.time_index = time_index
         self.sample_index = sample_index
         self.text = text
@@ -263,8 +270,8 @@ class EventMarker:
         self.tag = tag
         try:
             if date_created_ms is not None:
-                self.date_created_utc = (
-                    REF_DATE + timedelta(milliseconds=date_created_ms)
+                self.date_created_utc = REF_DATE + timedelta(
+                    milliseconds=date_created_ms
                 )
         except OverflowError:
             # Sometimes the dates look to be insanely huge, I don't know
@@ -274,21 +281,24 @@ class EventMarker:
         self.type_code = type_code
 
     def __eq__(self, other):
-        return all([
-            self.sample_index == other.sample_index,
-            self.text == other.text,
-            self.channel_number == other.channel_number,
-            self.date_created_utc == other.date_created_utc,
-            self.type_code == other.type_code
-        ])
+        return all(
+            [
+                self.sample_index == other.sample_index,
+                self.text == other.text,
+                self.channel_number == other.channel_number,
+                self.date_created_utc == other.date_created_utc,
+                self.type_code == other.type_code,
+            ]
+        )
 
     def __str__(self):
-        return("EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(  # noqa: E501
+        return "EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(  # noqa: E501
             self.text,
             self.sample_index,
             self.channel_number,
             self.date_created_str,
-            self.type_code))
+            self.type_code,
+        )
 
     def __repr__(self):
         return str(self)
@@ -313,139 +323,139 @@ class EventMarker:
 
     @property
     def date_created_str(self):
-        if hasattr(self.date_created_utc, 'isoformat'):
+        if hasattr(self.date_created_utc, "isoformat"):
             return self.date_created_utc.isoformat()
-        return 'Unknown'
+        return "Unknown"
 
 
 MARKER_TYPE_MAP = {
-    'apnd': 'Append',
-    'defl': 'Default',
-    'wfon': 'Waveform Onset',
-    'wfof': 'Waveform End',
-    'nois': 'Change in Signal Quality',
-    'rhyt': 'Change in Rhythm',
-    'recv': 'Recovery',
-    'max ': 'Maximum',
-    'min ': 'Minimum',
-    'rset': 'Reset',
-    'cmlb': 'Communication Lost Begin',
-    'cmle': 'Communication Lost End',
-    'ansh': 'Short Arrow',
-    'anmd': 'Medium Arrow',
-    'anlg': 'Long Arrow',
-    'flag': 'Flag',
-    'star': 'Star',
-    'usr1': 'User Type 1',
-    'usr2': 'User Type 2',
-    'usr3': 'User Type 3',
-    'usr4': 'User Type 4',
-    'usr5': 'User Type 5',
-    'usr6': 'User Type 6',
-    'usr7': 'User Type 7',
-    'usr8': 'User Type 8',
-    'usr9': 'User Type 9',
-    'qrsb': 'QRS Onset',
-    'qrs ': 'QRS Peak',
-    'qrse': 'QRS End',
-    'tbeg': 'T-wave Onset',
-    't   ': 'T-wave Peak',
-    'tend': 'T-wave End',
-    'pbeg': 'P-wave Onset',
-    'p   ': 'P-wave Peak',
-    'pend': 'P-wave End',
-    'q   ': 'Q-wave Peak',
-    's   ': 'S-wave Peak',
-    'u   ': 'U-wave Peak',
-    'pq  ': 'PQ Junction',
-    'jpt ': 'J-point',
-    'stch': 'ST Segment Change',
-    'tch ': 'T-wave Change',
-    'nrml': 'Normal Beat',
-    'pace': 'Paced Beat',
-    'pfus': 'Fusion of Paced and Normal Beat',
-    'lbbb': 'Left Bundle Branch Block Beat',
-    'rbbb': 'Right Bundle Branch Block Beat',
-    'bbb ': 'Bundle Branch Block Beat',
-    'apc ': 'Atrial Premature Beat',
-    'aber': 'Aberrated Atrial Prematuire Beat',
-    'npc ': 'Nodal Premature Beat',
-    'svpb': 'Supraventricular Premature Beat',
-    'pvc ': 'Premature Ventricular Contraction',
-    'ront': 'R-on-T Premature Ventricular Contraction',
-    'fusi': 'Fusion of Ventricular and Normal Beat',
-    'aesc': 'Atrial Escape Beat',
-    'nesc': 'Nodal Escape Beat',
-    'sves': 'Supraventricular Escape Beat',
-    'vesc': 'Ventricular Escape Beat',
-    'syst': 'Systole',
-    'dias': 'Diastole',
-    'edp ': 'End Diastolic Pressure',
-    'aptz': 'A-point',
-    'bptz': 'B-point',
-    'cptz': 'C-point',
-    'xptz': 'X-point',
-    'yptz': 'Y-point',
-    'optz': 'O-point',
-    'plat': 'Plateau',
-    'upst': 'Upstroke',
-    'vfon': 'Start of Ventricular Flutter',
-    'flwa': 'Ventricular Flutter Wave',
-    'vfof': 'End of Ventricular Flutter',
-    'pesp': 'Pacemaker Artifact',
-    'arfc': 'Isolated QRS-like Artifact',
-    'napc': 'Non-conducted P-wave',
-    'base': 'Baseline',
-    'dose': 'Dose',
-    'wash': 'Wash',
-    'apon': 'Spike Episode Begin',
-    'apof': 'Spike Episode End',
-    'rein': 'Inspire Start',
-    'reot': 'Expire Start',
-    'reap': 'Apnea Start',
-    'stim': 'Stimulus Delivery',
-    'resp': 'Response',
-    'scr ': 'Skin Conductance Response',
-    'sscr': 'Specific SCR',
-    'ctr1': 'Cluster 1',
-    'ctr2': 'Cluster 2',
-    'ctr3': 'Cluster 3',
-    'ctr4': 'Cluster 4',
-    'ctr5': 'Cluster 5',
-    'ctr6': 'Cluster 6',
-    'ctr7': 'Cluster 7',
-    'ctr8': 'Cluster 8',
-    'ctr9': 'Cluster 9',
-    'ctrn': 'Cluster n',
-    'cend': 'End Cluster',
-    'outl': 'Outlier',
-    'tran': 'Training Set',
-    'cut ': 'Cut',
-    'vb  ': 'Paste Begin',
-    've  ': 'Paste End',
-    'selb': 'Selection Begin',
-    'sele': 'Selection End',
-    'steb': 'Start of Eye Blink Artifact',
-    'eneb': 'End of Eye Blink Artifact',
-    'sexc': 'Start of Excursion Artifact',
-    'eexc': 'End of Excursion Artifact',
-    'ssat': 'Start of Saturation Artifact',
-    'esat': 'End of Saturation Artifact',
-    'sspk': 'Start of Spike Artifact',
-    'espk': 'End of Spike Artifact',
-    'semg': 'Start of EMG Artifact',
-    'eemg': 'End of EMG Artifact',
-    'wles': 'Workload - EMG Start',
-    'wlee': 'Workload - EMG End',
-    'ipss': 'Workload - Invalid PSD Start',
-    'ipse': 'Workload - Invalid PSD End',
-    'ddst': 'Dummy Data Start',
-    'dded': 'Dummy Data End',
-    'idst': 'Misaligned Data',
-    'bprs': 'Button Pressed',
-    'leho': 'Left Eye Hit Object',
-    'reho': 'Right Eye Hit Object',
-    'smis': 'SMI Stimulus Image Has Been Presented to the Subject',
-    'mors': 'Start Out of Range',
-    'more': 'End Out of Range'
+    "apnd": "Append",
+    "defl": "Default",
+    "wfon": "Waveform Onset",
+    "wfof": "Waveform End",
+    "nois": "Change in Signal Quality",
+    "rhyt": "Change in Rhythm",
+    "recv": "Recovery",
+    "max ": "Maximum",
+    "min ": "Minimum",
+    "rset": "Reset",
+    "cmlb": "Communication Lost Begin",
+    "cmle": "Communication Lost End",
+    "ansh": "Short Arrow",
+    "anmd": "Medium Arrow",
+    "anlg": "Long Arrow",
+    "flag": "Flag",
+    "star": "Star",
+    "usr1": "User Type 1",
+    "usr2": "User Type 2",
+    "usr3": "User Type 3",
+    "usr4": "User Type 4",
+    "usr5": "User Type 5",
+    "usr6": "User Type 6",
+    "usr7": "User Type 7",
+    "usr8": "User Type 8",
+    "usr9": "User Type 9",
+    "qrsb": "QRS Onset",
+    "qrs ": "QRS Peak",
+    "qrse": "QRS End",
+    "tbeg": "T-wave Onset",
+    "t   ": "T-wave Peak",
+    "tend": "T-wave End",
+    "pbeg": "P-wave Onset",
+    "p   ": "P-wave Peak",
+    "pend": "P-wave End",
+    "q   ": "Q-wave Peak",
+    "s   ": "S-wave Peak",
+    "u   ": "U-wave Peak",
+    "pq  ": "PQ Junction",
+    "jpt ": "J-point",
+    "stch": "ST Segment Change",
+    "tch ": "T-wave Change",
+    "nrml": "Normal Beat",
+    "pace": "Paced Beat",
+    "pfus": "Fusion of Paced and Normal Beat",
+    "lbbb": "Left Bundle Branch Block Beat",
+    "rbbb": "Right Bundle Branch Block Beat",
+    "bbb ": "Bundle Branch Block Beat",
+    "apc ": "Atrial Premature Beat",
+    "aber": "Aberrated Atrial Prematuire Beat",
+    "npc ": "Nodal Premature Beat",
+    "svpb": "Supraventricular Premature Beat",
+    "pvc ": "Premature Ventricular Contraction",
+    "ront": "R-on-T Premature Ventricular Contraction",
+    "fusi": "Fusion of Ventricular and Normal Beat",
+    "aesc": "Atrial Escape Beat",
+    "nesc": "Nodal Escape Beat",
+    "sves": "Supraventricular Escape Beat",
+    "vesc": "Ventricular Escape Beat",
+    "syst": "Systole",
+    "dias": "Diastole",
+    "edp ": "End Diastolic Pressure",
+    "aptz": "A-point",
+    "bptz": "B-point",
+    "cptz": "C-point",
+    "xptz": "X-point",
+    "yptz": "Y-point",
+    "optz": "O-point",
+    "plat": "Plateau",
+    "upst": "Upstroke",
+    "vfon": "Start of Ventricular Flutter",
+    "flwa": "Ventricular Flutter Wave",
+    "vfof": "End of Ventricular Flutter",
+    "pesp": "Pacemaker Artifact",
+    "arfc": "Isolated QRS-like Artifact",
+    "napc": "Non-conducted P-wave",
+    "base": "Baseline",
+    "dose": "Dose",
+    "wash": "Wash",
+    "apon": "Spike Episode Begin",
+    "apof": "Spike Episode End",
+    "rein": "Inspire Start",
+    "reot": "Expire Start",
+    "reap": "Apnea Start",
+    "stim": "Stimulus Delivery",
+    "resp": "Response",
+    "scr ": "Skin Conductance Response",
+    "sscr": "Specific SCR",
+    "ctr1": "Cluster 1",
+    "ctr2": "Cluster 2",
+    "ctr3": "Cluster 3",
+    "ctr4": "Cluster 4",
+    "ctr5": "Cluster 5",
+    "ctr6": "Cluster 6",
+    "ctr7": "Cluster 7",
+    "ctr8": "Cluster 8",
+    "ctr9": "Cluster 9",
+    "ctrn": "Cluster n",
+    "cend": "End Cluster",
+    "outl": "Outlier",
+    "tran": "Training Set",
+    "cut ": "Cut",
+    "vb  ": "Paste Begin",
+    "ve  ": "Paste End",
+    "selb": "Selection Begin",
+    "sele": "Selection End",
+    "steb": "Start of Eye Blink Artifact",
+    "eneb": "End of Eye Blink Artifact",
+    "sexc": "Start of Excursion Artifact",
+    "eexc": "End of Excursion Artifact",
+    "ssat": "Start of Saturation Artifact",
+    "esat": "End of Saturation Artifact",
+    "sspk": "Start of Spike Artifact",
+    "espk": "End of Spike Artifact",
+    "semg": "Start of EMG Artifact",
+    "eemg": "End of EMG Artifact",
+    "wles": "Workload - EMG Start",
+    "wlee": "Workload - EMG End",
+    "ipss": "Workload - Invalid PSD Start",
+    "ipse": "Workload - Invalid PSD End",
+    "ddst": "Dummy Data Start",
+    "dded": "Dummy Data End",
+    "idst": "Misaligned Data",
+    "bprs": "Button Pressed",
+    "leho": "Left Eye Hit Object",
+    "reho": "Right Eye Hit Object",
+    "smis": "SMI Stimulus Image Has Been Presented to the Subject",
+    "mors": "Start Out of Range",
+    "more": "End Out of Range",
 }

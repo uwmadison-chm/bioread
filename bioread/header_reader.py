@@ -20,10 +20,13 @@ class HeaderReader:
     """
     A class to handle reading generic headers from a BIOPAC file.
     """
-    def __init__(self, acq_file, byte_order_char=None, file_revision=None, encoding=None):
+
+    def __init__(
+        self, acq_file, byte_order_char=None, file_revision=None, encoding=None
+    ):
         """
         Initialize a HeaderReader.
-        
+
         Parameters
         ----------
         acq_file : file-like object
@@ -39,30 +42,29 @@ class HeaderReader:
         self.byte_order_char = byte_order_char
         self.file_revision = file_revision
         self.encoding = encoding
-        
-    
+
     def single_header(self, start_offset, h_class):
         """
         Read a single header from the file.
-        
+
         Parameters
         ----------
         start_offset : int
             The offset to start reading from
         h_class : class
             The header class to use
-            
+
         Returns
         -------
         header
             The header object
         """
         return self.multi_headers(1, start_offset, h_class)[0]
-    
+
     def multi_headers(self, num, start_offset, h_class):
         """
         Read multiple headers from the file.
-        
+
         Parameters
         ----------
         num : int
@@ -71,7 +73,7 @@ class HeaderReader:
             The offset to start reading from
         h_class : class
             The header class to use
-            
+
         Returns
         -------
         list
@@ -83,24 +85,22 @@ class HeaderReader:
         for i in range(num):
             h_offset += last_h_len
             logger.debug(f"Reading {h_class} at offset {h_offset}")
-            h = h_class.for_revision(self.file_revision,
-                        self.byte_order_char,
-                        encoding=self.encoding)
+            h = h_class.for_revision(
+                self.file_revision, self.byte_order_char, encoding=self.encoding
+            )
             try:
                 h.unpack_from_file(self.acq_file, h_offset)
             except Exception as e:
                 # If something goes wrong with reading, we want to log the
                 # error and reraise it -- read_headers() and read_data() will
                 # handle the error there.
-                logger.error(
-                    f"Error reading {h_class} at offset {h_offset}: {e}")
+                logger.error(f"Error reading {h_class} at offset {h_offset}: {e}")
                 raise e
             logger.debug(f"Read {h.struct_length} bytes: {h.data}")
             last_h_len = h.effective_len_bytes
             headers.append(h)
         return headers
-    
-    
+
 
 class GraphHeaderReader:
     @classmethod
@@ -114,13 +114,14 @@ class GraphHeaderReader:
         # It doesn't matter which graph header class we use; we're only using
         # the file revision field, which is the same for all graph headers
         graph_reads = [
-            bh.GraphHeader.for_revision(rev.V_ALL, bom)
-            for bom in ['<', '>']
+            bh.GraphHeader.for_revision(rev.V_ALL, bom) for bom in ["<", ">"]
         ]
         for graph_header in graph_reads:
             graph_header.unpack_from_file(acq_file, 0)
-            logger.debug(f"Interpreting file revision with byte order {graph_header.byte_order_char}: {graph_header.file_revision}")
-        
+            logger.debug(
+                f"Interpreting file revision with byte order {graph_header.byte_order_char}: {graph_header.file_revision}"
+            )
+
         rev_bom = [
             (graph_header._struct.lVersion, graph_header.byte_order_char)
             for graph_header in graph_reads
@@ -128,43 +129,45 @@ class GraphHeaderReader:
         rev_bom.sort()
         file_revision = rev_bom[0][0]
         byte_order_char = rev_bom[0][1]
-        
+
         # Guess at file encoding -- I think that everything before acq4 is
         # in latin1 and everything newer is utf-8
         logger.debug(f"File revision: {file_revision}")
         logger.debug(f"Byte order: {byte_order_char}")
         if file_revision < rev.V_400B:
-            encoding = 'latin1'
+            encoding = "latin1"
         else:
-            encoding = 'utf-8'
-            
-        graph_header = bh.GraphHeader.for_revision(file_revision, byte_order_char, encoding)
+            encoding = "utf-8"
+
+        graph_header = bh.GraphHeader.for_revision(
+            file_revision, byte_order_char, encoding
+        )
         graph_header.unpack_from_file(acq_file, 0)
-        
+
         return graph_header
-    
+
 
 class ChannelDTypeHeaderReader:
-
     MAX_DTYPE_SCANS = 4096
 
     def __init__(self, header_reader):
         self.header_reader = header_reader
-        
+
     def scan_for_dtype_headers(self, start_index, channel_count):
         """
         Scan for channel dtype headers.
         """
-        logger.debug('Scanning for start of channel dtype headers')
+        logger.debug("Scanning for start of channel dtype headers")
         for i in range(self.MAX_DTYPE_SCANS):
             offset = start_index + i
             logger.debug(f"Scanning at offset {offset}")
             dtype_headers = self.header_reader.multi_headers(
-                channel_count, offset, bh.ChannelDTypeHeader)
+                channel_count, offset, bh.ChannelDTypeHeader
+            )
             if all([h.possibly_valid for h in dtype_headers]):
                 logger.debug(f"Found at {offset}")
                 return dtype_headers
         logger.warning(
-            f"Couldn't find valid dtype headers, tried {self.MAX_DTYPE_SCANS} times")
+            f"Couldn't find valid dtype headers, tried {self.MAX_DTYPE_SCANS} times"
+        )
         return []
-    

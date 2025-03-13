@@ -27,6 +27,7 @@ from bioread.marker_reader import MarkerReader
 from bioread.data_reader import DataReader, CHUNK_SIZE
 
 import logging
+
 # Re-adding the handler on reload causes duplicate log messages.
 logger = logging.getLogger("bioread")
 logger.setLevel(logging.WARNING)
@@ -48,7 +49,7 @@ READ_EXCEPTIONS = (
     UnicodeDecodeError,
     EOFError,
     struct.error,
-    IndexError
+    IndexError,
 )
 
 
@@ -70,15 +71,12 @@ class Reader:
         self.data_start_offset = None
         self.data_length = None
         self.event_markers = None
-        self.read_errors = []        
+        self.read_errors = []
 
     # Public methods
     @classmethod
-    def read(cls,
-             fo,
-             channel_indexes=None,
-             target_chunk_size=CHUNK_SIZE):
-        """ Read a biopac file into memory.
+    def read(cls, fo, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
+        """Read a biopac file into memory.
 
         fo: The name of the file to read, or a file-like object
         channel_indexes: The numbers of the channels you want to read
@@ -86,7 +84,7 @@ class Reader:
 
         returns: reader.Reader.
         """
-        with open_or_yield(fo, 'rb') as io:
+        with open_or_yield(fo, "rb") as io:
             reader = cls(io)
             try:
                 reader._read_headers()
@@ -105,9 +103,8 @@ class Reader:
 
     @classmethod
     def read_headers(cls, fo):
-        """ Read only the headers -- no data -- of a biopac file.
-        """
-        with open_or_yield(fo, 'rb') as io:
+        """Read only the headers -- no data -- of a biopac file."""
+        with open_or_yield(fo, "rb") as io:
             reader = cls(io)
             try:
                 reader._read_headers()
@@ -117,18 +114,15 @@ class Reader:
         return reader
 
     def stream(self, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
-        """ Set up and retun an iterator for streaming data.
-        """
+        """Set up and retun an iterator for streaming data."""
         if self.datafile is None:
             self._read_headers()
         if self.is_compressed:
-            raise TypeError('Streaming is not supported for compressed files')
-            
+            raise TypeError("Streaming is not supported for compressed files")
+
         self.data_reader = DataReader(
-            self.acq_file, 
-            self.datafile, 
-            self.data_start_offset
-        )            
+            self.acq_file, self.datafile, self.data_start_offset
+        )
         return self.data_reader.stream(channel_indexes, target_chunk_size)
 
     @property
@@ -150,7 +144,7 @@ class Reader:
         self.byte_order_char = self.graph_header.byte_order_char
         self.encoding = self.graph_header.encoding
         channel_count = self.graph_header.channel_count
-        
+
         # We'll use this to read the rest of the headers
         self.header_reader = HeaderReader(
             self.acq_file, self.byte_order_char, self.file_revision, self.encoding
@@ -161,16 +155,19 @@ class Reader:
         pad_headers = self.header_reader.multi_headers(
             self.graph_header.expected_padding_headers,
             pad_offset,
-            bh.UnknownPaddingHeader)
+            bh.UnknownPaddingHeader,
+        )
         self.headers.extend(pad_headers)
 
-        # Read channel headers  
+        # Read channel headers
         channel_offset = pad_offset + sum(
-            [ph.effective_len_bytes for ph in pad_headers])
+            [ph.effective_len_bytes for ph in pad_headers]
+        )
         # skip past the unknown padding header
 
         channel_headers = self.header_reader.multi_headers(
-            channel_count, channel_offset, bh.ChannelHeader)
+            channel_count, channel_offset, bh.ChannelHeader
+        )
         ch_len = channel_headers[0].effective_len_bytes
         self.channel_headers = channel_headers
         self.headers.extend(channel_headers)
@@ -179,8 +176,10 @@ class Reader:
             logger.debug("Channel header %s: %s" % (i, ch.data))
 
         # Read foreign header
-        foreign_offset = channel_offset + len(channel_headers)*ch_len
-        foreign_header = self.header_reader.single_header(foreign_offset, bh.ForeignHeader)
+        foreign_offset = channel_offset + len(channel_headers) * ch_len
+        foreign_header = self.header_reader.single_header(
+            foreign_offset, bh.ForeignHeader
+        )
         self.headers.append(foreign_header)
 
         # Read channel dtype headers
@@ -191,14 +190,14 @@ class Reader:
             raise ValueError("Can't find valid channel data type headers")
         self.channel_dtype_headers = channel_dtype_headers
         self.headers.extend(channel_dtype_headers)
-        
+
         # Since we just read the data type headers, we should be at the start of the data
         self.data_start_offset = self.header_reader.acq_file.tell()
 
         logger.debug("Computed data start offset: %s" % self.data_start_offset)
 
         # Calculate samples per second
-        self.samples_per_second = 1000/self.graph_header.sample_time
+        self.samples_per_second = 1000 / self.graph_header.sample_time
 
         # Create datafile
         logger.debug("Allocating a Datafile")
@@ -206,20 +205,24 @@ class Reader:
             graph_header=self.graph_header,
             channel_headers=channel_headers,
             channel_dtype_headers=channel_dtype_headers,
-            samples_per_second=self.samples_per_second
+            samples_per_second=self.samples_per_second,
         )
-        if hasattr(self.acq_file, 'name'):
+        if hasattr(self.acq_file, "name"):
             self.datafile.name = self.acq_file.name
         self.datafile.version_string = self.version_string
 
-        self.data_length = self._data_length_bytes(channel_headers, channel_dtype_headers)
+        self.data_length = self._data_length_bytes(
+            channel_headers, channel_dtype_headers
+        )
         logger.debug(f"Computed data length: {self.data_length}")
 
         # In compressed files, markers come before compressed data. But
         # data_length is 0 for compressed files.
         marker_start_offset = self.data_start_offset + self.data_length
         self.marker_reader = MarkerReader.create_marker_reader(self.header_reader)
-        self.event_markers = self.marker_reader.read_markers(marker_start_offset, self.graph_header.sample_time)
+        self.event_markers = self.marker_reader.read_markers(
+            marker_start_offset, self.graph_header.sample_time
+        )
         self.headers.extend(self.marker_reader.all_headers)
         self.datafile.event_markers = self.event_markers
 
@@ -233,52 +236,51 @@ class Reader:
         except READ_EXCEPTIONS as e:
             logger.error(f"Error reading journal: {e}")
             self.read_errors.append(f"Error reading journal: {e}")
-            
+
         # Read compression headers if needed
         self._read_compression_headers_if_compressed(channel_count)
-            
-    
+
     def _data_length_bytes(self, channel_headers, channel_dtype_headers):
         if self.is_compressed:
             return 0
-        return sum([
-            (ch.point_count * cdh.sample_size) 
-            for ch, cdh in zip(channel_headers, channel_dtype_headers)
-        ])
-
+        return sum(
+            [
+                (ch.point_count * cdh.sample_size)
+                for ch, cdh in zip(channel_headers, channel_dtype_headers)
+            ]
+        )
 
     def _read_compression_headers_if_compressed(self, channel_count):
         # We need to have read the markers and journal; this puts us
         # at the correct file offset.
         if not self.is_compressed:
             return
-        
+
         main_ch_offset = self.acq_file.tell()
         main_compression_header = self.header_reader.single_header(
-            main_ch_offset, bh.MainCompressionHeader)
+            main_ch_offset, bh.MainCompressionHeader
+        )
         self.headers.append(main_compression_header)
-        cch_offset = (main_ch_offset +
-                     main_compression_header.effective_len_bytes)
+        cch_offset = main_ch_offset + main_compression_header.effective_len_bytes
 
         # read_data will need the compression headers
         self.channel_compression_headers = self.header_reader.multi_headers(
-            channel_count, cch_offset, bh.ChannelCompressionHeader)
+            channel_count, cch_offset, bh.ChannelCompressionHeader
+        )
         self.datafile.channel_compression_headers = self.channel_compression_headers
         self.headers.extend(self.channel_compression_headers)
 
     def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):
         self.data_reader = DataReader(
-            self.acq_file, 
-            self.datafile, 
-            self.data_start_offset
+            self.acq_file, self.datafile, self.data_start_offset
         )
-            
+
         self.data_reader.read_data(channel_indexes, target_chunk_size)
 
 
 @contextmanager
 def open_or_yield(thing, mode):
-    """ If 'thing' is a string or Path, open it and yield it. Otherwise, yield it.
+    """If 'thing' is a string or Path, open it and yield it. Otherwise, yield it.
 
     This lets you use a filename, open file, other IO object. If 'thing' was
     a filename, the file is guaranteed to be closed after yielding.
@@ -288,4 +290,4 @@ def open_or_yield(thing, mode):
     else:
         logger.debug(f"Opening file: {thing}")
         with open(thing, mode) as f:
-            yield(f)
+            yield (f)

@@ -55,23 +55,19 @@ class AcqToTxtRunner:
         self.argv = argv
 
     def run(self):
-        pargs = docopt(
-            __doc__,
-            self.argv,
-            version=meta.version_description)
-        infile = pargs['<acq_file>']
+        pargs = docopt(__doc__, self.argv, version=meta.version_description)
+        infile = pargs["<acq_file>"]
         channel_indexes = None
-        if pargs['--channel-indexes']:
-            channel_indexes = [
-                int(i) for i in pargs['--channel-indexes'].split(',')]
+        if pargs["--channel-indexes"]:
+            channel_indexes = [int(i) for i in pargs["--channel-indexes"].split(",")]
         data = bioread.read(infile, channel_indexes=channel_indexes)
-        mval = pargs['--missing-as']
-        if pargs['--outfile']:
-            with open(pargs['--outfile'], 'w') as f:
+        mval = pargs["--missing-as"]
+        if pargs["--outfile"]:
+            with open(pargs["--outfile"], "w") as f:
                 txtwriter.write_text(data, f, channel_indexes, mval)
         else:
             txtwriter.write_text(data, sys.stdout, channel_indexes, mval)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

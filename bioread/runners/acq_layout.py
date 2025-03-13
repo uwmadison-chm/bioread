@@ -46,11 +46,11 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
     parsed = docopt(__doc__, argv=argv, version=meta.version_description)
-    if parsed['--debug']:
+    if parsed["--debug"]:
         logger.setLevel(logging.DEBUG)
     logger.debug(parsed)
 
-    alr = AcqLayoutRunner(parsed['<acq_file>'], parsed['--hex'])
+    alr = AcqLayoutRunner(parsed["<acq_file>"], parsed["--hex"])
     alr.run()
 
 
@@ -77,24 +77,24 @@ class AcqLayoutRunner:
             "Field offset",
             "Field length",
             "Field value",
-            "Raw data"
+            "Raw data",
         ]
         writer.writerow(tsv_columns)
         writer.writerows(self._header_rows(reader))
         writer.writerows(self._data_rows(reader))
-        
+
     def _dec_or_hex(self, value):
         if self.hex_output:
             return hex(value)
         else:
             return value
-    
+
     def _format_value(self, value):
         if isinstance(value, ctypes.Array):
             return list(value)
-        
+
         return value
-    
+
     def _header_rows(self, reader):
         rows = []
         for _, headers in groupby(reader.headers, key=lambda h: h.__class__):
@@ -104,7 +104,7 @@ class AcqLayoutRunner:
                     field_columns = self._format_field(header, field)
                     rows.append(header_columns + field_columns)
         return rows
-    
+
     def _format_header(self, header, i):
         header_class = header.__class__
 
@@ -126,9 +126,13 @@ class AcqLayoutRunner:
         field_class = getattr(struct_class, field_name)
         field_type = field[1].__name__
         field_value = getattr(header._struct, field_name)
-        field_offset = field_class.offset + header.offset  # This is from the start of the file
+        field_offset = (
+            field_class.offset + header.offset
+        )  # This is from the start of the file
         field_size = field_class.size
-        data_bytes = header.raw_data[field_class.offset:field_class.offset + field_class.size]
+        data_bytes = header.raw_data[
+            field_class.offset : field_class.offset + field_class.size
+        ]
 
         return [
             field_name,
@@ -136,14 +140,14 @@ class AcqLayoutRunner:
             self._dec_or_hex(field_offset),
             self._dec_or_hex(field_size),
             self._format_value(field_value),
-            data_bytes.hex()
+            data_bytes.hex(),
         ]
 
     def _data_rows(self, reader):
         if reader.is_compressed:
             return self._data_rows_compressed(reader)
         return self._data_rows_uncompressed(reader)
-    
+
     def _data_rows_compressed(self, reader):
         rows = []
         for i, cch in enumerate(reader.channel_compression_headers):
@@ -161,16 +165,20 @@ class AcqLayoutRunner:
         return rows
 
     def _data_rows_uncompressed(self, reader):
-        return [[
-            "Uncompressed data",
-            0,
-            reader.byte_order_char,
-            reader.file_revision,
-            self.version_string,
-            self._dec_or_hex(reader.data_start_offset),
-            self._dec_or_hex(reader.data_length),
-            self._dec_or_hex(reader.data_length),
-        ] + ([""] * 6)]
+        return [
+            [
+                "Uncompressed data",
+                0,
+                reader.byte_order_char,
+                reader.file_revision,
+                self.version_string,
+                self._dec_or_hex(reader.data_start_offset),
+                self._dec_or_hex(reader.data_length),
+                self._dec_or_hex(reader.data_length),
+            ]
+            + ([""] * 6)
+        ]
 
-if __name__ == '__main__':
-    main() 
+
+if __name__ == "__main__":
+    main()

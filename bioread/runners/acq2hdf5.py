@@ -54,15 +54,12 @@ except ImportError:
 
 
 COMPRESSION_OPTS = {
-    'none': {},
-    'gzip': {'compression': 'gzip'},
-    'lzf': {'compression': 'lzf'}
+    "none": {},
+    "gzip": {"compression": "gzip"},
+    "lzf": {"compression": "lzf"},
 }
 
-SCALE_DATA = {
-    'scaled': True,
-    'raw': False
-}
+SCALE_DATA = {"scaled": True, "raw": False}
 
 
 def main(argv=None):
@@ -70,55 +67,51 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     pargs = docopt(__doc__, argv, version=meta.version_description)
-    if pargs['--verbose']:
+    if pargs["--verbose"]:
         logger.setLevel(logging.DEBUG)
     br.logger.setLevel(logger.level)
     logger.debug(pargs)
     try:
-        comp_opts = COMPRESSION_OPTS[pargs['--compress']]
+        comp_opts = COMPRESSION_OPTS[pargs["--compress"]]
     except KeyError:
-        logger.error("Unknown compression: {0}".format(pargs['--compress']))
+        logger.error("Unknown compression: {0}".format(pargs["--compress"]))
         sys.exit(1)
     scale = False
     try:
-        scale = SCALE_DATA[pargs['--values-as']]
+        scale = SCALE_DATA[pargs["--values-as"]]
     except KeyError:
-        logger.error("Unknown values-as option: {}".format(
-            pargs['--values-as']))
+        logger.error("Unknown values-as option: {}".format(pargs["--values-as"]))
     make_hdf5(
-        pargs['<acq_file>'],
-        pargs['<hdf5_file>'],
+        pargs["<acq_file>"],
+        pargs["<hdf5_file>"],
         comp_opts,
         scale,
-        pargs['--data-only']
+        pargs["--data-only"],
     )
 
 
-def make_hdf5(
-        acq_filename,
-        hdf5_filename,
-        compression_opts,
-        scale,
-        data_only):
-    acq_file = open(acq_filename, 'rb')
-    hdf5_file = h5py.File(hdf5_filename, 'w')
+def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale, data_only):
+    acq_file = open(acq_filename, "rb")
+    hdf5_file = h5py.File(hdf5_filename, "w")
     r = br.Reader.read_headers(acq_file)
     df = r.datafile
-    hdf5_file.attrs['acq_revision'] = r.file_revision
-    hdf5_file.attrs['samples_per_second'] = r.samples_per_second
-    hdf5_file.attrs['byte_order'] = r.byte_order_char
+    hdf5_file.attrs["acq_revision"] = r.file_revision
+    hdf5_file.attrs["samples_per_second"] = r.samples_per_second
+    hdf5_file.attrs["byte_order"] = r.byte_order_char
     if not data_only:
-        hdf5_file.attrs['journal'] = df.journal or ''
+        hdf5_file.attrs["journal"] = df.journal or ""
     channel_datasets = None
     if r.is_compressed:
         channel_datasets = save_channels_compressed(
-            acq_file, r, hdf5_file, compression_opts, scale)
+            acq_file, r, hdf5_file, compression_opts, scale
+        )
     else:
         channel_datasets = save_channels_uncompressed(
-            acq_file, r, hdf5_file, compression_opts, scale)
+            acq_file, r, hdf5_file, compression_opts, scale
+        )
     channel_map = dict(
-        [[ch.order_num, channel_datasets[i]]
-            for i, ch in enumerate(df.channels)])
+        [[ch.order_num, channel_datasets[i]] for i, ch in enumerate(df.channels)]
+    )
     if not data_only:
         save_markers(hdf5_file, df, channel_map)
 
@@ -133,44 +126,35 @@ def create_channel_datasets(grp, channels, compression_opts, scale):
     channel_dsets = []
     for i, c in enumerate(channels):
         if scale:
-            dset_kwargs = {'dtype': 'f8'}
+            dset_kwargs = {"dtype": "f8"}
         else:
-            dset_kwargs = {'dtype': c.dtype}
+            dset_kwargs = {"dtype": c.dtype}
 
         dset_kwargs.update(compression_opts)
         cnum_name = cfstr.format(i)
         logger.debug("Creating dataset {0}".format(cnum_name))
-        dset = grp.create_dataset(
-            cnum_name,
-            (c.point_count,),
-            **dset_kwargs)
-        if c.dtype.kind == 'i' and not scale:
-            dset.attrs['scale'] = c.raw_scale_factor
-            dset.attrs['offset'] = c.raw_offset
+        dset = grp.create_dataset(cnum_name, (c.point_count,), **dset_kwargs)
+        if c.dtype.kind == "i" and not scale:
+            dset.attrs["scale"] = c.raw_scale_factor
+            dset.attrs["offset"] = c.raw_offset
         else:
-            dset.attrs['scale'] = 1.0
-            dset.attrs['offset'] = 0.0
-        dset.attrs['name'] = c.name
-        dset.attrs['frequency_divider'] = c.frequency_divider
-        dset.attrs['units'] = c.units
-        dset.attrs['samples_per_second'] = c.samples_per_second
-        dset.attrs['channel_number'] = c.order_num
+            dset.attrs["scale"] = 1.0
+            dset.attrs["offset"] = 0.0
+        dset.attrs["name"] = c.name
+        dset.attrs["frequency_divider"] = c.frequency_divider
+        dset.attrs["units"] = c.units
+        dset.attrs["samples_per_second"] = c.samples_per_second
+        dset.attrs["channel_number"] = c.order_num
         channel_dsets.append(dset)
     return channel_dsets
 
 
-def save_channels_uncompressed(
-        acq_file,
-        reader,
-        hdf5_file,
-        compression_opts,
-        scale):
+def save_channels_uncompressed(acq_file, reader, hdf5_file, compression_opts, scale):
     logger.debug("Saving uncompressed data to hdf5")
-    cg = hdf5_file.create_group('/channels')
+    cg = hdf5_file.create_group("/channels")
     df = reader.datafile
     chunker = reader.stream()
-    channel_dsets = create_channel_datasets(
-        cg, df.channels, compression_opts, scale)
+    channel_dsets = create_channel_datasets(cg, df.channels, compression_opts, scale)
 
     for chunk_num, chunk_buffers in enumerate(chunker):
         logger.debug("Got chunk {0}".format(chunk_num))
@@ -178,24 +162,18 @@ def save_channels_uncompressed(
             if scale:
                 chan = buf.channel
                 dset[buf.channel_slice] = (
-                    (buf.buffer[:] * chan.raw_scale_factor) +
-                    chan.raw_offset)
+                    buf.buffer[:] * chan.raw_scale_factor
+                ) + chan.raw_offset
             else:
                 dset[buf.channel_slice] = buf.buffer[:]
     return channel_dsets
 
 
-def save_channels_compressed(
-        acq_file,
-        reader,
-        hdf5_file,
-        compression_opts,
-        scale):
+def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts, scale):
     logger.debug("Saving compressed data to hdf5")
-    cg = hdf5_file.create_group('/channels')
+    cg = hdf5_file.create_group("/channels")
     df = reader.datafile
-    channel_dsets = create_channel_datasets(
-        cg, df.channels, compression_opts, scale)
+    channel_dsets = create_channel_datasets(cg, df.channels, compression_opts, scale)
     for i, (c, dset) in enumerate(zip(df.channels, channel_dsets)):
         logger.debug("Saving channel {0}".format(i))
         # This magically populates c.raw_data; I know this is kind of bad
@@ -216,20 +194,21 @@ def save_markers(hdf5_file, datafile, dset_map):
     for i, m in enumerate(markers):
         mname = marker_name_formatter.format(i)
         mg = hdf5_file.create_group("/event_markers/{0}".format(mname))
-        mg.attrs['label'] = m.text
-        mg.attrs['global_sample_index'] = m.sample_index
+        mg.attrs["label"] = m.text
+        mg.attrs["global_sample_index"] = m.sample_index
         if m.type_code:
-            mg.attrs['type_code'] = m.type_code
-            mg.attrs['type'] = m.type
-        mg.attrs['date_created'] = m.date_created_str
+            mg.attrs["type_code"] = m.type_code
+            mg.attrs["type"] = m.type
+        mg.attrs["date_created"] = m.date_created_str
         if m.channel:
-            mg.attrs['channel_number'] = m.channel_number
+            mg.attrs["channel_number"] = m.channel_number
             cdset = dset_map[m.channel_number]
-            mg['channel'] = cdset
-            mg.attrs['channel_sample_index'] = (
-                m.sample_index // cdset.attrs['frequency_divider'])
+            mg["channel"] = cdset
+            mg.attrs["channel_sample_index"] = (
+                m.sample_index // cdset.attrs["frequency_divider"]
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     argv = sys.argv[1:]
     main(argv)

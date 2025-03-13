@@ -9,6 +9,7 @@
 
 from bioread.runners import acq_layout
 
+
 def test_acq_layout_runs_all_files(any_acq_file, capsys):
     acq_layout.main([any_acq_file])
     out, err = capsys.readouterr()

@@ -22,8 +22,7 @@ Options:
   -o <file>     Write to a file instead of standard output.
 """
 
-from __future__ import (
-    unicode_literals, absolute_import, division, with_statement)
+from __future__ import unicode_literals, absolute_import, division, with_statement
 
 import sys
 import csv
@@ -34,43 +33,45 @@ from bioread import _metadata as meta
 
 
 FIELDS = [
-    'filename',
-    'time (s)',
-    'label',
-    'channel',
-    'date_created',
-    'type_code',
-    'type'
+    "filename",
+    "time (s)",
+    "label",
+    "channel",
+    "date_created",
+    "type_code",
+    "type",
 ]
 
 
 def u8fx():
-    if isinstance('x', str):
+    if isinstance("x", str):
         return lambda s: s
     else:
-        return lambda s: s.encode('utf-8')
+        return lambda s: s.encode("utf-8")
 
 
 uf = u8fx()
 
 
 def marker_formatter(acq_filename, graph_sample_msec):
-    """ Return a function that turns a marker into a dict. """
+    """Return a function that turns a marker into a dict."""
+
     def f(marker):
         return {
-            'filename': uf(acq_filename),
-            'time (s)': (marker.sample_index * graph_sample_msec) / 1000,
-            'label': uf(marker.text),
-            'channel': uf(marker.channel_name or 'Global'),
-            'date_created': uf(marker.date_created_str),
-            'type_code': uf(marker.type_code or 'None'),
-            'type': uf(marker.type)
+            "filename": uf(acq_filename),
+            "time (s)": (marker.sample_index * graph_sample_msec) / 1000,
+            "label": uf(marker.text),
+            "channel": uf(marker.channel_name or "Global"),
+            "date_created": uf(marker.date_created_str),
+            "type_code": uf(marker.type_code or "None"),
+            "type": uf(marker.type),
         }
+
     return f
 
 
 def acq_markers_output_file(input_filenames, output_filename):
-    with open(output_filename, 'w') as f:
+    with open(output_filename, "w") as f:
         return acq_markers(input_filenames, f)
 
 
@@ -78,7 +79,7 @@ def acq_markers(input_filenames, output_stream):
     csv_out = csv.DictWriter(output_stream, FIELDS, delimiter=str("\t"))
     csv_out.writeheader()
     for fname in input_filenames:
-        with open(fname, 'rb') as infile:
+        with open(fname, "rb") as infile:
             r = reader.Reader.read_headers(infile)
             mf = marker_formatter(fname, r.graph_header.sample_time)
             for m in r.datafile.event_markers:
@@ -88,16 +89,13 @@ def acq_markers(input_filenames, output_stream):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
-    pargs = docopt(
-        __doc__,
-        args,
-        version=meta.version_description)
+    pargs = docopt(__doc__, args, version=meta.version_description)
 
-    if pargs['-o']:
-        return acq_markers_output_file(pargs['<file>'], pargs['-o'])
+    if pargs["-o"]:
+        return acq_markers_output_file(pargs["<file>"], pargs["-o"])
     else:
-        return acq_markers(pargs['<file>'], sys.stdout)
+        return acq_markers(pargs["<file>"], sys.stdout)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

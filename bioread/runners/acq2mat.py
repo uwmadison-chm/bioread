@@ -57,28 +57,23 @@ class AcqToMatRunner:
     def run(self):
         old_err = sys.stderr
         sys.stderr = self.err
-        pargs = docopt(
-            __doc__,
-            self.argv,
-            version=meta.version_description)
+        pargs = docopt(__doc__, self.argv, version=meta.version_description)
         try:
             import scipy  # noqa -- catch this error before matlabwriter
         except Exception:
             sys.stderr.write("scipy is required for writing matlab files\n")
             sys.exit(1)
-        infile = pargs['<acq_file>']
-        matfile = pargs['<mat_file>']
-        compress = pargs['--compress']
+        infile = pargs["<acq_file>"]
+        matfile = pargs["<mat_file>"]
+        compress = pargs["--compress"]
 
         data = Reader.read(infile).datafile
         MatlabWriter.write_file(
-            data,
-            matfile,
-            compress=compress,
-            data_only=pargs['--data-only'])
+            data, matfile, compress=compress, data_only=pargs["--data-only"]
+        )
 
         sys.stderr = old_err
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

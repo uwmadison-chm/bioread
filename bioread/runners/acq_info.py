@@ -37,26 +37,23 @@ from bioread import _metadata as meta
 logger = logging.getLogger("bioread")
 logger.setLevel(logging.INFO)
 
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    parsed = docopt(
-        __doc__,
-        argv,
-        version=meta.version_description)
-    if parsed['--debug']:
+    parsed = docopt(__doc__, argv, version=meta.version_description)
+    if parsed["--debug"]:
         logger.setLevel(logging.DEBUG)
     logger.debug(parsed)
-    acq_file = parsed['<acq_file>']
-    if acq_file == '-':
+    acq_file = parsed["<acq_file>"]
+    if acq_file == "-":
         acq_file = BytesIO(sys.stdin.read())
     air = AcqInfoRunner(acq_file)
     air.run()
 
 
 class AcqInfoRunner:
-
     def __init__(self, acq_file):
         self.acq_file = acq_file
 
@@ -66,7 +63,9 @@ class AcqInfoRunner:
 
         gh = reader.graph_header
         rev = gh.file_revision
-        print(f"File revision: {rev} ({reader.version_string}), byte order: {gh.byte_order_char}")
+        print(
+            f"File revision: {rev} ({reader.version_string}), byte order: {gh.byte_order_char}"
+        )
         print(f"Sample time: {gh.sample_time}")
         print(f"Compressed: {gh.compressed}")
         print(f"Number of channels: {gh.channel_count}")
@@ -78,5 +77,5 @@ class AcqInfoRunner:
             print(f"\tData type: {channel.dtype}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

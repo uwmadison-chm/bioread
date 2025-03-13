@@ -15,5 +15,7 @@ version_description = "bioread {0}".format(__version__)
 author = "Nate Vack"
 author_email = "njvack@wisc.edu"
 license = "MIT"
-copyright = "Copyright (c) 2025 Boards of Regent of the University of Wisconsin System"  # noqa
+copyright = (
+    "Copyright (c) 2025 Boards of Regent of the University of Wisconsin System"  # noqa
+)
 url = "https://github.com/uwmadison-chm/bioread"

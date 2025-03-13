@@ -76,7 +76,7 @@ def test_compressed_uncompressed_markers_match(compressed_uncompressed_pair):
     skip it.
     """
     cfile, ufile = compressed_uncompressed_pair
-    if 'physio-5.0.1' in str(cfile):
+    if "physio-5.0.1" in str(cfile):
         pytest.xfail("5.0.1 compressed physio file has marker header issues")
     cm = bioread.read_headers(cfile).event_markers
     um = bioread.read_headers(ufile).event_markers
@@ -90,7 +90,9 @@ def test_compressed_uncompressed_markers_match(compressed_uncompressed_pair):
 # filled-pattern parts. So this function returns a slice that'll get you that
 # part of the raw data.
 def full_pattern_slices(channels):
-    pattern = bioread.data_reader.sample_pattern([c.frequency_divider for c in channels])
+    pattern = bioread.data_reader.sample_pattern(
+        [c.frequency_divider for c in channels]
+    )
     point_counts = np.array([c.point_count for c in channels])
     pattern_uses = np.bincount(pattern)
     full_pattern_counts = point_counts - (point_counts % pattern_uses)
@@ -103,14 +105,11 @@ def clean_text(s):
 
     These differences aren't important for our tests.
     """
-    return s.replace('\r\n', '\n').strip()
+    return s.replace("\r\n", "\n").strip()
 
 
 class HTMLTextExtractor(HTMLParser):
     def handle_data(self, data):
-        if not hasattr(self, 'content'):
-            self.content = ''
+        if not hasattr(self, "content"):
+            self.content = ""
         self.content += data
-
-
-

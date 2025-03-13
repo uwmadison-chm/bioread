@@ -30,8 +30,8 @@ def test_acq2mat_runs_all_files(any_acq_file, tmpdir):
     acq2mat.main([any_acq_file, out_file])
     assert Path(out_file).stat().st_size > 0  # Should create a non-empty file
     data = loadmat(out_file)
-    assert 'channels' in data
-    assert 'event_markers' in data
+    assert "channels" in data
+    assert "event_markers" in data
 
 
 def test_acq2mat_with_data_only(any_acq_file, tmpdir):
@@ -48,5 +48,5 @@ def test_acq2mat_with_data_only(any_acq_file, tmpdir):
     acq2mat.main([any_acq_file, out_file, "--data-only"])
     assert Path(out_file).stat().st_size > 0  # Should create a non-empty file
     data = loadmat(out_file)
-    assert 'channels' in data
-    assert 'event_markers' not in data
+    assert "channels" in data
+    assert "event_markers" not in data
