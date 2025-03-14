@@ -29,7 +29,7 @@ pip install bioread[mat]
 pip install bioread[all]
 ```
 
-As of May 2020 (version 2), we now require Python 3.6 or later. Versions 1.0.4 and below should work with Python 2.7 and up.
+As of March 2025, we're testing with python 3.10 — 3.13. bioread 1.0.4 and below should work with Python 2.7 and up.
 
 ## API Usage:
 
@@ -228,6 +228,28 @@ Options:
 ```
 
 Note that this one does not read from stdin; in this case, printing the markers from a large number of files was more important than feeding from `zcat` or something.
+
+
+### acq_layout
+
+Useful for debugging and/or adding support for new AcqKnowledge versions, `acq_layout` prints the data layout of an AcqKnowledge file, and what header classes are used for all the parts.
+
+```
+Print the binary layout of an AcqKnowledge file.
+
+Usage:
+    acq_layout [options] <acq_file>
+    acq_layout -h | --help
+    acq_layout --version
+
+Options:
+  -t, --truncate=num  Truncate arrays and byte strings to
+                      this length. 0 means no truncation. [default: 16]
+  --max-data=num      Maximum number of data bytes to print [default: 16]
+  -x, --hex           Print offsets and lengths in hex
+  -d, --debug         Print lots of debugging data
+  ```
+
 
 ## Notes
 

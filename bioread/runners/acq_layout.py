@@ -21,6 +21,7 @@ Usage:
 Options:
   -t, --truncate=num  Truncate arrays and byte strings to
                       this length. 0 means no truncation. [default: 16]
+  --max-data=num      Maximum number of data bytes to print [default: 16]
   -x, --hex           Print offsets and lengths in hex
   -d, --debug         Print lots of debugging data
 """
@@ -30,6 +31,8 @@ import ctypes
 from itertools import groupby
 import logging
 import sys
+import zlib
+import numpy as np
 
 from docopt import docopt
 
@@ -41,6 +44,10 @@ logger = logging.getLogger("bioread")
 logger.setLevel(logging.INFO)
 
 
+def sys_byte_order():
+    return "<" if sys.byteorder == "little" else ">"
+
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
@@ -49,15 +56,21 @@ def main(argv=None):
         logger.setLevel(logging.DEBUG)
     logger.debug(parsed)
 
-    alr = AcqLayoutRunner(parsed["<acq_file>"], parsed["--hex"], parsed["--truncate"])
+    alr = AcqLayoutRunner(
+        parsed["<acq_file>"],
+        parsed["--hex"],
+        parsed["--truncate"],
+        parsed["--max-data"],
+    )
     alr.run()
 
 
 class AcqLayoutRunner:
-    def __init__(self, acq_file, hex_output=False, truncate=10):
+    def __init__(self, acq_file, hex_output=False, truncate=10, max_data=16):
         self.acq_file = acq_file
         self.hex_output = hex_output
         self.truncate = int(truncate)
+        self.max_data = int(max_data)
         # This means we can use this correctly in a slice operation
         if self.truncate == 0:
             self.truncate = None
@@ -101,7 +114,7 @@ class AcqLayoutRunner:
 
     def _whole_array_as_string(self, array, override_truncate=None):
         truncate = override_truncate or self.truncate
-        subarray = array[: truncate]
+        subarray = array[:truncate]
         beginning = "[" + ", ".join(str(x) for x in subarray)
         if len(subarray) < len(array):
             beginning += ", ..."
@@ -132,6 +145,17 @@ class AcqLayoutRunner:
         ]
         return header_columns
 
+    def _truncate_bytes_to_hex(self, data_bytes):
+        """
+        Truncate bytes to the configured length and convert to hex string.
+        Adds "..." if the data was truncated. Which it almost always will be.
+        """
+        data_truncated = data_bytes[: self.max_data]
+        data_hex = data_truncated.hex()
+        if len(data_truncated) < len(data_bytes):
+            data_hex += "..."
+        return data_hex
+
     def _format_field(self, header, field):
         struct_class = header._struct_class
         field_name = field[0]
@@ -145,10 +169,7 @@ class AcqLayoutRunner:
         data_bytes = header.raw_data[
             field_class.offset : field_class.offset + field_class.size
         ]
-        data_truncated = data_bytes[: self.truncate]
-        data_hex = data_truncated.hex()
-        if len(data_truncated) < len(data_bytes):
-            data_hex += "..."
+        data_hex = self._truncate_bytes_to_hex(data_bytes)
 
         return [
             field_name,
@@ -166,17 +187,50 @@ class AcqLayoutRunner:
 
     def _data_rows_compressed(self, reader):
         rows = []
+        channels = reader.datafile.channels
         for i, cch in enumerate(reader.channel_compression_headers):
+            # Get a sample of the compressed data
+            reader.acq_file.seek(cch.compressed_data_offset)
+            comp_data = reader.acq_file.read(cch.compressed_data_len)
+            comp_data_hex = self._truncate_bytes_to_hex(comp_data)
+
+            # Decompress a small sample of data
+            channel = channels[i]
+
+            try:
+                decompressor = zlib.decompressobj()
+                decomp_data = decompressor.decompress(
+                    comp_data, max_length=self.max_data
+                )
+                decomp_data_hex = self._truncate_bytes_to_hex(decomp_data)
+            except Exception as e:
+                decomp_data_hex = f"Error decompressing: {str(e)}"
+
+            # Get channel information
+            channel_dtype = channel.dtype
+            channel_name = channel.name
+            channel_byte_order = channel_dtype.byteorder
+            if channel_byte_order == "=":
+                channel_byte_order = sys_byte_order()
+
+            compression_ratio = cch.uncompressed_data_len / cch.compressed_data_len
+
             row = [
                 "Compressed data",
                 i,
-                cch.byte_order_char,
+                channel_byte_order,
                 cch.file_revision,
                 self.version_string,
                 self._dec_or_hex(cch.compressed_data_offset),
                 self._dec_or_hex(cch.compressed_data_len),
                 self._dec_or_hex(cch.uncompressed_data_len),
-            ] + ([""] * 6)
+                "Channel",
+                channel_dtype,
+                channel_name,
+                f"Compression ratio: {compression_ratio:.2f}x",
+                f"Compressed sample: {comp_data_hex}",
+                f"Uncompressed sample: {decomp_data_hex}",
+            ]
             rows.append(row)
         return rows
 
@@ -190,13 +244,12 @@ class AcqLayoutRunner:
         bytes_to_read = 2 * len(byte_pattern)
         reader.acq_file.seek(reader.data_start_offset)
         example_data = reader.acq_file.read(bytes_to_read)
-        example_data_truncated = example_data[: self.truncate]
-        example_data_hex = example_data_truncated.hex()
-        if len(example_data_truncated) < len(example_data):
-            example_data_hex += "..."
+        example_data_hex = self._truncate_bytes_to_hex(example_data)
 
         # Don't truncate the channel types
-        channel_types = self._whole_array_as_string([str(c.dtype) for c in channels], len(channels))
+        channel_types = self._whole_array_as_string(
+            [str(c.dtype) for c in channels], len(channels)
+        )
         return [
             [
                 "Uncompressed data",
@@ -209,7 +262,8 @@ class AcqLayoutRunner:
                 self._dec_or_hex(reader.data_length),
                 "Data stream",
                 channel_types,
-                "Sample logical pattern: " + self._whole_array_as_string(sample_pattern),
+                "Sample logical pattern: "
+                + self._whole_array_as_string(sample_pattern),
                 "Sample byte pattern: " + self._whole_array_as_string(byte_pattern),
                 "Continuous data",
                 example_data_hex,
