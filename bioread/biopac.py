@@ -97,6 +97,7 @@ class Datafile:
                 chan_hdr=ch,
                 dtype_hdr=cdh,
                 samples_per_second=self.samples_per_second,
+                data_is_compressed=self.is_compressed,
                 datafile=self,
             )
             for ch, cdh in zip(self.channel_headers, self.channel_dtype_headers)
@@ -151,7 +152,9 @@ class Channel:
         self.__upsampled_data = None
 
     @classmethod
-    def from_headers(cls, chan_hdr, dtype_hdr, samples_per_second, datafile=None):
+    def from_headers(
+        cls, chan_hdr, dtype_hdr, samples_per_second, data_is_compressed, datafile=None
+    ):
         divider = chan_hdr.frequency_divider
         chan_samp_per_sec = samples_per_second / divider
 
@@ -161,7 +164,7 @@ class Channel:
             raw_offset=chan_hdr.raw_offset,
             name=chan_hdr.name,
             units=chan_hdr.units,
-            fmt_str=dtype_hdr.numpy_dtype,
+            fmt_str=dtype_hdr.numpy_dtype(data_is_compressed),
             samples_per_second=chan_samp_per_sec,
             point_count=chan_hdr.point_count,
             order_num=chan_hdr.order_num,

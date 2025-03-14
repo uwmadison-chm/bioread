@@ -523,9 +523,10 @@ class ChannelDTypeHeader(Header):
         type_size = int(dtype_code[-1])
         return type_size == self.sample_size
 
-    @property
-    def numpy_dtype(self):
-        return self.byte_order_char + self.CODE_MAP[self.type_code]
+    def numpy_dtype(self, data_is_compressed):
+        # Compressed data is always little-endian
+        byte_order_char = "<" if data_is_compressed else self.byte_order_char
+        return byte_order_char + self.CODE_MAP[self.type_code]
 
     @property
     def sample_size(self):

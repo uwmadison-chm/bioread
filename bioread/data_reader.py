@@ -82,12 +82,10 @@ class DataReader:
         for i in channel_indexes:
             cch = self.datafile.channel_compression_headers[i]
             channel = self.datafile.channels[i]
-            # Data seems to always be little-endian
-            dt = channel.dtype.newbyteorder("<")
             self.acq_file.seek(cch.compressed_data_offset)
             comp_data = self.acq_file.read(cch.compressed_data_len)
             decomp_data = zlib.decompress(comp_data)
-            channel.raw_data = np.frombuffer(decomp_data, dtype=dt)
+            channel.raw_data = np.frombuffer(decomp_data, dtype=channel.dtype)
 
     def read_data_uncompressed(
         self, channel_indexes=None, target_chunk_size=CHUNK_SIZE
