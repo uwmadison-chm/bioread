@@ -33,7 +33,6 @@ def test_acq2mat_runs_all_files(any_acq_file, tmpdir):
     assert data.itemsize == 8
 
 
-
 def test_acq2mat_with_data_only(any_acq_file, tmpdir):
     """
     Test that acq2mat runs on all data files with data_only and does not write
@@ -60,7 +59,7 @@ def test_acq2mat_with_single_precision(any_acq_file, tmpdir):
 
     base_name = acq_path.stem
     out_file = str(tmpdir / f"{base_name}.mat")
-    acq2mat.main([any_acq_file, out_file, "--single"])  
+    acq2mat.main([any_acq_file, out_file, "--single"])
     assert Path(out_file).stat().st_size > 0  # Should create a non-empty file
     data = loadmat(out_file)
     assert "channels" in data

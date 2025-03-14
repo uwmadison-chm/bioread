@@ -16,7 +16,13 @@ import numpy as np
 
 class MatlabWriter:
     def __init__(
-        self, data=None, filename=None, compress=False, oned_as="row", data_only=False, single=False
+        self,
+        data=None,
+        filename=None,
+        compress=False,
+        oned_as="row",
+        data_only=False,
+        single=False,
     ):
         self.data = data
         self.filename = filename
@@ -27,7 +33,15 @@ class MatlabWriter:
         self.write_meta = not self.data_only
 
     @classmethod
-    def write_file(cls, data, filename, compress=False, oned_as="row", data_only=False, single=False):
+    def write_file(
+        cls,
+        data,
+        filename,
+        compress=False,
+        oned_as="row",
+        data_only=False,
+        single=False,
+    ):
         writer = cls(data, filename, compress, oned_as, data_only, single)
         writer.write()
 
