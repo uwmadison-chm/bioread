@@ -16,18 +16,19 @@ import numpy as np
 
 class MatlabWriter:
     def __init__(
-        self, data=None, filename=None, compress=False, oned_as="row", data_only=False
+        self, data=None, filename=None, compress=False, oned_as="row", data_only=False, single=False
     ):
         self.data = data
         self.filename = filename
         self.compress = compress
         self.oned_as = oned_as
         self.data_only = data_only
+        self.single = single
         self.write_meta = not self.data_only
 
     @classmethod
-    def write_file(cls, data, filename, compress=False, oned_as="row", data_only=False):
-        writer = cls(data, filename, compress, oned_as, data_only)
+    def write_file(cls, data, filename, compress=False, oned_as="row", data_only=False, single=False):
+        writer = cls(data, filename, compress, oned_as, data_only, single)
         writer.write()
 
     def write(self):
@@ -48,9 +49,10 @@ class MatlabWriter:
         nc = len(data.channels)
         channels = np.zeros(nc, dtype="O")
         for i in range(nc):
+            data_format = "=f4" if self.single else "=f8"
             c = data.channels[i]
             chan_dict = {}
-            chan_dict["data"] = c.data.astype("=f8")
+            chan_dict["data"] = c.data.astype(data_format)
             chan_dict["samples_per_second"] = c.samples_per_second
             chan_dict["name"] = c.name
             chan_dict["frequency_divider"] = c.frequency_divider

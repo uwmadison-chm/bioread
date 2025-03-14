@@ -23,8 +23,10 @@ Usage:
 
 Options:
   -c, --compress  Save compressed Matlab file
-  --data-only     Only save data and required header information -- do not
-                  save event markers.
+  -s, --single    Save data in single precision format
+  --data-only     Only save data and required metadata -- do not
+                  save event markers, journal, or most header information
+  -h, --help      Show this help message and exit
 
 Note: scipy is required for this program.
 """
@@ -60,16 +62,19 @@ class AcqToMatRunner:
         pargs = docopt(__doc__, self.argv, version=meta.version_description)
         try:
             import scipy  # noqa -- catch this error before matlabwriter
-        except Exception:
+        except ImportError:
             sys.stderr.write("scipy is required for writing matlab files\n")
             sys.exit(1)
         infile = pargs["<acq_file>"]
         matfile = pargs["<mat_file>"]
         compress = pargs["--compress"]
+        single = pargs["--single"]
+        data_only = pargs["--data-only"]
 
         data = Reader.read(infile).datafile
+
         MatlabWriter.write_file(
-            data, matfile, compress=compress, data_only=pargs["--data-only"]
+            data, matfile, compress=compress, data_only=data_only, single=single
         )
 
         sys.stderr = old_err

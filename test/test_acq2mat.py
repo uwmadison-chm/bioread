@@ -22,9 +22,6 @@ from scipy.io import loadmat
 def test_acq2mat_runs_all_files(any_acq_file, tmpdir):
     """Test that acq2mat runs on all data files."""
     acq_path = Path(any_acq_file)
-    if acq_path.name == "small-unicode-4.4.0.acq":
-        pytest.xfail("This file does not round-trip and I don't know why")
-
     base_name = acq_path.stem
     out_file = str(tmpdir / f"{base_name}.mat")
     acq2mat.main([any_acq_file, out_file])
@@ -32,6 +29,9 @@ def test_acq2mat_runs_all_files(any_acq_file, tmpdir):
     data = loadmat(out_file)
     assert "channels" in data
     assert "event_markers" in data
+    data = data["channels"][0][0][0][0][0][0]
+    assert data.itemsize == 8
+
 
 
 def test_acq2mat_with_data_only(any_acq_file, tmpdir):
@@ -40,9 +40,6 @@ def test_acq2mat_with_data_only(any_acq_file, tmpdir):
     headers.
     """
     acq_path = Path(any_acq_file)
-    if acq_path.name == "small-unicode-4.4.0.acq":
-        pytest.xfail("This file does not round-trip and I don't know why")
-
     base_name = acq_path.stem
     out_file = str(tmpdir / f"{base_name}.mat")
     acq2mat.main([any_acq_file, out_file, "--data-only"])
@@ -50,3 +47,23 @@ def test_acq2mat_with_data_only(any_acq_file, tmpdir):
     data = loadmat(out_file)
     assert "channels" in data
     assert "event_markers" not in data
+
+
+def test_acq2mat_with_single_precision(any_acq_file, tmpdir):
+    """
+    Test that acq2mat runs on all data files with single precision and does not write
+    headers.
+    """
+    acq_path = Path(any_acq_file)
+    if acq_path.name == "physio-3.8.1-c.acq":
+        pytest.xfail("Error in input file causes overflow on resampling")
+
+    base_name = acq_path.stem
+    out_file = str(tmpdir / f"{base_name}.mat")
+    acq2mat.main([any_acq_file, out_file, "--single"])  
+    assert Path(out_file).stat().st_size > 0  # Should create a non-empty file
+    data = loadmat(out_file)
+    assert "channels" in data
+    # I hate, hate, the way this loads in from loadmat
+    data = data["channels"][0][0][0][0][0][0]
+    assert data.itemsize == 4

@@ -108,6 +108,9 @@ This program creates a Matlab (version 5) file from an AcqKnowledge file. On the
 ```
 Convert an AcqKnowledge file to a MATLAB file.
 
+This program is deprecated -- MATLAB can read HDF5 files natively, so I
+highly recommend using acq2hdf5 instead.
+
 Usage:
   acq2mat [options] <acq_file> <mat_file>
   acq2mat -h | --help
@@ -115,8 +118,9 @@ Usage:
 
 Options:
   -c, --compress  Save compressed Matlab file
-  --data-only     Only save data and required header information -- do not
-                  save event markers.
+  -s, --single    Save data in single precision format
+  --data-only     Only save data and required metadata -- do not
+                  save event markers, journal, or most header information
 
 Note: scipy is required for this program.
 ```
