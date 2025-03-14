@@ -67,6 +67,14 @@ def revision_range(min_revision=None, max_revision=None):
     return classmethod(is_valid_for_revision)
 
 
+def pre_4():
+    return revision_range(max_revision=V_400B)
+
+
+def post_4():
+    return revision_range(min_revision=V_400B)
+
+
 class Header(metaclass=HeaderMeta):
     """
     The base class for all the Biopac headers we're going to use. Basically,
@@ -231,7 +239,7 @@ class GraphHeaderPre4(GraphHeader):
     Graph Header for files with revision less than 4.
     """
 
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("nItemHeaderLen", ctypes.c_int16, V_ALL),
@@ -313,7 +321,7 @@ class GraphHeaderPost4(GraphHeader):
     Graph Header for files with revision 4 and above.
     """
 
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [
         ("nItemHeaderLen", ctypes.c_int16, V_ALL),
@@ -413,7 +421,7 @@ class ChannelHeaderPre4(ChannelHeader):
     Channel Header for files with revision less than 4.
     """
 
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("lChanHeaderLen", ctypes.c_int32, V_20a),
@@ -444,7 +452,7 @@ class ChannelHeaderPost4(ChannelHeader):
     Channel Header for files with revision 4 and above.
     """
 
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [
         ("lChanHeaderLen", ctypes.c_int32, V_20a),
@@ -475,7 +483,7 @@ class ForeignHeader(Header):
 
 
 class ForeignHeaderPre4(ForeignHeader):
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("nLength", ctypes.c_int16, V_20a),
@@ -488,7 +496,7 @@ class ForeignHeaderPre4(ForeignHeader):
 
 
 class ForeignHeaderPost4(ForeignHeader):
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [("lLength", ctypes.c_int32, V_400B)]
 
@@ -548,7 +556,7 @@ class JournalHeaderPre4(JournalHeader):
     length of the journal text.
     """
 
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     EXPECTED_TAG_VALUE = (0x44, 0x33, 0x22, 0x11)
     EXPECTED_TAG_VALUE_HEX = "".join(f"{b:02X}" for b in EXPECTED_TAG_VALUE)
@@ -587,7 +595,7 @@ class JournalHeaderPost4(JournalHeader):
     headers (if compressed) follow at self.offset + lFullLength.
     """
 
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [
         ("bUnknown1", ctypes.c_byte * 262, V_400B),
@@ -642,7 +650,7 @@ class MainCompressionHeader(Header):
 
 
 class MainCompressionHeaderPre4(MainCompressionHeader):
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("Unknown", ctypes.c_byte * 34, V_20a),
@@ -655,7 +663,7 @@ class MainCompressionHeaderPre4(MainCompressionHeader):
 
 
 class MainCompressionHeaderPost4(MainCompressionHeader):
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [
         ("Unknown1", ctypes.c_byte * 24, V_400B),
@@ -737,7 +745,7 @@ class MarkerHeaderPre4(MarkerHeader):
     Marker structure for files in Version 3, very likely down to version 2.
     """
 
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("lLength", ctypes.c_int32, V_20a),
@@ -754,7 +762,7 @@ class MarkerHeaderPost4(MarkerHeader):
     Marker structure for files from Version 4 onwards
     """
 
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     _versioned_fields = [
         ("lLength", ctypes.c_int32, V_400B),
@@ -835,7 +843,7 @@ class MarkerItemHeaderPre4(MarkerItemHeader):
     Marker Items for files in Version 3, very likely down to version 2.
     """
 
-    is_valid_for_revision = revision_range(max_revision=V_400B)
+    is_valid_for_revision = pre_4()
 
     _versioned_fields = [
         ("lSample", ctypes.c_int32, V_20a),
@@ -881,7 +889,7 @@ class MarkerItemHeaderPost4(MarkerItemHeader):
     Marker Items for files in Version 4 onwards.
     """
 
-    is_valid_for_revision = revision_range(min_revision=V_400B)
+    is_valid_for_revision = post_4()
 
     # Define the structure fields
     _versioned_fields = [
