@@ -70,14 +70,17 @@ def version_string_guess(revision):
     """
     sorted_revisions = sorted(REVISION_TO_VERSION.keys())  # int list
     if revision in REVISION_TO_VERSION:
+        # Got it exactly
         return REVISION_TO_VERSION[revision]
     if revision < sorted_revisions[0]:
-        return f"unknown early version"
+        # Super early, give 'unknown early version'
+        return REVISION_TO_VERSION[sorted_revisions[0]]
     if revision > sorted_revisions[-1]:
+        # Super late
         return f"after {REVISION_TO_VERSION[sorted_revisions[-1]]}"
     for i, check_revision in enumerate(sorted_revisions):
+        # In between
         if revision < check_revision:
-            print(i)
             low_bound = REVISION_TO_VERSION[sorted_revisions[i - 1]]
             high_bound = REVISION_TO_VERSION[sorted_revisions[i]]
             return f"between {low_bound} and {high_bound}"
