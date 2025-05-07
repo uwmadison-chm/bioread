@@ -20,8 +20,18 @@ def test_version_stringify_examples():
 
 
 def test_version_string_guesses():
-    assert "5.0.1" == rev.version_string_guess(132)
-    assert "after 5.0.1" == rev.version_string_guess(500)
-    assert "unknown early version" == rev.version_string_guess(-1)
-    assert "between 4.4.0 and 5.0.1" == rev.version_string_guess(131)
-    assert "between unknown early version and 2.0.a" == rev.version_string_guess(1)
+    assert "AcqKnowledge 5.0.1" == rev.version_string_guess(rev.V_501)
+    assert "BSL PRO 3.6.x" == rev.version_string_guess(rev.V_36x)
+    assert "Probably AcqKnowledge, after 5.0.1" == rev.version_string_guess(
+        rev.V_501 + 1
+    )
+    assert "Probably AcqKnowledge, unknown early version" == rev.version_string_guess(
+        rev.V_ALL - 1
+    )
+    assert "Probably AcqKnowledge, between 4.4.0 and 5.0.1" == rev.version_string_guess(
+        rev.V_440 + 1
+    )
+    assert (
+        "Probably AcqKnowledge, between unknown early version and 2.0.a"
+        == rev.version_string_guess(rev.V_ALL + 1)
+    )

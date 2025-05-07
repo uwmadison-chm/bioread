@@ -21,9 +21,9 @@ V_36x = 37
 V_370 = 38
 V_373 = 39
 V_381 = 41
-V_37P = 42
+V_37x = 42
 V_382 = 43
-V_38P = 44
+V_38x = 44
 V_390 = 45
 V_400B = 61  # Earliest 'late version' one I've seen so far...
 V_400 = 68
@@ -37,6 +37,8 @@ V_42x = 121  # Not yet sure what version this is
 V_430 = 124
 V_440 = 128
 V_501 = 132
+
+BSL_REVISIONS = {V_36x, V_37x, V_38x}
 
 # Make a dictionary mapping revison numbers to the version string.
 # This is a silly amount of code for a very marginal need
@@ -69,18 +71,23 @@ def version_string_guess(revision):
     Otherwise, return "after {version}".
     """
     sorted_revisions = sorted(REVISION_TO_VERSION.keys())  # int list
+    prog_string = "Probably AcqKnowledge"
+    if revision in REVISION_TO_VERSION:
+        prog_string = "AcqKnowledge"
+    if revision in BSL_REVISIONS:
+        prog_string = "BSL PRO"
     if revision in REVISION_TO_VERSION:
         # Got it exactly
-        return REVISION_TO_VERSION[revision]
+        return f"{prog_string} {REVISION_TO_VERSION[revision]}"
     if revision < sorted_revisions[0]:
         # Super early, give 'unknown early version'
-        return REVISION_TO_VERSION[sorted_revisions[0]]
+        return f"{prog_string}, {REVISION_TO_VERSION[sorted_revisions[0]]}"
     if revision > sorted_revisions[-1]:
         # Super late
-        return f"after {REVISION_TO_VERSION[sorted_revisions[-1]]}"
+        return f"{prog_string}, after {REVISION_TO_VERSION[sorted_revisions[-1]]}"
     for i, check_revision in enumerate(sorted_revisions):
         # In between
         if revision < check_revision:
             low_bound = REVISION_TO_VERSION[sorted_revisions[i - 1]]
             high_bound = REVISION_TO_VERSION[sorted_revisions[i]]
-            return f"between {low_bound} and {high_bound}"
+            return f"{prog_string}, between {low_bound} and {high_bound}"
