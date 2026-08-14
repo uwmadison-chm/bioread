@@ -38,10 +38,6 @@ if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
     logger.addHandler(log_handler)
 
 
-# How far past the foreign data header we're willing to go looking for the
-# channel dtype headers
-MAX_DTYPE_SCANS = 4096
-
 READ_EXCEPTIONS = (
     ValueError,
     IOError,
