@@ -1,0 +1,7 @@
+# Toolchain and generated parser -- rebuild with:
+#   npm install --prefix notes/kaitai
+#   node notes/kaitai/compile_ksy.js notes/kaitai/acq.ksy notes/kaitai
+node_modules/
+package-lock.json
+acq.py
+__pycache__/
