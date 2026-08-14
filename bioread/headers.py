@@ -85,6 +85,13 @@ class Header(metaclass=HeaderMeta):
 
     BASES = {">": ctypes.BigEndianStructure, "<": ctypes.LittleEndianStructure}
 
+    # Built ctypes structure classes, keyed by
+    # (header class, byte order char, file revision) -- the three things that
+    # determine the layout. Building a ctypes Structure subclass costs far more
+    # than unpacking one, so we do it once per layout rather than once per
+    # header we read. Files with many markers read thousands of headers.
+    _struct_class_cache = {}
+
     def __init__(
         self, file_revision, byte_order_char, encoding="utf-8", _from_factory=False
     ):
@@ -148,7 +155,9 @@ class Header(metaclass=HeaderMeta):
         """
         Get the appropriate structure class with correct byte order
         """
-        if not hasattr(self, "__cached_struct_class"):
+        key = (self.__class__, self.byte_order_char, self.file_revision)
+        struct_class = Header._struct_class_cache.get(key)
+        if struct_class is None:
             base_class = self.BASES[self.byte_order_char]
             fields = self._fields_for_current_version()
 
@@ -156,8 +165,9 @@ class Header(metaclass=HeaderMeta):
                 _pack_ = 1
                 _fields_ = fields
 
-            self.__cached_struct_class = StructClass
-        return self.__cached_struct_class
+            struct_class = StructClass
+            Header._struct_class_cache[key] = struct_class
+        return struct_class
 
     @property
     def struct_length(self):
