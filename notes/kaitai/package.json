@@ -1,0 +1,9 @@
+{
+  "name": "bioread-kaitai-notes",
+  "private": true,
+  "description": "Toolchain for the Kaitai Struct experiment in notes/kaitai. Not part of the bioread package.",
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "kaitai-struct-compiler": "^0.11.0"
+  }
+}
