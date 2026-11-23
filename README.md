@@ -29,7 +29,7 @@ pip install bioread[mat]
 pip install bioread[all]
 ```
 
-As of March 2025, we're testing with python 3.10 — 3.13. bioread 1.0.4 and below should work with Python 2.7 and up.
+As of November 2026, we're testing with Python 3.11 — 3.15. bioread 1.0.4 and below should work with Python 2.7 and up.
 
 ## API Usage:
 
