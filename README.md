@@ -255,6 +255,19 @@ Options:
   ```
 
 
+## Development
+
+bioread uses [uv](https://docs.astral.sh/uv/) for development and [just](https://just.systems/) as a task runner.
+
+```
+uv sync --all-extras   # create .venv with bioread, its extras, and dev tools
+just                   # run all checks
+just test -k markers   # run a subset of tests; arguments go to pytest
+just build             # build the sdist and wheel into dist/
+```
+
+The version number lives in `pyproject.toml`; `bioread.__version__` reads it from the installed package metadata.
+
 ## Notes
 
 I've tested all the various vintages of files I can think of and find, except very old (AcqKnowledge 2.x) files.

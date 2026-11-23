@@ -1,5 +1,5 @@
-# Install the package and run the test suite on each supported Python version.
-# For more information see: https://docs.github.com/en/actions/use-cases-and-examples/building-and-testing/building-and-testing-python
+# Run the test suite on each supported Python version, and build the
+# distributions. For more information see: https://docs.astral.sh/uv/guides/integration/github/
 
 name: Python package
 
@@ -14,8 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -24,22 +23,33 @@ jobs:
 
     steps:
     - uses: actions/checkout@v7
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v7
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
-        cache: pip
-        cache-dependency-path: pyproject.toml
+        enable-cache: true
     - name: Install HDF5 headers (for building h5py when no wheel exists)
       if: matrix.python-version == '3.15'
       run: |
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends libhdf5-dev pkg-config
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pytest
-    - name: Install the package
-      run: pip install -e ".[all]"
+    - name: Install the package and dev dependencies
+      run: uv sync --locked --all-extras
     - name: Test with pytest
-      run: pytest
+      run: uv run --locked pytest
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+    - name: Build sdist and wheel
+      run: uv build
+    - name: Smoke-test the built wheel
+      run: |
+        uv run --isolated --no-project --with dist/*.whl python -c "import bioread; print(bioread.__version__)"
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dist
+        path: dist/
