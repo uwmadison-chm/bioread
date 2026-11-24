@@ -29,7 +29,7 @@ pip install bioread[mat]
 pip install bioread[all]
 ```
 
-As of March 2025, we're testing with python 3.10 — 3.13. bioread 1.0.4 and below should work with Python 2.7 and up.
+As of November 2026, we're testing with Python 3.11 — 3.15. bioread 1.0.4 and below should work with Python 2.7 and up.
 
 ## API Usage:
 
@@ -254,6 +254,19 @@ Options:
   -d, --debug         Print lots of debugging data
   ```
 
+
+## Development
+
+bioread uses [uv](https://docs.astral.sh/uv/) for development and [just](https://just.systems/) as a task runner.
+
+```
+uv sync --all-extras   # create .venv with bioread, its extras, and dev tools
+just                   # run all checks
+just test -k markers   # run a subset of tests; arguments go to pytest
+just build             # build the sdist and wheel into dist/
+```
+
+The version number lives in `pyproject.toml`; `bioread.__version__` reads it from the installed package metadata.
 
 ## Notes
 

@@ -1,24 +1,30 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.11.32,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "bioread"
-dynamic = ["version"]
+version = "2025.05.02"
 description = "Utilities to read BIOPAC AcqKnowledge files"
 readme = "README.md"
-requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE", "COPYRIGHT"]
+authors = [{ name = "Nate Vack", email = "njvack@wisc.edu" }]
+requires-python = ">=3.11"
 dependencies = [
     "docopt>=0.6.1",
     "numpy>=2.2.3",
-    "pytest>=8.3.4",
 ]
 
 [project.optional-dependencies]
-mat = [ "scipy" ]
-hdf5 = [ "h5py" ]
-dev = ["pytest", "scipy", "h5py"]
+mat = ["scipy"]
+hdf5 = ["h5py"]
 all = ["scipy", "h5py"]
+
+[project.urls]
+Homepage = "https://github.com/uwmadison-chm/bioread"
+Repository = "https://github.com/uwmadison-chm/bioread"
+Changelog = "https://github.com/uwmadison-chm/bioread/blob/main/CHANGELOG"
 
 [project.scripts]
 acq_info = "bioread.runners.acq_info:main"
@@ -28,19 +34,13 @@ acq2hdf5 = "bioread.runners.acq2hdf5:main"
 acq2mat = "bioread.runners.acq2mat:main"
 acq_layout = "bioread.runners.acq_layout:main"
 
-[tool.hatch.version]
-path = "bioread/_metadata.py"
-
-[tool.uv.sources]
-bioread = { workspace = true }
-
 [dependency-groups]
 dev = [
-    "bioread",
-]
-hdf5 = [
+    "pytest>=8.3.4",
+    "scipy",
     "h5py",
 ]
-mat = [
-    "scipy",
-]
+
+[tool.uv.build-backend]
+module-root = ""
+source-exclude = ["test", "notes", "examples"]

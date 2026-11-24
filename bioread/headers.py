@@ -163,6 +163,7 @@ class Header(metaclass=HeaderMeta):
 
             class StructClass(base_class):
                 _pack_ = 1
+                _layout_ = "ms"
                 _fields_ = fields
 
             struct_class = StructClass

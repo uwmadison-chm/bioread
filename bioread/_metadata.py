@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -7,10 +6,15 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-# NOTE: This file must not import anything, or it will break installation.
+# The version lives in pyproject.toml; read it from the installed metadata.
+from importlib.metadata import PackageNotFoundError, version
 
-__version__ = "2025.05.02"
-version_description = "bioread {0}".format(__version__)
+try:
+    __version__ = version("bioread")
+except PackageNotFoundError:  # running from a source tree without installing
+    __version__ = "0+unknown"
+
+version_description = f"bioread {__version__}"
 
 author = "Nate Vack"
 author_email = "njvack@wisc.edu"
