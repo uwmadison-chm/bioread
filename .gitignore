@@ -2,26 +2,14 @@
 __pycache__/
 *.py[cod]
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
+# Build output
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
 *.egg-info/
-.installed.cfg
-*.egg
+
+# Virtual environments
+.venv/
+env/
 
 # Mac stuff
 .DS_Store
@@ -32,11 +20,8 @@ notebooks/
 # Local development python settings
 .python-version
 .cache/
+.pytest_cache/
+.ruff_cache/
 
 # vscode
 .vscode/
-
-old_setup/
-
-# We don't need uv's lockfile, that's machine-specific
-uv.lock

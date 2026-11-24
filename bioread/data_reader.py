@@ -251,8 +251,7 @@ def update_buffers_with_data(data, buffers, byte_pattern, channel_indexes):
     trimmed_pattern = byte_pattern[0 : len(data)]
     for i in channel_indexes:
         buf = buffers[i]
-        buf.buffer = data[trimmed_pattern == i]
-        buf.buffer.dtype = buf.channel.dtype
+        buf.buffer = data[trimmed_pattern == i].view(buf.channel.dtype)
         old_slice = buf.channel_slice
         buf.channel_slice = slice(old_slice.stop, old_slice.stop + len(buf.buffer))
 
