@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -7,10 +6,11 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-import numpy as np
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-REF_DATE = datetime(1970, 1, 1, tzinfo=timezone.utc)
+import numpy as np
+
+REF_DATE = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class Datafile:
@@ -56,7 +56,11 @@ class Datafile:
         return self.graph_header.compressed
 
     def __str__(self):
-        return f"AcqKnowledge file (rev {self.graph_header.file_revision}): {self.graph_header.channel_count} channels, {self.samples_per_second} samples/sec"
+        gh = self.graph_header
+        return (
+            f"AcqKnowledge file (rev {gh.file_revision}): "
+            f"{gh.channel_count} channels, {self.samples_per_second} samples/sec"
+        )
 
     def __repr__(self):
         return str(self)
@@ -100,7 +104,9 @@ class Datafile:
                 data_is_compressed=self.is_compressed,
                 datafile=self,
             )
-            for ch, cdh in zip(self.channel_headers, self.channel_dtype_headers)
+            for ch, cdh in zip(
+                self.channel_headers, self.channel_dtype_headers, strict=False
+            )
         ]
 
     def __set_channel_time_indexes(self):
@@ -237,7 +243,10 @@ class Channel:
         self.__upsampled_data = None
 
     def __str__(self):
-        return f"Channel {self.name}: {self.point_count} samples, {self.samples_per_second} samples/sec, loaded: {self.loaded}"
+        return (
+            f"Channel {self.name}: {self.point_count} samples, "
+            f"{self.samples_per_second} samples/sec, loaded: {self.loaded}"
+        )
 
     def __repr__(self):
         return str(self)
@@ -295,12 +304,10 @@ class EventMarker:
         )
 
     def __str__(self):
-        return "EventMarker {}: idx: {} channel: {} date_created_utc: {} type_code: {}".format(  # noqa: E501
-            self.text,
-            self.sample_index,
-            self.channel_number,
-            self.date_created_str,
-            self.type_code,
+        return (
+            f"EventMarker {self.text}: idx: {self.sample_index} "
+            f"channel: {self.channel_number} "
+            f"date_created_utc: {self.date_created_str} type_code: {self.type_code}"
         )
 
     def __repr__(self):

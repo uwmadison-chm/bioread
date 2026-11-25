@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -9,9 +8,9 @@
 
 # flake8: noqa: E203, E231, E741, E405, E403
 
-from bioread.file_revisions import *
-
 import ctypes
+
+from bioread.file_revisions import *
 
 
 class HeaderDefinitionError(TypeError):
@@ -60,9 +59,7 @@ def revision_range(min_revision=None, max_revision=None):
     def is_valid_for_revision(cls, file_revision):
         if min_revision is not None and file_revision < min_revision:
             return False
-        if max_revision is not None and file_revision >= max_revision:
-            return False
-        return True
+        return max_revision is None or file_revision < max_revision
 
     return classmethod(is_valid_for_revision)
 
@@ -133,7 +130,8 @@ class Header(metaclass=HeaderMeta):
         if len(matching_subclasses) > 1:
             # This should never happen, but it's good to have this check
             raise HeaderDefinitionError(
-                f"Multiple subclasses of {cls.__name__} are valid for revision {file_revision}: {matching_subclasses}"
+                f"Multiple subclasses of {cls.__name__} are valid for revision "
+                f"{file_revision}: {matching_subclasses}"
             )
 
         return matching_subclasses[0](*constructor_args)

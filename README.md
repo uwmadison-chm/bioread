@@ -213,10 +213,14 @@ bioread uses [uv](https://docs.astral.sh/uv/) for development and [just](https:/
 
 ```
 uv sync --all-extras   # create .venv with bioread, its extras, and dev tools
-just                   # run all checks
+just                   # run all checks (lint, then tests)
 just test -k markers   # run a subset of tests; arguments go to pytest
+just lint              # ruff lint and format checks
+just fix               # apply ruff's automatic fixes and formatting
 just build             # build the sdist and wheel into dist/
 ```
+
+To skip bulk formatting commits in `git blame`, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
 The version number lives in `pyproject.toml`; `bioread.__version__` reads it from the installed package metadata.
 

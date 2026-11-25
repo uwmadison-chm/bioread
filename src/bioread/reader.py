@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -8,25 +7,22 @@
 # Wisconsin-Madison
 # Extended by Alexander Schlemmer.
 
+import logging
 import struct
 from contextlib import contextmanager
 from io import IOBase
 
-import numpy as np
-
-from bioread.file_revisions import version_string_guess
 from bioread import headers as bh
-from bioread.header_reader import (
-    HeaderReader,
-    GraphHeaderReader,
-    ChannelDTypeHeaderReader,
-)
 from bioread.biopac import Datafile
+from bioread.data_reader import CHUNK_SIZE, DataReader
+from bioread.file_revisions import version_string_guess
+from bioread.header_reader import (
+    ChannelDTypeHeaderReader,
+    GraphHeaderReader,
+    HeaderReader,
+)
 from bioread.journal_reader import JournalReader
 from bioread.marker_reader import MarkerReader
-from bioread.data_reader import DataReader, CHUNK_SIZE
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +124,7 @@ class Reader:
         return self.graph_header.compressed
 
     def __repr__(self):
-        return "Reader('{0}')".format(self.acq_file)
+        return f"Reader('{self.acq_file}')"
 
     # Header reading methods
     def _read_headers(self):
@@ -193,7 +189,8 @@ class Reader:
         self.channel_dtype_headers = channel_dtype_headers
         self.headers.extend(channel_dtype_headers)
 
-        # Since we just read the data type headers, we should be at the start of the data
+        # We just read the data type headers, so we should be at the start of
+        # the data
         self.data_start_offset = self.header_reader.acq_file.tell()
 
         logger.debug("Computed data start offset: %s", self.data_start_offset)
@@ -247,7 +244,8 @@ class Reader:
         return sum(
             [
                 (ch.point_count * cdh.sample_size)
-                for ch, cdh in zip(channel_headers, channel_dtype_headers)
+                # Lengths can differ on damaged files; read what we can
+                for ch, cdh in zip(channel_headers, channel_dtype_headers, strict=False)
             ]
         )
 

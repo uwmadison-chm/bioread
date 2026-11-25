@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -9,6 +8,7 @@
 # Extended by Alexander Schlemmer.
 
 import logging
+
 import bioread.file_revisions as rev
 from bioread import headers as bh
 
@@ -91,7 +91,8 @@ class V2JournalReader(JournalReader):
         journal_header = self.header_reader.single_header(offset, bh.JournalHeader)
         if not journal_header.tag_value_matches_expected():
             raise ValueError(
-                f"Journal header tag is {journal_header.tag_value_hex}, expected {bh.JournalHeader.EXPECTED_TAG_VALUE_HEX}"
+                f"Journal header tag is {journal_header.tag_value_hex}, "
+                f"expected {bh.JournalHeader.EXPECTED_TAG_VALUE_HEX}"
             )
         self.all_headers.append(journal_header)
         logger.debug(

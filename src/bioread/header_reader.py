@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -82,7 +81,7 @@ class HeaderReader:
         headers = []
         last_h_len = 0  # This will be changed reading the channel headers
         h_offset = start_offset
-        for i in range(num):
+        for _ in range(num):
             h_offset += last_h_len
             logger.debug("Reading %s at offset %s", h_class.__name__, h_offset)
             h = h_class.for_revision(
@@ -136,10 +135,7 @@ class GraphHeaderReader:
         # in latin1 and everything newer is utf-8
         logger.debug("File revision: %s", file_revision)
         logger.debug("Byte order: %s", byte_order_char)
-        if file_revision < rev.V_400B:
-            encoding = "latin1"
-        else:
-            encoding = "utf-8"
+        encoding = "latin1" if file_revision < rev.V_400B else "utf-8"
 
         graph_header = bh.GraphHeader.for_revision(
             file_revision, byte_order_char, encoding
