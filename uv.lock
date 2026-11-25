@@ -52,20 +52,20 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cyclopts", specifier = ">=5.5" },
-    { name = "h5py", marker = "extra == 'all'" },
-    { name = "h5py", marker = "extra == 'hdf5'" },
+    { name = "h5py", marker = "extra == 'all'", specifier = ">=3.11" },
+    { name = "h5py", marker = "extra == 'hdf5'", specifier = ">=3.11" },
     { name = "numpy", specifier = ">=2.2.3" },
-    { name = "scipy", marker = "extra == 'all'" },
-    { name = "scipy", marker = "extra == 'mat'" },
+    { name = "scipy", marker = "extra == 'all'", specifier = ">=1.13" },
+    { name = "scipy", marker = "extra == 'mat'", specifier = ">=1.13" },
 ]
 provides-extras = ["mat", "hdf5", "all"]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "h5py" },
+    { name = "h5py", specifier = ">=3.11" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "ruff", specifier = ">=0.17.6" },
-    { name = "scipy" },
+    { name = "scipy", specifier = ">=1.13" },
     { name = "ty", specifier = ">=0.0.109" },
 ]
 

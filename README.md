@@ -217,6 +217,7 @@ just                   # run all checks (lint, type check, then tests)
 just test -k markers   # run a subset of tests; arguments go to pytest
 just lint              # ruff lint and format checks
 just typecheck         # ty type checks
+just test-lowest       # run tests against the lowest allowed dependency versions
 just fix               # apply ruff's automatic fixes and formatting
 just build             # build the sdist and wheel into dist/
 ```
