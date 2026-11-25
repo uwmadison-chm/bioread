@@ -13,10 +13,11 @@
 
 from pathlib import Path
 
+import pytest
+
 from bioread.runners import acq2mat
 
-import pytest
-from scipy.io import loadmat
+loadmat = pytest.importorskip("scipy.io").loadmat
 
 
 def test_acq2mat_runs_all_files(any_acq_file, tmpdir):

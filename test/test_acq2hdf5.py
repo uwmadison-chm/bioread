@@ -16,8 +16,10 @@ from pathlib import Path
 import bioread
 from bioread.runners import acq2hdf5
 
-import h5py
 import numpy as np
+import pytest
+
+h5py = pytest.importorskip("h5py")
 
 
 def test_acq2hdf5_runs_all_files(any_acq_file, tmpdir):
@@ -34,3 +36,22 @@ def test_acq2hdf5_runs_all_files(any_acq_file, tmpdir):
         for i, channel in enumerate(bio_data.channels):
             h5_channel_name = f"channel_{i}"
             assert np.array_equal(channel.data, h5_file["channels"][h5_channel_name])
+
+
+def test_acq2hdf5_rejects_unknown_values_as(original_uncompressed_acq_file, tmpdir):
+    out_file = tmpdir / "out.hdf5"
+    with pytest.raises(SystemExit) as excinfo:
+        acq2hdf5.main(
+            [str(original_uncompressed_acq_file), str(out_file), "--values-as=bogus"]
+        )
+    assert excinfo.value.code == 1
+    assert not out_file.exists()
+
+
+def test_acq2hdf5_exits_cleanly_without_h5py(
+    original_uncompressed_acq_file, tmpdir, monkeypatch
+):
+    monkeypatch.setattr(acq2hdf5, "h5py", None)
+    with pytest.raises(SystemExit) as excinfo:
+        acq2hdf5.main([str(original_uncompressed_acq_file), str(tmpdir / "out.hdf5")])
+    assert excinfo.value.code == 1

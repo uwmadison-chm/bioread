@@ -48,7 +48,7 @@ def main(argv=None):
     logger.debug(parsed)
     acq_file = parsed["<acq_file>"]
     if acq_file == "-":
-        acq_file = BytesIO(sys.stdin.read())
+        acq_file = BytesIO(sys.stdin.buffer.read())
     air = AcqInfoRunner(acq_file)
     air.run()
 

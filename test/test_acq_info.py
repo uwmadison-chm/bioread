@@ -8,6 +8,9 @@
 # Wisconsin-Madison
 
 
+import io
+import sys
+
 from bioread.runners import acq_info
 
 
@@ -18,3 +21,14 @@ def test_acq_info_runs_all_files(any_acq_file, capsys):
 
     # All of these should produce output
     assert len(out) > 0
+
+
+def test_acq_info_reads_stdin(any_acq_file, capsys, monkeypatch):
+    """Passing - as the file name reads the .acq file from stdin."""
+    with open(any_acq_file, "rb") as f:
+        data = f.read()
+    fake_stdin = io.TextIOWrapper(io.BytesIO(data), encoding="latin-1")
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+    acq_info.main(["-"])
+    out, err = capsys.readouterr()
+    assert "File revision" in out
