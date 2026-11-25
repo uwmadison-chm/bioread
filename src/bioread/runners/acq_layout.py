@@ -16,7 +16,6 @@ Useful for debugging and for adding support for new AcqKnowledge versions.
 
 import csv
 import ctypes
-import logging
 import sys
 import zlib
 from itertools import groupby
@@ -33,8 +32,6 @@ from bioread.runners._common import (
     run_legacy,
     setup_logging,
 )
-
-logger = logging.getLogger("bioread")
 
 
 def sys_byte_order():

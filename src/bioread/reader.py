@@ -28,14 +28,7 @@ from bioread.data_reader import DataReader, CHUNK_SIZE
 
 import logging
 
-# Re-adding the handler on reload causes duplicate log messages.
-logger = logging.getLogger("bioread")
-logger.setLevel(logging.WARNING)
-log_handler = logging.StreamHandler()
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(logging.Formatter("%(message)s"))
-if len(logger.handlers) == 0:  # Avoid duplicate messages on reload
-    logger.addHandler(log_handler)
+logger = logging.getLogger(__name__)
 
 
 READ_EXCEPTIONS = (
@@ -47,6 +40,12 @@ READ_EXCEPTIONS = (
     struct.error,
     IndexError,
 )
+
+
+def _describe_error(what, e):
+    """Describe a read error, including any notes on where it happened."""
+    notes = getattr(e, "__notes__", [])
+    return "; ".join([f"Error reading {what}: {e}", *notes])
 
 
 class Reader:
@@ -85,15 +84,12 @@ class Reader:
             try:
                 reader._read_headers()
             except READ_EXCEPTIONS as e:
-                pass
-            # We've already logged the error. Try to read the data.
+                # Keep going: often enough was read to get at the data.
+                reader._record_read_error("headers", e)
             try:
                 reader._read_data(channel_indexes, target_chunk_size)
             except READ_EXCEPTIONS as e:
-                # Log and print the error, but consume the exception so the
-                # caller still gets the reader.
-                logger.error(f"Error reading data: {e}")
-                reader.read_errors.append(str(e))
+                reader.read_errors.append(_describe_error("data", e))
                 raise
         return reader
 
@@ -106,8 +102,14 @@ class Reader:
                 reader._read_headers()
             except READ_EXCEPTIONS as e:
                 # Consume the exception so the caller still gets the reader.
-                pass
+                reader._record_read_error("headers", e)
         return reader
+
+    def _record_read_error(self, what, e):
+        """Note an error we're recovering from, so it isn't silently lost."""
+        message = _describe_error(what, e)
+        logger.warning(message)
+        self.read_errors.append(message)
 
     def stream(self, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
         """Set up and retun an iterator for streaming data."""
@@ -130,8 +132,6 @@ class Reader:
 
     # Header reading methods
     def _read_headers(self):
-        logger.debug("I am in _read_headers")
-
         # Read graph header and extract the necessary bits
         self.graph_header = GraphHeaderReader.bootstrap(self.acq_file)
         self.headers.append(self.graph_header)
@@ -168,7 +168,8 @@ class Reader:
         self.headers.extend(channel_headers)
 
         for i, ch in enumerate(channel_headers):
-            logger.debug("Channel header %s: %s" % (i, ch.data))
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("Channel header %s: %s", i, ch.data)
 
         # Read foreign header. multi_headers() walked the channel headers by
         # each one's own effective_len_bytes, so the end of the last one is
@@ -195,7 +196,7 @@ class Reader:
         # Since we just read the data type headers, we should be at the start of the data
         self.data_start_offset = self.header_reader.acq_file.tell()
 
-        logger.debug("Computed data start offset: %s" % self.data_start_offset)
+        logger.debug("Computed data start offset: %s", self.data_start_offset)
 
         # Calculate samples per second
         self.samples_per_second = 1000 / self.graph_header.sample_time
@@ -215,7 +216,7 @@ class Reader:
         self.data_length = self._data_length_bytes(
             channel_headers, channel_dtype_headers
         )
-        logger.debug(f"Computed data length: {self.data_length}")
+        logger.debug("Computed data length: %s", self.data_length)
 
         # In compressed files, markers come before compressed data. But
         # data_length is 0 for compressed files.
@@ -235,8 +236,7 @@ class Reader:
             self.datafile.journal = self.journal
             self.headers.extend(self.journal_reader.all_headers)
         except READ_EXCEPTIONS as e:
-            logger.error(f"Error reading journal: {e}")
-            self.read_errors.append(f"Error reading journal: {e}")
+            self._record_read_error("journal", e)
 
         # Read compression headers if needed
         self._read_compression_headers_if_compressed(channel_count)
@@ -289,6 +289,6 @@ def open_or_yield(thing, mode):
     if isinstance(thing, IOBase):
         yield thing
     else:
-        logger.debug(f"Opening file: {thing}")
+        logger.debug("Opening file: %s", thing)
         with open(thing, mode) as f:
             yield (f)

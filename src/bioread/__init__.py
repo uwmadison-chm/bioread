@@ -7,13 +7,17 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-from typing import Union, List, Optional, BinaryIO
+import logging
 import os
+from typing import Union, List, Optional, BinaryIO
 
 from bioread import reader
 from bioread.biopac import Datafile
 
 from ._metadata import __version__, author as __author__  # noqa
+
+# Leave logging configuration to the application (or our command-line tools).
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def read(
