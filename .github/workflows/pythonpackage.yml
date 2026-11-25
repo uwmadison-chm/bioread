@@ -46,9 +46,12 @@ jobs:
       uses: astral-sh/setup-uv@v7
     - name: Build sdist and wheel
       run: uv build
-    - name: Smoke-test the built wheel
+    - name: Test the built wheel
+      # Runs the suite against the wheel rather than the source tree, so
+      # files missing from the package make the tests fail.
       run: |
-        uv run --isolated --no-project --with dist/*.whl python -c "import bioread; print(bioread.__version__)"
+        uv run --isolated --no-project --with dist/*.whl --with pytest --with scipy --with h5py \
+          pytest
     - uses: actions/upload-artifact@v7
       with:
         name: dist
