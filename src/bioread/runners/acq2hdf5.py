@@ -119,12 +119,7 @@ def create_channel_datasets(grp, channels, compression_opts, scale):
 
     channel_dsets = []
     for i, c in enumerate(channels):
-        if scale:
-            dset_kwargs = {"dtype": "f8"}
-        else:
-            dset_kwargs = {"dtype": c.dtype}
-
-        dset_kwargs.update(compression_opts)
+        dset_kwargs = {"dtype": "f8" if scale else c.dtype, **compression_opts}
         cnum_name = cfstr.format(i)
         logger.debug("Creating dataset %s", cnum_name)
         dset = grp.create_dataset(cnum_name, (c.point_count,), **dset_kwargs)
@@ -152,7 +147,7 @@ def save_channels_uncompressed(acq_file, reader, hdf5_file, compression_opts, sc
 
     for chunk_num, chunk_buffers in enumerate(chunker):
         logger.debug("Got chunk %s", chunk_num)
-        for buf, dset in zip(chunk_buffers, channel_dsets):
+        for buf, dset in zip(chunk_buffers, channel_dsets, strict=True):
             if scale:
                 chan = buf.channel
                 dset[buf.channel_slice] = (
@@ -168,7 +163,7 @@ def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts, scal
     cg = hdf5_file.create_group("/channels")
     df = reader.datafile
     channel_dsets = create_channel_datasets(cg, df.channels, compression_opts, scale)
-    for i, (c, dset) in enumerate(zip(df.channels, channel_dsets)):
+    for i, (c, dset) in enumerate(zip(df.channels, channel_dsets, strict=True)):
         logger.debug("Saving channel %s", i)
         # This magically populates c.raw_data; I know this is kind of bad
         reader._read_data(channel_indexes=[i])

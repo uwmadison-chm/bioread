@@ -66,7 +66,8 @@ def version_string_guess(revision):
     """
     If we have revision number in our dictionary, return the version string.
     Otherwise, if the revision number is less than the first version, return
-    "before {version}". If it's between two versions, return "between {version1} and {version2}".
+    "before {version}". If it's between two versions, return
+    "between {version1} and {version2}".
     Otherwise, return "after {version}".
     """
     sorted_revisions = sorted(REVISION_TO_VERSION.keys())  # int list

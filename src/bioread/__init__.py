@@ -8,13 +8,13 @@
 
 import logging
 import os
-from typing import BinaryIO, List, Optional, Union
+from typing import BinaryIO
 
 from bioread import reader
 from bioread.biopac import Datafile
 
-from ._metadata import __version__  # noqa
-from ._metadata import author as __author__
+from ._metadata import __version__ as __version__
+from ._metadata import author as __author__  # noqa: F401 (public attribute)
 
 # Leave logging configuration to the application (or our command-line tools).
 logging.getLogger(__name__).addHandler(logging.NullHandler())

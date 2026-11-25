@@ -83,13 +83,14 @@ def compressed_files():
 
 
 def compressed_uncompressed_pairs():
-    return zip(compressed_files(), uncompressed_files())
+    return zip(compressed_files(), uncompressed_files(), strict=True)
 
 
 def good_data_compressed_pairs():
     return zip(
         data_file_names(ALL_DATASETS, NORMAL_VERSIONS, ["-c"]),
         data_file_names(ALL_DATASETS, NORMAL_VERSIONS, [""]),
+        strict=True,
     )
 
 
@@ -97,4 +98,5 @@ def buggy_data_compressed_pairs():
     return zip(
         data_file_names(ALL_DATASETS, BADEND_VERSIONS, ["-c"]),
         data_file_names(ALL_DATASETS, BADEND_VERSIONS, [""]),
+        strict=True,
     )

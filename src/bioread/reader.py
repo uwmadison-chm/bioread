@@ -189,7 +189,8 @@ class Reader:
         self.channel_dtype_headers = channel_dtype_headers
         self.headers.extend(channel_dtype_headers)
 
-        # Since we just read the data type headers, we should be at the start of the data
+        # We just read the data type headers, so we should be at the start of
+        # the data
         self.data_start_offset = self.header_reader.acq_file.tell()
 
         logger.debug("Computed data start offset: %s", self.data_start_offset)
@@ -243,7 +244,8 @@ class Reader:
         return sum(
             [
                 (ch.point_count * cdh.sample_size)
-                for ch, cdh in zip(channel_headers, channel_dtype_headers)
+                # Lengths can differ on damaged files; read what we can
+                for ch, cdh in zip(channel_headers, channel_dtype_headers, strict=False)
             ]
         )
 

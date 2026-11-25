@@ -329,6 +329,6 @@ def least_common_multiple(*ar):
 
 def greatest_common_denominator(a, b):
     """Iterative method to compute greatest common denominator."""
-    while not b == 0:
+    while b != 0:
         a, b = b, a % b
     return a

@@ -53,7 +53,7 @@ def test_compressed_uncompressed_good_channels_match(good_data_compressed_pair):
     cfile, ufile = good_data_compressed_pair
     cdata = bioread.read(cfile)
     udata = bioread.read(ufile)
-    for cch, uch in zip(cdata.channels, udata.channels):
+    for cch, uch in zip(cdata.channels, udata.channels, strict=True):
         assert np.array_equal(cch.raw_data, uch.raw_data)
 
 
@@ -64,7 +64,9 @@ def test_compressed_uncompressed_buggy_channels_match(buggy_data_compressed_pair
     # Because of the bad end of the uncompressed file, only compare the first
     # 90% of the data
     valid_slices = full_pattern_slices(cdata.channels)
-    for cch, uch, channel_slice in zip(cdata.channels, udata.channels, valid_slices):
+    for cch, uch, channel_slice in zip(
+        cdata.channels, udata.channels, valid_slices, strict=True
+    ):
         assert np.array_equal(cch.raw_data[channel_slice], uch.raw_data[channel_slice])
 
 
