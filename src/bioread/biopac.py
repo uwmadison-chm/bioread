@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -7,10 +6,11 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-import numpy as np
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 
-REF_DATE = datetime(1970, 1, 1, tzinfo=timezone.utc)
+import numpy as np
+
+REF_DATE = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 class Datafile:

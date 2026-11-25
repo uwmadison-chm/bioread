@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -7,13 +6,12 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-import pytest
-
-import numpy as np
 from html.parser import HTMLParser
 
+import numpy as np
+import pytest
+
 import bioread
-from bioread import reader
 from bioread.reader import Reader
 
 

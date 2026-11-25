@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -9,9 +8,9 @@
 
 # flake8: noqa: E203, E231, E741, E405, E403
 
-from bioread.file_revisions import *
-
 import ctypes
+
+from bioread.file_revisions import *
 
 
 class HeaderDefinitionError(TypeError):

@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -14,7 +13,7 @@ import csv
 
 
 def write_text(datafile, out_stream, channel_indexes, missing_val):
-    writer = csv.writer(out_stream, delimiter=str("\t"))
+    writer = csv.writer(out_stream, delimiter="\t")
     if not channel_indexes:
         channel_indexes = range(len(datafile.channels))
     chans = [datafile.channels[i] for i in channel_indexes]

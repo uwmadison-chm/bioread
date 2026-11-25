@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -9,20 +8,21 @@
 
 import logging
 import os
-from typing import Union, List, Optional, BinaryIO
+from typing import BinaryIO, List, Optional, Union
 
 from bioread import reader
 from bioread.biopac import Datafile
 
-from ._metadata import __version__, author as __author__  # noqa
+from ._metadata import __version__  # noqa
+from ._metadata import author as __author__
 
 # Leave logging configuration to the application (or our command-line tools).
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 def read(
-    filelike: Union[str, os.PathLike, BinaryIO],
-    channel_indexes: Optional[List[int]] = None,
+    filelike: str | os.PathLike | BinaryIO,
+    channel_indexes: list[int] | None = None,
 ) -> Datafile:
     """
     Read a file (either an IO object or a filename) and return a Datafile.
@@ -46,7 +46,7 @@ def read(
 read_file = read
 
 
-def read_headers(filelike: Union[str, os.PathLike, BinaryIO]) -> Datafile:
+def read_headers(filelike: str | os.PathLike | BinaryIO) -> Datafile:
     """
     Read only the headers of a file, returns a Datafile with empty channels.
 

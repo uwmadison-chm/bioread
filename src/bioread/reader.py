@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -8,25 +7,22 @@
 # Wisconsin-Madison
 # Extended by Alexander Schlemmer.
 
+import logging
 import struct
 from contextlib import contextmanager
 from io import IOBase
 
-import numpy as np
-
-from bioread.file_revisions import version_string_guess
 from bioread import headers as bh
-from bioread.header_reader import (
-    HeaderReader,
-    GraphHeaderReader,
-    ChannelDTypeHeaderReader,
-)
 from bioread.biopac import Datafile
+from bioread.data_reader import CHUNK_SIZE, DataReader
+from bioread.file_revisions import version_string_guess
+from bioread.header_reader import (
+    ChannelDTypeHeaderReader,
+    GraphHeaderReader,
+    HeaderReader,
+)
 from bioread.journal_reader import JournalReader
 from bioread.marker_reader import MarkerReader
-from bioread.data_reader import DataReader, CHUNK_SIZE
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +124,7 @@ class Reader:
         return self.graph_header.compressed
 
     def __repr__(self):
-        return "Reader('{0}')".format(self.acq_file)
+        return f"Reader('{self.acq_file}')"
 
     # Header reading methods
     def _read_headers(self):

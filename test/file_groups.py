@@ -3,8 +3,6 @@ This module contains the data groups for the tests.
 """
 
 import itertools
-import pytest
-
 from pathlib import Path
 
 TEST_DIR = Path(__file__).parent

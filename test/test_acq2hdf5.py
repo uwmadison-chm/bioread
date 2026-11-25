@@ -1,4 +1,3 @@
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -13,11 +12,11 @@
 
 from pathlib import Path
 
-import bioread
-from bioread.runners import acq2hdf5
-
 import numpy as np
 import pytest
+
+import bioread
+from bioread.runners import acq2hdf5
 
 h5py = pytest.importorskip("h5py")
 

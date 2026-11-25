@@ -111,7 +111,7 @@ def make_hdf5(acq_file, hdf5_filename, compression_opts, scale, data_only):
 
 
 def cnum_formatter(channel_count):
-    return "channel_{{:0{0}d}}".format(len(str(channel_count)))
+    return f"channel_{{:0{len(str(channel_count))}d}}"
 
 
 def create_channel_datasets(grp, channels, compression_opts, scale):
@@ -184,10 +184,10 @@ def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts, scal
 def save_markers(hdf5_file, datafile, dset_map):
     markers = datafile.event_markers
     mcount = len(markers)
-    marker_name_formatter = "marker_{{:0{0}d}}".format(len(str(mcount)))
+    marker_name_formatter = f"marker_{{:0{len(str(mcount))}d}}"
     for i, m in enumerate(markers):
         mname = marker_name_formatter.format(i)
-        mg = hdf5_file.create_group("/event_markers/{0}".format(mname))
+        mg = hdf5_file.create_group(f"/event_markers/{mname}")
         mg.attrs["label"] = m.text
         mg.attrs["global_sample_index"] = m.sample_index
         if m.type_code:

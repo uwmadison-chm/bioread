@@ -2,11 +2,10 @@
 Configuration for pytest.
 """
 
-import pytest
-
 from pathlib import Path
 
 import file_groups
+import pytest
 
 # Base directory for test data
 TEST_DIR = Path(__file__).parent
