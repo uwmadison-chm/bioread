@@ -14,6 +14,17 @@ permissions:
   contents: read
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+    - name: Lint
+      run: uv run --locked ruff check --output-format=github .
+    - name: Check formatting
+      run: uv run --locked ruff format --check .
+
   test:
     runs-on: ubuntu-latest
     strategy:
