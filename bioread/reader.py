@@ -168,15 +168,20 @@ class Reader:
         channel_headers = self.header_reader.multi_headers(
             channel_count, channel_offset, bh.ChannelHeader
         )
-        ch_len = channel_headers[0].effective_len_bytes
         self.channel_headers = channel_headers
         self.headers.extend(channel_headers)
 
         for i, ch in enumerate(channel_headers):
             logger.debug("Channel header %s: %s" % (i, ch.data))
 
-        # Read foreign header
-        foreign_offset = channel_offset + len(channel_headers) * ch_len
+        # Read foreign header. multi_headers() walked the channel headers by
+        # each one's own effective_len_bytes, so the end of the last one is
+        # where the foreign header starts -- don't re-derive it by assuming
+        # every channel header is the same length.
+        last_channel_header = channel_headers[-1]
+        foreign_offset = (
+            last_channel_header.offset + last_channel_header.effective_len_bytes
+        )
         foreign_header = self.header_reader.single_header(
             foreign_offset, bh.ForeignHeader
         )
