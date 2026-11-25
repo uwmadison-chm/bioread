@@ -18,11 +18,11 @@ from typing import Annotated
 
 from cyclopts import Parameter
 
-from bioread import reader
 from bioread.runners._common import (
     Outfile,
     Verbose,
     open_acq,
+    read_headers,
     run_legacy,
     setup_logging,
 )
@@ -86,9 +86,9 @@ def acq_markers(input_filenames, output_stream):
     csv_out.writeheader()
     for fname in input_filenames:
         with open_acq(fname) as infile:
-            r = reader.Reader.read_headers(infile)
-            mf = marker_formatter(fname, r.graph_header.sample_time)
-            for m in r.datafile.event_markers:
+            _, df = read_headers(infile)
+            mf = marker_formatter(fname, df.graph_header.sample_time)
+            for m in df.event_markers:
                 csv_out.writerow(mf(m))
 
 

@@ -213,9 +213,10 @@ bioread uses [uv](https://docs.astral.sh/uv/) for development and [just](https:/
 
 ```
 uv sync --all-extras   # create .venv with bioread, its extras, and dev tools
-just                   # run all checks (lint, then tests)
+just                   # run all checks (lint, type check, then tests)
 just test -k markers   # run a subset of tests; arguments go to pytest
 just lint              # ruff lint and format checks
+just typecheck         # ty type checks
 just fix               # apply ruff's automatic fixes and formatting
 just build             # build the sdist and wheel into dist/
 ```

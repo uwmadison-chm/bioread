@@ -12,15 +12,17 @@ import logging
 import os
 import shlex
 import sys
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from io import BytesIO
 from pathlib import Path
-from typing import Annotated, BinaryIO
+from typing import Annotated, BinaryIO, NoReturn
 
 from cyclopts import App, Parameter
 
 from bioread import _metadata as meta
+from bioread.biopac import Datafile
+from bioread.reader import Reader
 
 STDIN_NAME = "-"
 
@@ -123,14 +125,22 @@ def setup_logging(verbose: bool) -> None:
         logger.addHandler(_cli_handler)
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     """Print an error to stderr and exit with status 1."""
     print(f"Error: {message}", file=sys.stderr)
     sys.exit(1)
 
 
+def read_headers(acq_file: BinaryIO) -> tuple[Reader, Datafile]:
+    """Read a file's headers, exiting with an error if that's impossible."""
+    reader = Reader.read_headers(acq_file)
+    if reader.datafile is None:
+        fail("; ".join(reader.read_errors) or "Could not read headers")
+    return reader, reader.datafile
+
+
 @contextmanager
-def open_acq(path: str) -> Iterator[BinaryIO]:
+def open_acq(path: str) -> Generator[BinaryIO]:
     """Open an AcqKnowledge file for reading, treating - as standard input.
 
     Standard input is read fully into memory, since reading needs to seek.

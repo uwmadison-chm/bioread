@@ -7,8 +7,12 @@
 # Wisconsin-Madison
 
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from bioread.headers import GraphHeader
 
 REF_DATE = datetime(1970, 1, 1, tzinfo=UTC)
 
@@ -21,7 +25,7 @@ class Datafile:
 
     def __init__(
         self,
-        graph_header,
+        graph_header: "GraphHeader",
         channel_headers,
         channel_dtype_headers,
         samples_per_second,
@@ -32,11 +36,12 @@ class Datafile:
         self.channel_dtype_headers = channel_dtype_headers
         self.samples_per_second = samples_per_second
         self.name = name
-        self.event_markers = None
-        self.journal = None
+        self.event_markers: list[EventMarker] = []
+        self.journal: str | None = None
+        self.version_string: str | None = None
         self.__named_channels = None
         self.__time_index = None
-        self.channel_compression_headers = None
+        self.channel_compression_headers: list | None = None
         self.all_headers = []
 
         self.channels = self.__build_channels()
@@ -85,8 +90,6 @@ class Datafile:
         None if there are no markers our markers don't
         have date_created_utc
         """
-        if self.event_markers is None:
-            return None
         created_times = [
             m.date_created_utc for m in self.event_markers if m.date_created_utc
         ]
@@ -123,16 +126,16 @@ class Channel:
 
     def __init__(
         self,
-        frequency_divider=None,
-        raw_scale_factor=None,
-        raw_offset=None,
-        name=None,
-        units=None,
-        fmt_str=None,
-        samples_per_second=None,
-        point_count=None,
-        order_num=None,
-        datafile=None,
+        frequency_divider: int = 1,
+        raw_scale_factor: float = 1.0,
+        raw_offset: float = 0.0,
+        name: str | None = None,
+        units: str | None = None,
+        fmt_str: str | None = None,
+        samples_per_second: float | None = None,
+        point_count: int = 0,
+        order_num: int | None = None,
+        datafile: "Datafile | None" = None,
     ):
         self.frequency_divider = frequency_divider
         self.raw_scale_factor = raw_scale_factor
@@ -153,7 +156,7 @@ class Channel:
         # Don't allocate storage automatically -- this means we can read
         # only some channels or stream the data without putting all the data
         # in memory.
-        self.raw_data = None
+        self.raw_data: np.ndarray | None = None
         self.__data = None
         self.__upsampled_data = None
 
@@ -212,7 +215,7 @@ class Channel:
         will be the values reported by AcqKnowledge. Note: only integer data
         types are scaled and offset.
         """
-        if not self.loaded:
+        if self.raw_data is None:
             return None
         if self.__data is not None:
             return self.__data

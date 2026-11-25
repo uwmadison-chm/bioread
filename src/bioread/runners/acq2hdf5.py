@@ -17,12 +17,12 @@ from typing import Annotated, Literal
 
 from cyclopts import Parameter
 
-from bioread import reader as br
 from bioread.runners._common import (
     AcqFile,
     Verbose,
     fail,
     open_acq,
+    read_headers,
     run_legacy,
     setup_logging,
 )
@@ -86,9 +86,10 @@ def to_hdf5(
 
 
 def make_hdf5(acq_file, hdf5_filename, compression_opts, scale, data_only):
+    if h5py is None:
+        fail("to-hdf5 requires h5py; install it with: pip install bioread[hdf5]")
     with h5py.File(hdf5_filename, "w") as hdf5_file:
-        r = br.Reader.read_headers(acq_file)
-        df = r.datafile
+        r, df = read_headers(acq_file)
         hdf5_file.attrs["acq_revision"] = r.file_revision
         hdf5_file.attrs["samples_per_second"] = r.samples_per_second
         hdf5_file.attrs["byte_order"] = r.byte_order_char

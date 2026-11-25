@@ -38,8 +38,13 @@ def read(
     -------
     Datafile
         The read datafile
+
+    Raises
+    ------
+    ValueError
+        If the file's headers can't be read
     """
-    return reader.Reader.read(filelike, channel_indexes).datafile
+    return _datafile(reader.Reader.read(filelike, channel_indexes))
 
 
 # Deprecated; provided for compatibility with previous versions.
@@ -59,8 +64,20 @@ def read_headers(filelike: str | os.PathLike | BinaryIO) -> Datafile:
     -------
     Datafile
         The datafile with headers read
+
+    Raises
+    ------
+    ValueError
+        If the file's headers can't be read
     """
-    return reader.Reader.read_headers(filelike).datafile
+    return _datafile(reader.Reader.read_headers(filelike))
+
+
+def _datafile(r: reader.Reader) -> Datafile:
+    """Return the reader's datafile, or raise if the headers couldn't be read."""
+    if r.datafile is None:
+        raise ValueError("; ".join(r.read_errors) or "Could not read headers")
+    return r.datafile
 
 
 def reader_for_streaming(io: BinaryIO) -> reader.Reader:
