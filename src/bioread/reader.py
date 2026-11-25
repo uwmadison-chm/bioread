@@ -8,9 +8,11 @@
 # Extended by Alexander Schlemmer.
 
 import logging
+import os
 import struct
 from contextlib import contextmanager
 from io import IOBase
+from typing import BinaryIO
 
 from bioread import headers as bh
 from bioread.biopac import Datafile
@@ -45,17 +47,17 @@ def _describe_error(what, e):
 
 
 class Reader:
-    def __init__(self, acq_file=None):
+    def __init__(self, acq_file: BinaryIO):
         self.acq_file = acq_file
         self.encoding = None  # We're gonna guess from _set_order_and_version
-        self.datafile = None
+        self.datafile: Datafile | None = None
         # This must be set by _set_order_and_version
         self.byte_order_char = None
         self.file_revision = None
         self.version_string = None
         self.samples_per_second = None
         self.headers = []
-        self.graph_header = None
+        self.graph_header: bh.GraphHeader | None = None
         self.channel_headers = []
         self.channel_dtype_headers = []
         self.channel_compression_headers = []
@@ -66,7 +68,12 @@ class Reader:
 
     # Public methods
     @classmethod
-    def read(cls, fo, channel_indexes=None, target_chunk_size=CHUNK_SIZE):
+    def read(
+        cls,
+        fo: str | os.PathLike | BinaryIO,
+        channel_indexes: list[int] | None = None,
+        target_chunk_size: int = CHUNK_SIZE,
+    ) -> "Reader":
         """Read a biopac file into memory.
 
         fo: The name of the file to read, or a file-like object
@@ -90,7 +97,7 @@ class Reader:
         return reader
 
     @classmethod
-    def read_headers(cls, fo):
+    def read_headers(cls, fo: str | os.PathLike | BinaryIO) -> "Reader":
         """Read only the headers -- no data -- of a biopac file."""
         with open_or_yield(fo, "rb") as io:
             reader = cls(io)
@@ -120,7 +127,9 @@ class Reader:
         return self.data_reader.stream(channel_indexes, target_chunk_size)
 
     @property
-    def is_compressed(self):
+    def is_compressed(self) -> bool:
+        if self.graph_header is None:
+            raise RuntimeError("Headers have not been read yet")
         return self.graph_header.compressed
 
     def __repr__(self):
@@ -266,7 +275,8 @@ class Reader:
         self.channel_compression_headers = self.header_reader.multi_headers(
             channel_count, cch_offset, bh.ChannelCompressionHeader
         )
-        self.datafile.channel_compression_headers = self.channel_compression_headers
+        if self.datafile is not None:
+            self.datafile.channel_compression_headers = self.channel_compression_headers
         self.headers.extend(self.channel_compression_headers)
 
     def _read_data(self, channel_indexes, target_chunk_size=CHUNK_SIZE):

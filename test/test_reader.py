@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 import bioread
+from bioread import data_reader
 from bioread.reader import Reader
 
 
@@ -29,6 +30,7 @@ def test_html_journals_match(html_journal_file, journal_html):
     data = bioread.read(html_journal_file)
     saved_html_extractor = HTMLTextExtractor()
     saved_html_extractor.feed(journal_html)
+    assert data.journal is not None
     acq_html_extractor = HTMLTextExtractor()
     acq_html_extractor.feed(data.journal)
 
@@ -42,6 +44,7 @@ def test_biopac_object_smoke(any_acq_file):
     reader = Reader.read(any_acq_file)
     assert reader.read_errors == []
     data = reader.datafile
+    assert data is not None
     assert len(data.channels) > 0
     assert len(data.event_markers) > 0
     assert str(data)
@@ -90,9 +93,7 @@ def test_compressed_uncompressed_markers_match(compressed_uncompressed_pair):
 # filled-pattern parts. So this function returns a slice that'll get you that
 # part of the raw data.
 def full_pattern_slices(channels):
-    pattern = bioread.data_reader.sample_pattern(
-        [c.frequency_divider for c in channels]
-    )
+    pattern = data_reader.sample_pattern([c.frequency_divider for c in channels])
     point_counts = np.array([c.point_count for c in channels])
     pattern_uses = np.bincount(pattern)
     full_pattern_counts = point_counts - (point_counts % pattern_uses)

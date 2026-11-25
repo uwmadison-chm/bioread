@@ -63,13 +63,13 @@ class MarkerReader:
             return V4MarkerReader(header_reader)
         return V2MarkerReader(header_reader)
 
-    def read_markers(self, marker_start_offset, sample_time):
+    def read_markers(self, offset, sample_time):
         """
         Read the marker data.
 
         Parameters
         ----------
-        marker_start_offset : int
+        offset : int
             The offset where markers start
         graph_header : header
             The graph header

@@ -41,6 +41,7 @@ dev = [
     "scipy",
     "h5py",
     "ruff>=0.17.6",
+    "ty>=0.0.109",
 ]
 
 [tool.pytest.ini_options]

@@ -8,11 +8,11 @@
 
 """bioread info (also installed as acq_info)."""
 
-from bioread.reader import Reader
 from bioread.runners._common import (
     AcqFile,
     Verbose,
     open_acq,
+    read_headers,
     run_legacy,
     setup_logging,
 )
@@ -30,10 +30,9 @@ class AcqInfoRunner:
         self.acq_file = acq_file
 
     def run(self):
-        reader = Reader.read_headers(self.acq_file)
-        datafile = reader.datafile
+        reader, datafile = read_headers(self.acq_file)
 
-        gh = reader.graph_header
+        gh = datafile.graph_header
         rev = gh.file_revision
         print(
             f"File revision: {rev} ({reader.version_string}), "

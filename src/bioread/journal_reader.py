@@ -92,7 +92,7 @@ class V2JournalReader(JournalReader):
         if not journal_header.tag_value_matches_expected():
             raise ValueError(
                 f"Journal header tag is {journal_header.tag_value_hex}, "
-                f"expected {bh.JournalHeader.EXPECTED_TAG_VALUE_HEX}"
+                f"expected {journal_header.EXPECTED_TAG_VALUE_HEX}"
             )
         self.all_headers.append(journal_header)
         logger.debug(

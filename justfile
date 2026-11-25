@@ -1,5 +1,5 @@
 # Run all checks
-default: lint test
+default: lint typecheck test
 
 # Run the test suite; extra arguments go to pytest
 test *args:
@@ -9,6 +9,10 @@ test *args:
 lint:
     uv run ruff check .
     uv run ruff format --check .
+
+# Type check with ty
+typecheck:
+    uv run ty check
 
 # Fix what ruff can fix automatically, and format
 fix:

@@ -25,6 +25,6 @@ data.channels[0].name
 # let's assume the output is "CO2"
 data.named_channels["CO2"].data[0]
 
-from bioread.writers import MatlabWriter
+from bioread.writers.matlabwriter import MatlabWriter
 
 MatlabWriter.write_file(data, "myfile.mat")

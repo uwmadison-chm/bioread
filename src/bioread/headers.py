@@ -9,6 +9,7 @@
 # flake8: noqa: E203, E231, E741, E405, E403
 
 import ctypes
+from typing import Any, ClassVar
 
 from bioread.file_revisions import *
 
@@ -22,6 +23,7 @@ class HeaderDefinitionError(TypeError):
 
 
 class HeaderMeta(type):
+    _versioned_subclasses: list[type["Header"]]
     """
     Metaclass for the Header class. We'll use this to register subclasses
     that are valid for a given revision, so you can do something like:
@@ -82,6 +84,11 @@ class Header(metaclass=HeaderMeta):
 
     BASES = {">": ctypes.BigEndianStructure, "<": ctypes.LittleEndianStructure}
 
+    # Set by HeaderMeta: the subclasses for_revision() chooses between.
+    _versioned_subclasses: ClassVar[list[type["Header"]]]
+    # (field name, ctypes type, minimum file revision) for each field.
+    _versioned_fields: ClassVar[list[tuple[str, Any, int]]]
+
     # Built ctypes structure classes, keyed by
     # (header class, byte order char, file revision) -- the three things that
     # determine the layout. Building a ctypes Structure subclass costs far more
@@ -101,9 +108,12 @@ class Header(metaclass=HeaderMeta):
         self.file_revision = file_revision
         self.byte_order_char = byte_order_char
         self.encoding = encoding
-        self.offset = None
-        self.raw_data = None
-        self._struct = None
+        self.offset: int | None = None
+        self.raw_data: bytes | None = None
+        # A ctypes Structure built at runtime from _versioned_fields, so its
+        # fields can't be known statically.
+        self._struct: Any = None
+        self._data: dict[str, Any] | None = None
 
     # @classmethod
     # def _register_subclass(cls, subclass):
@@ -136,6 +146,11 @@ class Header(metaclass=HeaderMeta):
 
         return matching_subclasses[0](*constructor_args)
 
+    @classmethod
+    def is_valid_for_revision(cls, file_revision: int) -> bool:
+        """Overridden (via pre_4(), post_4(), ...) by versioned subclasses."""
+        return True
+
     def unpack_from_file(self, data_file, offset):
         """Unpack header data from a file at the given offset"""
         self.offset = offset
@@ -147,6 +162,7 @@ class Header(metaclass=HeaderMeta):
         """Unpack header data from a string/bytes. Useful for testing / debugging."""
         self.raw_data = bytes_data
         self._struct = self._struct_class.from_buffer_copy(bytes_data)
+        self._data = None
 
     @property
     def _struct_class(self):
@@ -159,12 +175,11 @@ class Header(metaclass=HeaderMeta):
             base_class = self.BASES[self.byte_order_char]
             fields = self._fields_for_current_version()
 
-            class StructClass(base_class):
-                _pack_ = 1
-                _layout_ = "ms"
-                _fields_ = fields
-
-            struct_class = StructClass
+            struct_class = type(
+                "StructClass",
+                (base_class,),
+                {"_pack_": 1, "_layout_": "ms", "_fields_": fields},
+            )
             Header._struct_class_cache[key] = struct_class
         return struct_class
 
@@ -199,14 +214,14 @@ class Header(metaclass=HeaderMeta):
         """
         Return a dictionary of the fields in the structure.
         """
-        if not hasattr(self, "__data"):
-            self.__data = {}
+        if self._data is None:
+            self._data = {}
             for field, _field_type in self._struct._fields_:
                 if isinstance(getattr(self._struct, field), ctypes.Array):
-                    self.__data[field] = list(getattr(self._struct, field))
+                    self._data[field] = list(getattr(self._struct, field))
                 else:
-                    self.__data[field] = getattr(self._struct, field)
-        return self.__data
+                    self._data[field] = getattr(self._struct, field)
+        return self._data
 
 
 class GraphHeader(Header):
