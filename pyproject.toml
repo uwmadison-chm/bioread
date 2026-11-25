@@ -12,7 +12,7 @@ license-files = ["LICENSE", "COPYRIGHT"]
 authors = [{ name = "Nate Vack", email = "njvack@wisc.edu" }]
 requires-python = ">=3.11"
 dependencies = [
-    "docopt>=0.6.1",
+    "cyclopts>=5.5",
     "numpy>=2.2.3",
 ]
 
@@ -27,6 +27,7 @@ Repository = "https://github.com/uwmadison-chm/bioread"
 Changelog = "https://github.com/uwmadison-chm/bioread/blob/main/CHANGELOG"
 
 [project.scripts]
+bioread = "bioread.cli:main"
 acq_info = "bioread.runners.acq_info:main"
 acq_markers = "bioread.runners.acq_markers:main"
 acq2txt = "bioread.runners.acq2txt:main"

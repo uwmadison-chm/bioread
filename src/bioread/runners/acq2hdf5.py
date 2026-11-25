@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -11,47 +9,31 @@
 # This script writes an AcqKnowledge file as HDF5, using h5py:
 # http://www.h5py.org/
 
-"""Convert an AcqKnowledge file to an HDF5 file.
+"""bioread to-hdf5 (also installed as acq2hdf5)."""
 
-Usage:
-  acq2hdf5 [options] <acq_file> <hdf5_file>
-  acq2hdf5 -h | --help
-  acq2hdf5 --version
-
-Options:
-  --values-as=<type>    Save raw measurement values, stored as integers in the
-                        base file, as either 'raw' or 'scaled'. If stored as
-                        raw, you can convert to scaled using the scale and
-                        offset attributes on the channel. If storing scaled
-                        values, scale and offset will be 1 and 0.
-                        [default: scaled]
-  --compress=<method>   How to compress data. Options are gzip, lzf, none.
-                        [default: gzip]
-  --data-only           Only save data and required headers -- do not save
-                        journal or marker information.
-  -v, --verbose         Print extra messages for debugging.
-"""
-
-import sys
 import logging
+from pathlib import Path
+from typing import Annotated, Literal
 
-from bioread import _metadata as meta
+from cyclopts import Parameter
+
 from bioread import reader as br
-from docopt import docopt
-
-# Re-adding the handler on reload causes duplicate log messages.
-logger = logging.getLogger("bioread.runners.acq2hdf5")
-logger.setLevel(logging.INFO)
-log_handler = logging.StreamHandler()
-log_handler.setLevel(logging.DEBUG)
-log_handler.setFormatter(logging.Formatter("%(message)s"))
+from bioread.runners._common import (
+    AcqFile,
+    Verbose,
+    fail,
+    open_acq,
+    run_legacy,
+    setup_logging,
+)
 
 try:
     import h5py
 except ImportError:
-    # Checked in main() so that importing this module never exits.
+    # Checked when the command runs, so that importing this module never exits.
     h5py = None
 
+logger = logging.getLogger("bioread")
 
 COMPRESSION_OPTS = {
     "none": {},
@@ -62,44 +44,49 @@ COMPRESSION_OPTS = {
 SCALE_DATA = {"scaled": True, "raw": False}
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
+def to_hdf5(
+    acq_file: AcqFile,
+    hdf5_file: Annotated[Path, Parameter(help="HDF5 file to write.")],
+    /,
+    *,
+    values_as: Annotated[
+        Literal["scaled", "raw"],
+        Parameter(
+            help="Save values stored as integers in the file either raw or "
+            "scaled. Raw values can be converted using the scale and offset "
+            "attributes on each channel; for scaled values, scale and offset "
+            "are 1 and 0."
+        ),
+    ] = "scaled",
+    compress: Annotated[
+        Literal["gzip", "lzf", "none"],
+        Parameter(help="How to compress the data."),
+    ] = "gzip",
+    data_only: Annotated[
+        bool,
+        Parameter(
+            negative="",
+            help="Only save data and required headers; skip the journal and "
+            "event markers.",
+        ),
+    ] = False,
+    verbose: Verbose = False,
+) -> None:
+    """Convert an AcqKnowledge file to an HDF5 file.
 
-    pargs = docopt(__doc__, argv, version=meta.version_description)
+    Requires h5py (pip install bioread[hdf5]).
+    """
     if h5py is None:
-        logger.error(
-            "acq2hdf5 requires h5py; install it with: pip install bioread[hdf5]"
+        fail("to-hdf5 requires h5py; install it with: pip install bioread[hdf5]")
+    setup_logging(verbose)
+    with open_acq(acq_file) as f:
+        make_hdf5(
+            f, hdf5_file, COMPRESSION_OPTS[compress], SCALE_DATA[values_as], data_only
         )
-        sys.exit(1)
-    if pargs["--verbose"]:
-        logger.setLevel(logging.DEBUG)
-    br.logger.setLevel(logger.level)
-    logger.debug(pargs)
-    try:
-        comp_opts = COMPRESSION_OPTS[pargs["--compress"]]
-    except KeyError:
-        logger.error("Unknown compression: {0}".format(pargs["--compress"]))
-        sys.exit(1)
-    try:
-        scale = SCALE_DATA[pargs["--values-as"]]
-    except KeyError:
-        logger.error("Unknown values-as option: {}".format(pargs["--values-as"]))
-        sys.exit(1)
-    make_hdf5(
-        pargs["<acq_file>"],
-        pargs["<hdf5_file>"],
-        comp_opts,
-        scale,
-        pargs["--data-only"],
-    )
 
 
-def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale, data_only):
-    with (
-        open(acq_filename, "rb") as acq_file,
-        h5py.File(hdf5_filename, "w") as hdf5_file,
-    ):
+def make_hdf5(acq_file, hdf5_filename, compression_opts, scale, data_only):
+    with h5py.File(hdf5_filename, "w") as hdf5_file:
         r = br.Reader.read_headers(acq_file)
         df = r.datafile
         hdf5_file.attrs["acq_revision"] = r.file_revision
@@ -216,6 +203,9 @@ def save_markers(hdf5_file, datafile, dset_map):
             )
 
 
+def main(argv=None):
+    return run_legacy("acq2hdf5", "to-hdf5", argv)
+
+
 if __name__ == "__main__":
-    argv = sys.argv[1:]
-    main(argv)
+    main()

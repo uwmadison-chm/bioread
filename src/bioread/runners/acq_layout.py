@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -11,58 +9,69 @@
 # This contains the entry point for an executable to print the binary layout
 # of an AcqKnowledge file.
 
-"""Print the binary layout of an AcqKnowledge file.
+"""bioread layout (also installed as acq_layout).
 
-Usage:
-    acq_layout [options] <acq_file>
-    acq_layout -h | --help
-    acq_layout --version
-
-Options:
-  -t, --truncate=num  Truncate arrays and byte strings to
-                      this length. 0 means no truncation. [default: 16]
-  --max-data=num      Maximum number of data bytes to print [default: 16]
-  -x, --hex           Print offsets and lengths in hex
-  -d, --debug         Print lots of debugging data
+Useful for debugging and for adding support for new AcqKnowledge versions.
 """
 
 import csv
 import ctypes
-from itertools import groupby
 import logging
 import sys
 import zlib
-import numpy as np
+from itertools import groupby
+from typing import Annotated
 
-from docopt import docopt
+from cyclopts import Parameter
 
-from bioread.reader import Reader
-from bioread import _metadata as meta
 from bioread import data_reader
+from bioread.reader import Reader
+from bioread.runners._common import (
+    AcqFile,
+    Verbose,
+    open_acq,
+    run_legacy,
+    setup_logging,
+)
 
 logger = logging.getLogger("bioread")
-logger.setLevel(logging.INFO)
 
 
 def sys_byte_order():
     return "<" if sys.byteorder == "little" else ">"
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-    parsed = docopt(__doc__, argv=argv, version=meta.version_description)
-    if parsed["--debug"]:
-        logger.setLevel(logging.DEBUG)
-    logger.debug(parsed)
+def layout(
+    acq_file: AcqFile,
+    /,
+    *,
+    truncate: Annotated[
+        int,
+        Parameter(
+            alias="-t",
+            help="Truncate arrays and byte strings to this length. 0 means no "
+            "truncation.",
+        ),
+    ] = 16,
+    max_data: Annotated[
+        int, Parameter(help="Maximum number of data bytes to print.")
+    ] = 16,
+    hex: Annotated[
+        bool,
+        Parameter(
+            name=["--hex", "-x"], negative="", help="Print offsets and lengths in hex."
+        ),
+    ] = False,
+    verbose: Verbose = False,
+) -> None:
+    """Print the binary layout of an AcqKnowledge file as tab-separated values.
 
-    alr = AcqLayoutRunner(
-        parsed["<acq_file>"],
-        parsed["--hex"],
-        parsed["--truncate"],
-        parsed["--max-data"],
-    )
-    alr.run()
+    Shows every header, its offset and length, and the header class used to
+    read it.
+    """
+    setup_logging(verbose)
+    with open_acq(acq_file) as f:
+        AcqLayoutRunner(f, hex, truncate, max_data).run()
 
 
 class AcqLayoutRunner:
@@ -76,11 +85,7 @@ class AcqLayoutRunner:
             self.truncate = None
 
     def run(self):
-        with open(self.acq_file, "rb") as f:
-            self._run(f)
-
-    def _run(self, f):
-        reader = Reader.read_headers(f)
+        reader = Reader.read_headers(self.acq_file)
         self.version_string = reader.version_string
         writer = csv.writer(sys.stdout, delimiter="\t")
         tsv_columns = [
@@ -272,6 +277,10 @@ class AcqLayoutRunner:
                 example_data_hex,
             ]
         ]
+
+
+def main(argv=None):
+    return run_legacy("acq_layout", "layout", argv)
 
 
 if __name__ == "__main__":

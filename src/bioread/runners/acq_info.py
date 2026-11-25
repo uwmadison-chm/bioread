@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -8,49 +6,27 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-# This contains the entry point for an executable to print basic information
-# about an AcqKnowledge file.
+"""bioread info (also installed as acq_info)."""
 
-"""Print some information about an AcqKnowledge file.
-
-Usage:
-    acq_info [options] <acq_file>
-    acq_info -h | --help
-    acq_info --version
-
-Options:
-  -d, --debug  print lots of debugging data
-
-Note: Using - for <acq_file> reads from stdin.
-
-"""
-
-import sys
 import logging
 
-from io import BytesIO
-from docopt import docopt
-
 from bioread.reader import Reader
-from bioread import _metadata as meta
+from bioread.runners._common import (
+    AcqFile,
+    Verbose,
+    open_acq,
+    run_legacy,
+    setup_logging,
+)
 
 logger = logging.getLogger("bioread")
-logger.setLevel(logging.INFO)
 
 
-def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    parsed = docopt(__doc__, argv, version=meta.version_description)
-    if parsed["--debug"]:
-        logger.setLevel(logging.DEBUG)
-    logger.debug(parsed)
-    acq_file = parsed["<acq_file>"]
-    if acq_file == "-":
-        acq_file = BytesIO(sys.stdin.buffer.read())
-    air = AcqInfoRunner(acq_file)
-    air.run()
+def info(acq_file: AcqFile, /, *, verbose: Verbose = False) -> None:
+    """Print some information about an AcqKnowledge file."""
+    setup_logging(verbose)
+    with open_acq(acq_file) as f:
+        AcqInfoRunner(f).run()
 
 
 class AcqInfoRunner:
@@ -64,7 +40,8 @@ class AcqInfoRunner:
         gh = reader.graph_header
         rev = gh.file_revision
         print(
-            f"File revision: {rev} ({reader.version_string}), byte order: {gh.byte_order_char}"
+            f"File revision: {rev} ({reader.version_string}), "
+            f"byte order: {gh.byte_order_char}"
         )
         print(f"Sample time: {gh.sample_time}")
         print(f"Compressed: {gh.compressed}")
@@ -75,6 +52,10 @@ class AcqInfoRunner:
             print(f"\tNumber of samples: {channel.point_count}")
             print(f"\tFrequency divider: {channel.frequency_divider}")
             print(f"\tData type: {channel.dtype}")
+
+
+def main(argv=None):
+    return run_legacy("acq_info", "info", argv)
 
 
 if __name__ == "__main__":
