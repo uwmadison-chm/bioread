@@ -41,6 +41,5 @@ dev = [
     "h5py",
 ]
 
-[tool.uv.build-backend]
-module-root = ""
-source-exclude = ["test", "notes", "examples"]
+[tool.pytest.ini_options]
+testpaths = ["test"]
