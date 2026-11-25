@@ -5,6 +5,10 @@ default: lint typecheck test
 test *args:
     uv run pytest {{args}}
 
+# Run the tests against the lowest dependency versions we allow
+test-lowest *args:
+    uv run --isolated --resolution lowest-direct --all-extras pytest {{args}}
+
 # Check linting and formatting
 lint:
     uv run ruff check .

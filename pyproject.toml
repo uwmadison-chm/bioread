@@ -17,9 +17,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mat = ["scipy"]
-hdf5 = ["h5py"]
-all = ["scipy", "h5py"]
+mat = ["scipy>=1.13"]
+hdf5 = ["h5py>=3.11"]
+all = ["scipy>=1.13", "h5py>=3.11"]
 
 [project.urls]
 Homepage = "https://github.com/uwmadison-chm/bioread"
@@ -38,8 +38,8 @@ acq_layout = "bioread.runners.acq_layout:main"
 [dependency-groups]
 dev = [
     "pytest>=8.3.4",
-    "scipy",
-    "h5py",
+    "scipy>=1.13",
+    "h5py>=3.11",
     "ruff>=0.17.6",
     "ty>=0.0.109",
 ]

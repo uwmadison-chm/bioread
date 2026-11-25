@@ -51,6 +51,20 @@ jobs:
     - name: Test with pytest
       run: uv run --locked pytest
 
+  test-lowest:
+    # Test against the lowest versions our dependencies allow, so the floors
+    # in pyproject.toml stay honest.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: "3.11"
+        enable-cache: true
+    - name: Test with pytest
+      run: uv run --isolated --resolution lowest-direct --all-extras pytest
+
   build:
     runs-on: ubuntu-latest
     steps:
