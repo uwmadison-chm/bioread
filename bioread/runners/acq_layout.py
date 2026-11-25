@@ -76,7 +76,10 @@ class AcqLayoutRunner:
             self.truncate = None
 
     def run(self):
-        f = open(self.acq_file, "rb")
+        with open(self.acq_file, "rb") as f:
+            self._run(f)
+
+    def _run(self, f):
         reader = Reader.read_headers(f)
         self.version_string = reader.version_string
         writer = csv.writer(sys.stdout, delimiter="\t")

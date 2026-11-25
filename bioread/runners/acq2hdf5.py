@@ -49,8 +49,8 @@ log_handler.setFormatter(logging.Formatter("%(message)s"))
 try:
     import h5py
 except ImportError:
-    logger.error("acq2hdf5 requires h5py")
-    sys.exit(1)
+    # Checked in main() so that importing this module never exits.
+    h5py = None
 
 
 COMPRESSION_OPTS = {
@@ -67,6 +67,11 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     pargs = docopt(__doc__, argv, version=meta.version_description)
+    if h5py is None:
+        logger.error(
+            "acq2hdf5 requires h5py; install it with: pip install bioread[hdf5]"
+        )
+        sys.exit(1)
     if pargs["--verbose"]:
         logger.setLevel(logging.DEBUG)
     br.logger.setLevel(logger.level)
@@ -76,11 +81,11 @@ def main(argv=None):
     except KeyError:
         logger.error("Unknown compression: {0}".format(pargs["--compress"]))
         sys.exit(1)
-    scale = False
     try:
         scale = SCALE_DATA[pargs["--values-as"]]
     except KeyError:
         logger.error("Unknown values-as option: {}".format(pargs["--values-as"]))
+        sys.exit(1)
     make_hdf5(
         pargs["<acq_file>"],
         pargs["<hdf5_file>"],
@@ -91,29 +96,31 @@ def main(argv=None):
 
 
 def make_hdf5(acq_filename, hdf5_filename, compression_opts, scale, data_only):
-    acq_file = open(acq_filename, "rb")
-    hdf5_file = h5py.File(hdf5_filename, "w")
-    r = br.Reader.read_headers(acq_file)
-    df = r.datafile
-    hdf5_file.attrs["acq_revision"] = r.file_revision
-    hdf5_file.attrs["samples_per_second"] = r.samples_per_second
-    hdf5_file.attrs["byte_order"] = r.byte_order_char
-    if not data_only:
-        hdf5_file.attrs["journal"] = df.journal or ""
-    channel_datasets = None
-    if r.is_compressed:
-        channel_datasets = save_channels_compressed(
-            acq_file, r, hdf5_file, compression_opts, scale
+    with (
+        open(acq_filename, "rb") as acq_file,
+        h5py.File(hdf5_filename, "w") as hdf5_file,
+    ):
+        r = br.Reader.read_headers(acq_file)
+        df = r.datafile
+        hdf5_file.attrs["acq_revision"] = r.file_revision
+        hdf5_file.attrs["samples_per_second"] = r.samples_per_second
+        hdf5_file.attrs["byte_order"] = r.byte_order_char
+        if not data_only:
+            hdf5_file.attrs["journal"] = df.journal or ""
+        channel_datasets = None
+        if r.is_compressed:
+            channel_datasets = save_channels_compressed(
+                acq_file, r, hdf5_file, compression_opts, scale
+            )
+        else:
+            channel_datasets = save_channels_uncompressed(
+                acq_file, r, hdf5_file, compression_opts, scale
+            )
+        channel_map = dict(
+            [[ch.order_num, channel_datasets[i]] for i, ch in enumerate(df.channels)]
         )
-    else:
-        channel_datasets = save_channels_uncompressed(
-            acq_file, r, hdf5_file, compression_opts, scale
-        )
-    channel_map = dict(
-        [[ch.order_num, channel_datasets[i]] for i, ch in enumerate(df.channels)]
-    )
-    if not data_only:
-        save_markers(hdf5_file, df, channel_map)
+        if not data_only:
+            save_markers(hdf5_file, df, channel_map)
 
 
 def cnum_formatter(channel_count):
