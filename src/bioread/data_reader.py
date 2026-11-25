@@ -12,7 +12,7 @@ import logging
 import zlib
 import numpy as np
 
-logger = logging.getLogger("bioread")
+logger = logging.getLogger(__name__)
 
 # This is how much interleaved uncompressed data we'll read at a time.
 CHUNK_SIZE = 1024 * 256  # A suggestion, probably not a terrible one.
@@ -177,9 +177,10 @@ def read_uncompressed(f, channels, channel_indexes=None, target_chunk_size=CHUNK
             ch = channels[i]
             buf = chunk_buffers[i]
             logger.debug(
-                "Storing {0} samples to {1} of channel {2}".format(
-                    len(buf.buffer), buf.channel_slice, i
-                )
+                "Storing %s samples to %s of channel %s",
+                len(buf.buffer),
+                buf.channel_slice,
+                i,
             )
             ch.raw_data[buf.channel_slice] = buf.buffer[:]
 
@@ -189,7 +190,7 @@ def make_chunk_reader(f, channels, channel_indexes=None, target_chunk_size=CHUNK
         channel_indexes = np.arange(len(channels))
 
     byte_pattern = chunk_byte_pattern(channels, target_chunk_size)
-    logger.debug("Using chunk size: {0} bytes".format(len(byte_pattern)))
+    logger.debug("Using chunk size: %s bytes", len(byte_pattern))
     buffers = [ChunkBuffer(c) for c in channels]
     return read_chunks(f, buffers, byte_pattern, channel_indexes)
 
@@ -205,9 +206,7 @@ def read_chunks(f, buffers, byte_pattern, channel_indexes):
     while np.sum(channel_bytes_remaining) > 0:
         pat = chunk_pattern(byte_pattern, channel_bytes_remaining)
         chunk_bytes = len(pat)
-        logger.debug(
-            "Chunk {0}: {1} bytes at {2}".format(chunk_number, chunk_bytes, f.tell())
-        )
+        logger.debug("Chunk %s: %s bytes at %s", chunk_number, chunk_bytes, f.tell())
         chunk_data = np.frombuffer(f.read(chunk_bytes), dtype="b", count=chunk_bytes)
         update_buffers_with_data(chunk_data, buffers, pat, channel_indexes)
 
@@ -215,7 +214,7 @@ def read_chunks(f, buffers, byte_pattern, channel_indexes):
         channel_bytes_remaining -= np.bincount(
             pat, minlength=len(channel_bytes_remaining)
         )
-        logger.debug("Channel bytes remaining: {0}".format(channel_bytes_remaining))
+        logger.debug("Channel bytes remaining: %s", channel_bytes_remaining)
         chunk_number += 1
 
 

@@ -8,8 +8,6 @@
 
 """bioread info (also installed as acq_info)."""
 
-import logging
-
 from bioread.reader import Reader
 from bioread.runners._common import (
     AcqFile,
@@ -18,8 +16,6 @@ from bioread.runners._common import (
     run_legacy,
     setup_logging,
 )
-
-logger = logging.getLogger("bioread")
 
 
 def info(acq_file: AcqFile, /, *, verbose: Verbose = False) -> None:

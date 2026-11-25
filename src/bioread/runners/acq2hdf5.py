@@ -33,7 +33,7 @@ except ImportError:
     # Checked when the command runs, so that importing this module never exits.
     h5py = None
 
-logger = logging.getLogger("bioread")
+logger = logging.getLogger(__name__)
 
 COMPRESSION_OPTS = {
     "none": {},
@@ -126,7 +126,7 @@ def create_channel_datasets(grp, channels, compression_opts, scale):
 
         dset_kwargs.update(compression_opts)
         cnum_name = cfstr.format(i)
-        logger.debug("Creating dataset {0}".format(cnum_name))
+        logger.debug("Creating dataset %s", cnum_name)
         dset = grp.create_dataset(cnum_name, (c.point_count,), **dset_kwargs)
         if c.dtype.kind == "i" and not scale:
             dset.attrs["scale"] = c.raw_scale_factor
@@ -151,7 +151,7 @@ def save_channels_uncompressed(acq_file, reader, hdf5_file, compression_opts, sc
     channel_dsets = create_channel_datasets(cg, df.channels, compression_opts, scale)
 
     for chunk_num, chunk_buffers in enumerate(chunker):
-        logger.debug("Got chunk {0}".format(chunk_num))
+        logger.debug("Got chunk %s", chunk_num)
         for buf, dset in zip(chunk_buffers, channel_dsets):
             if scale:
                 chan = buf.channel
@@ -169,7 +169,7 @@ def save_channels_compressed(acq_file, reader, hdf5_file, compression_opts, scal
     df = reader.datafile
     channel_dsets = create_channel_datasets(cg, df.channels, compression_opts, scale)
     for i, (c, dset) in enumerate(zip(df.channels, channel_dsets)):
-        logger.debug("Saving channel {0}".format(i))
+        logger.debug("Saving channel %s", i)
         # This magically populates c.raw_data; I know this is kind of bad
         reader._read_data(channel_indexes=[i])
         if scale:

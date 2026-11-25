@@ -12,7 +12,7 @@ import logging
 import bioread.file_revisions as rev
 from bioread import headers as bh
 
-logger = logging.getLogger("bioread")
+logger = logging.getLogger(__name__)
 
 
 class JournalReader:
@@ -83,10 +83,11 @@ class V2JournalReader(JournalReader):
         if self.header_reader.file_revision < rev.V_370:
             # We don't know how to read journals from before V_370
             logger.info(
-                f"Can't read journals from file revision {self.header_reader.file_revision}"
+                "Can't read journals from file revision %s",
+                self.header_reader.file_revision,
             )
             return None
-        logger.debug("Reading journal starting at %s" % self.acq_file.tell())
+        logger.debug("Reading journal starting at %s", self.acq_file.tell())
         journal_header = self.header_reader.single_header(offset, bh.JournalHeader)
         if not journal_header.tag_value_matches_expected():
             raise ValueError(
@@ -94,7 +95,9 @@ class V2JournalReader(JournalReader):
             )
         self.all_headers.append(journal_header)
         logger.debug(
-            f"Reading {journal_header.journal_len} bytes of journal at {self.acq_file.tell()}"
+            "Reading %s bytes of journal at %s",
+            journal_header.journal_len,
+            self.acq_file.tell(),
         )
         journal = (
             self.acq_file.read(journal_header.journal_len)
@@ -137,9 +140,9 @@ class V4JournalReader(JournalReader):
             )
             self.all_headers.append(journal_header)
             logger.debug(
-                "Reading {0} bytes of journal at {1}".format(
-                    journal_header.journal_len, self.acq_file.tell()
-                )
+                "Reading %s bytes of journal at %s",
+                journal_header.journal_len,
+                self.acq_file.tell(),
             )
             journal = (
                 self.acq_file.read(journal_header.journal_len)

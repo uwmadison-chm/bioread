@@ -94,13 +94,33 @@ def run_legacy(old_name: str, subcommand: str, argv=None):
     return cli.main([subcommand, *argv])
 
 
+class _StderrHandler(logging.StreamHandler):
+    """Write to whatever sys.stderr is at the time of each message."""
+
+    @property
+    def stream(self):
+        return sys.stderr
+
+    @stream.setter
+    def stream(self, value):
+        pass
+
+
+_cli_handler = _StderrHandler()
+_cli_handler.setFormatter(logging.Formatter("%(message)s"))
+
+
 def setup_logging(verbose: bool) -> None:
+    """Send bioread's log messages to stderr: warnings by default, or
+    everything with --verbose.
+
+    The library itself only installs a NullHandler; configuring output is the
+    application's job, and here the command-line tool is the application.
+    """
     logger = logging.getLogger("bioread")
-    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
-    if not logging.getLogger().handlers and not logger.handlers:
-        handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter("%(message)s"))
-        logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG if verbose else logging.WARNING)
+    if _cli_handler not in logger.handlers:
+        logger.addHandler(_cli_handler)
 
 
 def fail(message: str) -> None:

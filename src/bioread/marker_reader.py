@@ -13,7 +13,7 @@ import bioread.file_revisions as rev
 from bioread import headers as bh
 from bioread.biopac import EventMarker
 
-logger = logging.getLogger("bioread")
+logger = logging.getLogger(__name__)
 
 
 class MarkerReader:
@@ -102,7 +102,7 @@ class V2MarkerReader(MarkerReader):
         -------
         event_markers
         """
-        logger.debug("Reading markers starting at %s" % offset)
+        logger.debug("Reading markers starting at %s", offset)
 
         # Read marker header
         marker_header = self.header_reader.single_header(offset, bh.MarkerHeader)
@@ -151,7 +151,7 @@ class V2MarkerReader(MarkerReader):
             marker_text = marker_text_bytes.decode(
                 self.encoding, errors="ignore"
             ).strip("\0")
-            logger.debug(f"Marker text: {marker_text}")
+            logger.debug("Marker text: %s", marker_text)
             event_markers.append(
                 EventMarker(
                     time_index=(mih.sample_index * sample_time) / 1000,
@@ -227,7 +227,7 @@ class V4MarkerReader(MarkerReader):
         tuple
             (marker_header, marker_item_headers, event_markers)
         """
-        logger.debug(f"Reading markers starting at {offset}")
+        logger.debug("Reading markers starting at %s", offset)
 
         # Read marker header
         marker_header = self.header_reader.single_header(offset, bh.MarkerHeader)
@@ -271,7 +271,7 @@ class V4MarkerReader(MarkerReader):
             marker_text = marker_text_bytes.decode(
                 self.encoding, errors="ignore"
             ).strip("\0")
-            logger.debug(f"Marker text: {marker_text}")
+            logger.debug("Marker text: %s", marker_text)
             # We don't have the channel_order_map yet, so we'll just store None for now
             event_markers.append(
                 EventMarker(
