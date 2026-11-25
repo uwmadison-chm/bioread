@@ -38,13 +38,17 @@ def test_acq2hdf5_runs_all_files(any_acq_file, tmpdir):
             assert np.array_equal(channel.data, h5_file["channels"][h5_channel_name])
 
 
-def test_acq2hdf5_rejects_unknown_values_as(original_uncompressed_acq_file, tmpdir):
+def test_acq2hdf5_rejects_unknown_values_as(
+    original_uncompressed_acq_file, tmpdir, capsys
+):
     out_file = tmpdir / "out.hdf5"
     with pytest.raises(SystemExit) as excinfo:
         acq2hdf5.main(
             [str(original_uncompressed_acq_file), str(out_file), "--values-as=bogus"]
         )
-    assert excinfo.value.code == 1
+    # Usage errors exit with status 2, as with argparse.
+    assert excinfo.value.code == 2
+    assert "values-as" in capsys.readouterr().err
     assert not out_file.exists()
 
 

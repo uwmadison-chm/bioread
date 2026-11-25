@@ -75,7 +75,7 @@ any_acq_file = create_fixture(file_groups.all_files())
 
 @pytest.fixture
 def original_uncompressed_acq_file():
-    return str(DATA_DIR / "physio-4.4.0.acq")
+    return str(DATA_DIR / "physio" / "physio-4.4.0.acq")
 
 
 compressed_uncompressed_pair = create_fixture(

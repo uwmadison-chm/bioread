@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -8,76 +6,71 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-# This contains the entry point for an executable to convert BIOPAC
-# AcqKnowledge files into Matlab files.
+"""bioread to-mat (also installed as acq2mat)."""
 
-"""Convert an AcqKnowledge file to a MATLAB file.
+from pathlib import Path
+from typing import Annotated
 
-This program is deprecated -- MATLAB can read HDF5 files natively, so I
-highly recommend using acq2hdf5 instead.
-
-Usage:
-  acq2mat [options] <acq_file> <mat_file>
-  acq2mat -h | --help
-  acq2mat --version
-
-Options:
-  -c, --compress  Save compressed Matlab file
-  -s, --single    Save data in single precision format
-  --data-only     Only save data and required metadata -- do not
-                  save event markers, journal, or most header information
-  -h, --help      Show this help message and exit
-
-Note: scipy is required for this program.
-"""
-
-import sys
-from docopt import docopt
+from cyclopts import Parameter
 
 from bioread.reader import Reader
+from bioread.runners._common import (
+    AcqFile,
+    Verbose,
+    fail,
+    open_acq,
+    run_legacy,
+    setup_logging,
+)
 from bioread.writers.matlabwriter import MatlabWriter
-from bioread import _metadata as meta
+
+
+def to_mat(
+    acq_file: AcqFile,
+    mat_file: Annotated[Path, Parameter(help="MATLAB file to write.")],
+    /,
+    *,
+    compress: Annotated[
+        bool,
+        Parameter(name=["--compress", "-c"], negative="", help="Compress the file."),
+    ] = False,
+    single: Annotated[
+        bool,
+        Parameter(
+            name=["--single", "-s"],
+            negative="",
+            help="Save data in single precision.",
+        ),
+    ] = False,
+    data_only: Annotated[
+        bool,
+        Parameter(
+            negative="",
+            help="Only save data and required metadata; skip event markers, "
+            "the journal and most header information.",
+        ),
+    ] = False,
+    verbose: Verbose = False,
+) -> None:
+    """Convert an AcqKnowledge file to a MATLAB (version 5) file.
+
+    Deprecated: MATLAB reads HDF5 natively, so to-hdf5 is recommended instead.
+    Requires scipy (pip install bioread[mat]).
+    """
+    setup_logging(verbose)
+    try:
+        import scipy  # noqa: F401 -- fail before reading the whole file
+    except ImportError:
+        fail("to-mat requires scipy; install it with: pip install bioread[mat]")
+    with open_acq(acq_file) as f:
+        data = Reader.read(f).datafile
+    MatlabWriter.write_file(
+        data, str(mat_file), compress=compress, data_only=data_only, single=single
+    )
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    amr = AcqToMatRunner(argv)
-    amr.run()
-
-
-class AcqToMatRunner:
-    """The little wrapper class that converts acq files to mat files"""
-
-    def __init__(self, argv, err=None):
-        self.argv = argv
-        if err is None:
-            err = sys.stderr
-        self.err = err
-
-    def run(self):
-        old_err = sys.stderr
-        sys.stderr = self.err
-        pargs = docopt(__doc__, self.argv, version=meta.version_description)
-        try:
-            import scipy  # noqa -- catch this error before matlabwriter
-        except ImportError:
-            sys.stderr.write("scipy is required for writing matlab files\n")
-            sys.exit(1)
-        infile = pargs["<acq_file>"]
-        matfile = pargs["<mat_file>"]
-        compress = pargs["--compress"]
-        single = pargs["--single"]
-        data_only = pargs["--data-only"]
-
-        data = Reader.read(infile).datafile
-
-        MatlabWriter.write_file(
-            data, matfile, compress=compress, data_only=data_only, single=single
-        )
-
-        sys.stderr = old_err
+    return run_legacy("acq2mat", "to-mat", argv)
 
 
 if __name__ == "__main__":

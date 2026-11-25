@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf8
 # Part of the bioread package for reading BIOPAC data.
 #
 # Copyright (c) 2025 Board of Regents of the University of Wisconsin System
@@ -8,65 +6,70 @@
 # at the Waisman Laboratory for Brain Imaging and Behavior, University of
 # Wisconsin-Madison
 
-# This contains the entry point for an executable to convert BIOPAC
-# AcqKnowledge files into text files
-"""Write the data from an AcqKnowledge file channel to a text file.
-
-Usage:
-  acq2txt [options] <acq_file>
-  acq2txt -h | --help
-  acq2txt --version
-
-Options:
-  --version                    Show program's version number and exit.
-  -h, --help                   Show this help message and exit.
-  --channel-indexes=<indexes>  The indexes of the channels to extract.
-                               Separate numbers with commas. Default is to
-                               extract all channels.
-  -o, --outfile=<file>         Write to a file instead of standard out.
-  --missing-as=<val>           What value to write where a channel is not
-                               sampled. [default: ]
-
-The first column will always be time in seconds. Channel raw values are
-converted with scale and offset into native units.
-"""
+"""bioread to-txt (also installed as acq2txt)."""
 
 import sys
+from typing import Annotated
 
-from docopt import docopt
+from cyclopts import Parameter
 
 import bioread
+from bioread.runners._common import (
+    AcqFile,
+    Outfile,
+    Verbose,
+    open_acq,
+    run_legacy,
+    setup_logging,
+)
 from bioread.writers import txtwriter
-from bioread import _metadata as meta
+
+
+def _comma_separated_ints(type_, tokens):
+    """Accept --channel-indexes 0,2 as well as a repeated --channel-indexes."""
+    return [int(part) for t in tokens for part in t.value.split(",") if part.strip()]
+
+
+ChannelIndexes = Annotated[
+    list[int] | None,
+    Parameter(
+        converter=_comma_separated_ints,
+        negative="",
+        help="Indexes of the channels to write, separated by commas. "
+        "Default is all channels.",
+    ),
+]
+
+
+def to_txt(
+    acq_file: AcqFile,
+    /,
+    *,
+    channel_indexes: ChannelIndexes = None,
+    outfile: Outfile = None,
+    missing_as: Annotated[
+        str,
+        Parameter(help="Value to write where a channel is not sampled."),
+    ] = "",
+    verbose: Verbose = False,
+) -> None:
+    """Write the data from an AcqKnowledge file to tab-separated text.
+
+    The first column is always time in seconds. Raw values are converted with
+    each channel's scale and offset into native units.
+    """
+    setup_logging(verbose)
+    with open_acq(acq_file) as f:
+        data = bioread.read(f, channel_indexes=channel_indexes)
+    if outfile:
+        with open(outfile, "w") as out:
+            txtwriter.write_text(data, out, channel_indexes, missing_as)
+    else:
+        txtwriter.write_text(data, sys.stdout, channel_indexes, missing_as)
 
 
 def main(argv=None):
-    if argv is None:
-        argv = sys.argv[1:]
-
-    amr = AcqToTxtRunner(argv)
-    amr.run()
-
-
-class AcqToTxtRunner:
-    """The little wrapper class that converts acq files to text files"""
-
-    def __init__(self, argv):
-        self.argv = argv
-
-    def run(self):
-        pargs = docopt(__doc__, self.argv, version=meta.version_description)
-        infile = pargs["<acq_file>"]
-        channel_indexes = None
-        if pargs["--channel-indexes"]:
-            channel_indexes = [int(i) for i in pargs["--channel-indexes"].split(",")]
-        data = bioread.read(infile, channel_indexes=channel_indexes)
-        mval = pargs["--missing-as"]
-        if pargs["--outfile"]:
-            with open(pargs["--outfile"], "w") as f:
-                txtwriter.write_text(data, f, channel_indexes, mval)
-        else:
-            txtwriter.write_text(data, sys.stdout, channel_indexes, mval)
+    return run_legacy("acq2txt", "to-txt", argv)
 
 
 if __name__ == "__main__":
